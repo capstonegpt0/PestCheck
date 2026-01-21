@@ -1,0 +1,249 @@
+import React, { useState, useEffect } from 'react';
+import { Search, Book } from 'lucide-react';
+import Navigation from './Navigation';
+import api from '../utils/api';
+
+const PestDetailModal = ({ pest, onClose }) => {
+  if (!pest) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">{pest.name}</h2>
+              <p className="text-lg text-gray-600 italic">{pest.scientific_name}</p>
+            </div>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
+              ×
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">Description</h3>
+              <p className="text-gray-700">{pest.description}</p>
+            </div>
+
+            <div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">Symptoms</h3>
+              <p className="text-gray-700">{pest.symptoms}</p>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-xl font-semibold text-blue-800 mb-2">Control Methods</h3>
+              <p className="text-gray-700">{pest.control_methods}</p>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="text-xl font-semibold text-green-800 mb-2">Prevention</h3>
+              <p className="text-gray-700">{pest.prevention}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="mt-6 w-full bg-primary text-white py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PestLibrary = ({ user, onLogout }) => {
+  const [pests, setPests] = useState([]);
+  const [filteredPests, setFilteredPests] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPest, setSelectedPest] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [cropFilter, setCropFilter] = useState('all');
+
+  useEffect(() => {
+    fetchPests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    filterPests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, pests, cropFilter]);
+
+  const fetchPests = async () => {
+    try {
+      const response = await api.get('/pests/');
+      // Ensure response.data is an array
+      const data = Array.isArray(response.data) ? response.data : [];
+      setPests(data);
+      setFilteredPests(data);
+    } catch (error) {
+      console.error('Error fetching pests:', error);
+      setPests([]);
+      setFilteredPests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterPests = () => {
+    let filtered = pests.slice();
+
+    if (cropFilter && cropFilter !== 'all') {
+      const cf = cropFilter.toLowerCase();
+      filtered = filtered.filter((pest) =>
+        (pest.crop_affected || '').toLowerCase().includes(cf)
+      );
+    }
+
+    if (searchQuery && searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((pest) => {
+        const name = (pest.name || '').toLowerCase();
+        const sci = (pest.scientific_name || '').toLowerCase();
+        return name.includes(q) || sci.includes(q);
+      });
+    }
+
+    setFilteredPests(filtered);
+  };
+
+  // Sample pest data fallback
+  const samplePests = [
+    {
+      id: 1,
+      name: 'Brown Planthopper',
+      scientific_name: 'Nilaparvata lugens',
+      crop_affected: 'rice',
+      description:
+        'A serious rice pest that feeds on plant sap, causing hopper burn and transmitting viruses.',
+      symptoms:
+        'Yellowing and wilting of leaves, stunted growth, hopper burn appearance on leaves.',
+      control_methods:
+        'Use resistant varieties, apply insecticides (imidacloprid, buprofezin), maintain proper water management, introduce natural predators.',
+      prevention:
+        'Monitor fields regularly, avoid excessive nitrogen fertilizer, maintain balanced ecosystem with natural predators.',
+    },
+    {
+      id: 2,
+      name: 'Fall Armyworm',
+      scientific_name: 'Spodoptera frugiperda',
+      crop_affected: 'corn',
+      description: 'A destructive moth larva that feeds on corn leaves, stalks, and ears.',
+      symptoms: 'Irregular holes in leaves, sawdust-like frass near whorl, damaged tassels and ears.',
+      control_methods:
+        'Early morning hand-picking, apply Bt-based biopesticides, use chemical insecticides (chlorantraniliprole, emamectin benzoate).',
+      prevention: 'Crop rotation, remove crop residues, use pheromone traps, plant early maturing varieties.',
+    },
+    {
+      id: 3,
+      name: 'Rice Stem Borer',
+      scientific_name: 'Scirpophaga incertulas',
+      crop_affected: 'rice',
+      description: 'A major rice pest that bores into rice stems causing deadhearts and whiteheads.',
+      symptoms: 'Deadhearts in vegetative stage, whiteheads in reproductive stage, hollow stems.',
+      control_methods: 'Apply granular insecticides (cartap, fipronil), use light traps, remove affected plants.',
+      prevention: 'Use resistant varieties, proper timing of planting, remove stubbles after harvest, maintain field sanitation.',
+    },
+    {
+      id: 4,
+      name: 'Corn Borer',
+      scientific_name: 'Ostrinia furnacalis',
+      crop_affected: 'corn',
+      description: 'A lepidopteran pest that tunnels into corn stalks and ears.',
+      symptoms: 'Shot-hole appearance on leaves, entry holes on stalks, broken tassels, damaged kernels.',
+      control_methods: 'Apply Bt corn varieties, use granular insecticides in whorl, spray chemical insecticides.',
+      prevention: 'Plant Bt corn, destroy crop residues, proper crop rotation, early planting.',
+    },
+  ];
+
+  const displayPests = filteredPests.length > 0 ? filteredPests : samplePests;
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation user={user} onLogout={onLogout} />
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Pest Library</h1>
+
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 items-center">
+            <div className="flex-1 relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search pests..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+
+            <div className="flex-shrink-0 flex space-x-2">
+              <button
+                onClick={() => setCropFilter('all')}
+                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                  cropFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setCropFilter('rice')}
+                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                  cropFilter === 'rice' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Rice
+              </button>
+              <button
+                onClick={() => setCropFilter('corn')}
+                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                  cropFilter === 'corn' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Corn
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <p className="text-gray-600">Loading pest library...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {displayPests.map((pest) => (
+              <div
+                key={pest.id}
+                onClick={() => setSelectedPest(pest)}
+                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer p-6"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <Book className="w-8 h-8 text-primary" />
+                  <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
+                    {pest.crop_affected}
+                  </span>
+                </div>
+
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">{pest.name}</h3>
+                <p className="text-sm text-gray-600 italic mb-3">{pest.scientific_name}</p>
+                <p className="text-gray-700 line-clamp-3">{pest.description}</p>
+
+                <button className="mt-4 text-primary font-semibold hover:underline">Learn More →</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pest Detail Modal */}
+        {selectedPest && <PestDetailModal pest={selectedPest} onClose={() => setSelectedPest(null)} />}
+      </div>
+    </div>
+  );
+};
+
+export default PestLibrary;
