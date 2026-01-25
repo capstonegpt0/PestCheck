@@ -3,27 +3,35 @@
 import axios from 'axios';
 
 // Base URL for the backend API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://pestcheck-api.onrender.com/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'https://pestcheck-api.onrender.com/api';
 
-console.log('API Base URL:', API_BASE_URL); // Debug log
+console.log('API Base URL:', API_BASE_URL);
 
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 120000, // 120 second timeout for ML processing
+  timeout: 120000, // 120 seconds for ML processing
 });
 
-// Request interceptor to add auth token
+// Request interceptor
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    console.log('Making request to:', config.baseURL + config.url); // Debug log
+
+    // ✅ CRITICAL FIX:
+    // Let Axios decide Content-Type for FormData
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    } else {
+      config.headers['Content-Type'] = 'application/json';
+    }
+
+    console.log('Making request to:', config.baseURL + config.url);
     return config;
   },
   (error) => {
@@ -32,45 +40,42 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
+// Response interceptor (token refresh)
 api.interceptors.response.use(
   (response) => {
-    console.log('Response received from:', response.config.url); // Debug log
+    console.log('Response received from:', response.config.url);
     return response;
   },
   async (error) => {
-    console.error('Response error:', error); // Debug log
-    
+    console.error('Response error:', error);
+
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't tried to refresh yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        if (!refreshToken) {
-          throw new Error('No refresh token');
-        }
+        if (!refreshToken) throw new Error('No refresh token');
 
-        // Try to refresh the token
-        const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-          refresh: refreshToken,
-        });
+        const response = await axios.post(
+          `${API_BASE_URL}/auth/token/refresh/`,
+          { refresh: refreshToken }
+        );
 
         const { access } = response.data;
         localStorage.setItem('access_token', access);
 
-        // Retry the original request with new token
         originalRequest.headers.Authorization = `Bearer ${access}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, logout user
         console.error('Token refresh failed:', refreshError);
+
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         window.location.href = '/login';
+
         return Promise.reject(refreshError);
       }
     }
