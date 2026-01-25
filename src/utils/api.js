@@ -1,11 +1,11 @@
-
 // D:\Pestcheck\frontend\src\utils\api.js
-// CREATE THIS FILE if it doesn't exist
 
 import axios from 'axios';
 
 // Base URL for the backend API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://pestcheck-api.onrender.com/api';
+
+console.log('API Base URL:', API_BASE_URL); // Debug log
 
 // Create axios instance
 const api = axios.create({
@@ -13,6 +13,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 120000, // 120 second timeout for ML processing
 });
 
 // Request interceptor to add auth token
@@ -22,17 +23,24 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log('Making request to:', config.baseURL + config.url); // Debug log
     return config;
   },
   (error) => {
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
 // Response interceptor to handle token refresh
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('Response received from:', response.config.url); // Debug log
+    return response;
+  },
   async (error) => {
+    console.error('Response error:', error); // Debug log
+    
     const originalRequest = error.config;
 
     // If error is 401 and we haven't tried to refresh yet
@@ -58,6 +66,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh failed, logout user
+        console.error('Token refresh failed:', refreshError);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
