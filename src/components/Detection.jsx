@@ -69,38 +69,32 @@ const Detection = ({ user, onLogout }) => {
     const formData = new FormData();
     formData.append('image', image);
     formData.append('crop_type', cropType);
+
+    // ✅ REQUIRED FIELDS
+    formData.append('severity', 'low');   // ← ADD THIS
     formData.append('latitude', location.latitude);
     formData.append('longitude', location.longitude);
+
+    // optional
     formData.append('address', 'Magalang, Pampanga');
 
     try {
-      const response = await api.post('/detections/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
+      const response = await api.post('/detections/', formData);
       setResult(response.data);
-      setError(null);
-      setCanRetry(false);
     } catch (error) {
       console.error('Detection error:', error);
-      
+
       const errorData = error.response?.data;
-      const status = error.response?.status;
-      
-      if (status === 503 || status === 504) {
-        // Service warming up or timeout
-        setError(errorData?.error || 'ML service is warming up. Please wait 30 seconds and try again.');
-        setCanRetry(true);
-      } else {
-        setError(errorData?.error || error.message || 'Failed to detect pest. Please try again.');
-        setCanRetry(errorData?.retry || false);
-      }
+      setError(
+        typeof errorData === 'object'
+          ? JSON.stringify(errorData)
+          : error.message
+      );
     } finally {
       setLoading(false);
     }
   };
+
 
   const resetDetection = () => {
     setImage(null);
