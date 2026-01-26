@@ -46,23 +46,6 @@ const mockApi = {
       };
     }
 
-    if (url.includes('/detections/')) {
-      const newDetection = {
-        id: Date.now(),
-        ...data,
-        pest_name: 'Mock Pest',
-        severity: 'medium',
-        confidence: 0.85,
-        detected_at: new Date().toISOString(),
-        scientific_name: 'Mockus pestus',
-        symptoms: 'Mock symptoms detected',
-        control_methods: ['Mock control method 1', 'Mock control method 2'],
-        prevention: ['Mock prevention tip 1', 'Mock prevention tip 2'],
-        num_detections: 1
-      };
-      mockDetections.push(newDetection);
-      return { data: newDetection };
-    }
 
     if (url.includes('/farms/')) {
       const newFarm = {

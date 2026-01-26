@@ -105,26 +105,3 @@ export const mockStats = {
   ]
 };  
 
-// Add this to mockData.js
-
-export const mockMLResponse = {
-  pest_name: 'Brown Planthopper',
-  pest_key: 'brown_planthopper',
-  scientific_name: 'Nilaparvata lugens',
-  confidence: 0.92,
-  severity: 'high',
-  symptoms: 'Yellowing and wilting of leaves, stunted growth, hopper burn appearance',
-  control_methods: [
-    'Use resistant rice varieties',
-    'Apply insecticides (imidacloprid, buprofezin)',
-    'Maintain proper water management',
-    'Introduce natural predators like spiders'
-  ],
-  prevention: [
-    'Monitor fields regularly',
-    'Avoid excessive nitrogen fertilizer',
-    'Maintain balanced ecosystem',
-    'Remove stubble after harvest'
-  ],
-  num_detections: 1
-};
