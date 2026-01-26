@@ -3,7 +3,7 @@ import axios from 'axios';
 import mockApi from './mockAPI';
 
 // Toggle between real API and mock data
-const USE_MOCK_DATA = true; // Set to false when backend is ready
+const USE_MOCK_DATA = falses; // Set to false when backend is ready
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://pestcheck-api.onrender.com/api';
 
