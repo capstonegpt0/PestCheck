@@ -11,38 +11,75 @@ const Detection = ({ user, onLogout }) => {
   const [result, setResult] = useState(null);
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
+  const [locationError, setLocationError] = useState(null);
   const [error, setError] = useState(null);
   const [canRetry, setCanRetry] = useState(false);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
+  // Default location (Magalang, Pampanga)
+  const DEFAULT_LOCATION = {
+    latitude: 15.2047,
+    longitude: 120.5947
+  };
+
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-          setLocationLoading(false);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          setLocation({
-            latitude: 15.2047,
-            longitude: 120.5947
-          });
-          setLocationLoading(false);
-        }
-      );
-    } else {
-      setLocation({
-        latitude: 15.2047,
-        longitude: 120.5947
-      });
-      setLocationLoading(false);
-    }
+    getLocation();
   }, []);
+
+  const getLocation = () => {
+    setLocationLoading(true);
+    setLocationError(null);
+
+    if (!navigator.geolocation) {
+      console.log('Geolocation not supported - using default location');
+      setLocation(DEFAULT_LOCATION);
+      setLocationError('Geolocation not supported by your browser. Using default location.');
+      setLocationLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        };
+        console.log('Got user location:', userLocation);
+        setLocation(userLocation);
+        setLocationError(null);
+        setLocationLoading(false);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        
+        let errorMessage = '';
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Using default location (Magalang, Pampanga).';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable. Using default location.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timeout. Using default location.';
+            break;
+          default:
+            errorMessage = 'Unable to get location. Using default location.';
+        }
+        
+        console.log(errorMessage);
+        setLocation(DEFAULT_LOCATION);
+        setLocationError(errorMessage);
+        setLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000 // Cache for 5 minutes
+      }
+    );
+  };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -68,8 +105,13 @@ const Detection = ({ user, onLogout }) => {
   };
 
   const handleDetect = async () => {
-    if (!image || !location) {
-      alert('Please select an image and ensure location is available');
+    if (!image) {
+      alert('Please select an image first');
+      return;
+    }
+
+    if (!location) {
+      alert('Location not available. Please wait or refresh the page.');
       return;
     }
 
@@ -233,6 +275,25 @@ const Detection = ({ user, onLogout }) => {
           <p className="text-gray-600">Upload or capture an image to identify pests and get treatment recommendations</p>
         </div>
 
+        {/* Location Status Banner */}
+        {locationError && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-yellow-800 font-medium">Location Notice</p>
+                <p className="text-sm text-yellow-700 mt-1">{locationError}</p>
+                <button
+                  onClick={getLocation}
+                  className="mt-2 text-sm text-yellow-800 underline hover:text-yellow-900"
+                >
+                  Try getting location again
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Panel - Image Upload */}
           <div className="space-y-6">
@@ -268,9 +329,23 @@ const Detection = ({ user, onLogout }) => {
               <h2 className="text-xl font-semibold text-gray-800 mb-4">2. Upload Image</h2>
               
               {location && (
-                <div className="mb-4 flex items-center text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                  <MapPin className="w-4 h-4 mr-2 text-blue-600" />
-                  <span>Location: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</span>
+                <div className={`mb-4 flex items-center text-sm p-3 rounded-lg ${
+                  locationError 
+                    ? 'text-yellow-600 bg-yellow-50' 
+                    : 'text-gray-600 bg-blue-50'
+                }`}>
+                  <MapPin className={`w-4 h-4 mr-2 ${locationError ? 'text-yellow-600' : 'text-blue-600'}`} />
+                  <span>
+                    Location: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                    {locationError && ' (Default)'}
+                  </span>
+                </div>
+              )}
+
+              {locationLoading && (
+                <div className="mb-4 flex items-center text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  <span>Getting your location...</span>
                 </div>
               )}
 
@@ -348,13 +423,18 @@ const Detection = ({ user, onLogout }) => {
                 <div className="space-y-3">
                   <button
                     onClick={handleDetect}
-                    disabled={loading || locationLoading}
+                    disabled={loading || locationLoading || !location}
                     className="w-full bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <>
                         <Loader className="animate-spin mr-2 w-5 h-5" />
                         Analyzing Image...
+                      </>
+                    ) : locationLoading ? (
+                      <>
+                        <Loader className="animate-spin mr-2 w-5 h-5" />
+                        Getting Location...
                       </>
                     ) : (
                       <>
@@ -535,7 +615,7 @@ const Detection = ({ user, onLogout }) => {
             </div>
           </div>
           <div className="mt-4 text-xs text-blue-700 bg-blue-100 p-3 rounded">
-            ℹ️ <strong>Note:</strong> The first detection may take 30-60 seconds as the ML service warms up. Subsequent detections will be faster.
+            ℹ️ <strong>Note:</strong> The first detection may take 30-60 seconds as the ML service warms up. Location permission is optional - we'll use a default location if needed.
           </div>
         </div>
       </div>
