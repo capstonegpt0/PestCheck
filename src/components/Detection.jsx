@@ -47,6 +47,18 @@ const Detection = ({ user, onLogout }) => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file');
+        return;
+      }
+      
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Image size must be less than 10MB');
+        return;
+      }
+      
       setImage(file);
       setPreview(URL.createObjectURL(file));
       setResult(null);
@@ -66,45 +78,117 @@ const Detection = ({ user, onLogout }) => {
     setError(null);
     setCanRetry(false);
 
-    const formData = new FormData();
-    formData.append('image', image);
-    formData.append('crop_type', cropType);
-    formData.append('latitude', location.latitude);
-    formData.append('longitude', location.longitude);
-    formData.append('address', 'Magalang, Pampanga');
-
     try {
-      console.log('Sending detection request...');
+      // Create FormData with proper field names
+      const formData = new FormData();
+      formData.append('image', image, image.name);
+      formData.append('crop_type', cropType);
+      formData.append('latitude', String(location.latitude));
+      formData.append('longitude', String(location.longitude));
+      formData.append('address', 'Magalang, Pampanga');
+
+      // Debug: Log what we're sending
+      console.log('=== SENDING DETECTION REQUEST ===');
+      console.log('Image:', image.name, image.type, image.size, 'bytes');
+      console.log('Crop Type:', cropType);
+      console.log('Latitude:', location.latitude);
+      console.log('Longitude:', location.longitude);
+      console.log('FormData entries:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
+      }
+
       const response = await api.post('/detections/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 120000, // 2 minutes timeout
       });
       
-      console.log('Detection response:', response.data);
+      console.log('=== DETECTION RESPONSE ===');
+      console.log('Status:', response.status);
+      console.log('Data:', response.data);
       
       // Check if we got valid pest data
-      if (response.data && response.data.pest_name && response.data.pest_name !== 'Detection Failed - Service Unavailable') {
-        setResult(response.data);
+      if (response.data && response.data.pest_name) {
+        const pestName = response.data.pest_name;
+        
+        // Check for failure indicators
+        if (pestName === 'Detection Failed - Service Unavailable' || 
+            pestName === 'No Pest Detected' ||
+            pestName === 'Unknown Pest') {
+          setError(response.data.description || 'No pest detected in the image. Please try another image with visible pest damage.');
+          setCanRetry(true);
+          
+          // Still show some result info
+          setResult(response.data);
+        } else {
+          // Valid detection
+          setResult(response.data);
+        }
       } else {
-        // No pest detected or service unavailable
-        setError(response.data.error || 'No pest detected in the image. Please try another image with visible pest damage.');
+        // No pest data returned
+        setError('Detection completed but no pest information was returned. Please try again.');
         setCanRetry(true);
       }
+      
     } catch (error) {
-      console.error('Detection error:', error);
+      console.error('=== DETECTION ERROR ===');
+      console.error('Error object:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error message:', error.message);
 
       const errorData = error.response?.data;
       const statusCode = error.response?.status;
       
-      if (statusCode === 503 || statusCode === 504) {
+      // Handle different error types
+      if (statusCode === 400) {
+        // Bad request - validation error
+        let errorMessage = 'Invalid request. ';
+        
+        if (errorData) {
+          if (typeof errorData === 'string') {
+            errorMessage += errorData;
+          } else if (errorData.error) {
+            errorMessage += errorData.error;
+          } else if (errorData.image) {
+            errorMessage += 'Image: ' + (Array.isArray(errorData.image) ? errorData.image.join(', ') : errorData.image);
+          } else if (errorData.latitude) {
+            errorMessage += 'Location: ' + (Array.isArray(errorData.latitude) ? errorData.latitude.join(', ') : errorData.latitude);
+          } else {
+            errorMessage += JSON.stringify(errorData);
+          }
+        } else {
+          errorMessage += 'Please check your image and try again.';
+        }
+        
+        setError(errorMessage);
+        setCanRetry(true);
+        
+      } else if (statusCode === 413) {
+        // Payload too large
+        setError('Image file is too large. Please use a smaller image (max 10MB).');
+        setCanRetry(false);
+        
+      } else if (statusCode === 503 || statusCode === 504) {
+        // Service unavailable or timeout
         setError('ML service is warming up. Please wait 30 seconds and try again.');
         setCanRetry(true);
-      } else if (errorData?.error) {
-        setError(errorData.error);
-        setCanRetry(errorData.retry || false);
+        
+      } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        // Request timeout
+        setError('Request timed out. The ML service may be processing. Please try again.');
+        setCanRetry(true);
+        
+      } else if (!error.response) {
+        // Network error
+        setError('Network error. Please check your internet connection and try again.');
+        setCanRetry(true);
+        
       } else {
-        setError('Detection failed. Please try again or contact support if the issue persists.');
+        // Generic error
+        setError(errorData?.error || error.message || 'Detection failed. Please try again.');
         setCanRetry(true);
       }
     } finally {
@@ -157,21 +241,23 @@ const Detection = ({ user, onLogout }) => {
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => setCropType('rice')}
+                  disabled={loading}
                   className={`p-4 rounded-lg font-semibold transition-all ${
                     cropType === 'rice'
                       ? 'bg-green-600 text-white shadow-md transform scale-105'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   🌾 Rice
                 </button>
                 <button
                   onClick={() => setCropType('corn')}
+                  disabled={loading}
                   className={`p-4 rounded-lg font-semibold transition-all ${
                     cropType === 'corn'
                       ? 'bg-yellow-600 text-white shadow-md transform scale-105'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   🌽 Corn
                 </button>
@@ -191,16 +277,16 @@ const Detection = ({ user, onLogout }) => {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center justify-center px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
                   disabled={loading}
+                  className="flex items-center justify-center px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Upload className="w-5 h-5 mr-2" />
                   Upload
                 </button>
                 <button
                   onClick={() => cameraInputRef.current?.click()}
-                  className="flex items-center justify-center px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
                   disabled={loading}
+                  className="flex items-center justify-center px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Camera className="w-5 h-5 mr-2" />
                   Camera
@@ -211,6 +297,7 @@ const Detection = ({ user, onLogout }) => {
                   accept="image/*"
                   onChange={handleFileSelect}
                   className="hidden"
+                  disabled={loading}
                 />
                 <input
                   ref={cameraInputRef}
@@ -219,16 +306,24 @@ const Detection = ({ user, onLogout }) => {
                   capture="environment"
                   onChange={handleFileSelect}
                   className="hidden"
+                  disabled={loading}
                 />
               </div>
 
               {preview && (
                 <div className="mb-6">
-                  <img
-                    src={preview}
-                    alt="Preview"
-                    className="w-full h-auto rounded-lg shadow-md border-2 border-gray-200"
-                  />
+                  <div className="relative">
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="w-full h-auto rounded-lg shadow-md border-2 border-gray-200"
+                    />
+                    {image && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        File: {image.name} ({(image.size / 1024).toFixed(1)} KB)
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -237,10 +332,11 @@ const Detection = ({ user, onLogout }) => {
                   <div className="flex items-start">
                     <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
                     <div className="flex-1">
-                      <p className="text-sm text-red-800">{error}</p>
+                      <p className="text-sm text-red-800 font-medium mb-1">Detection Error</p>
+                      <p className="text-sm text-red-700">{error}</p>
                       {canRetry && (
                         <p className="text-xs text-red-600 mt-2">
-                          💡 Tip: The ML service might be warming up. Wait 30 seconds and try again.
+                          💡 Tip: If the ML service is warming up, wait 30 seconds and try again.
                         </p>
                       )}
                     </div>
@@ -249,11 +345,11 @@ const Detection = ({ user, onLogout }) => {
               )}
 
               {preview && !result && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
                   <button
                     onClick={handleDetect}
                     disabled={loading || locationLoading}
-                    className="col-span-2 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="w-full bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <>
@@ -267,19 +363,21 @@ const Detection = ({ user, onLogout }) => {
                       </>
                     )}
                   </button>
+                  
                   {canRetry && !loading && (
                     <button
                       onClick={handleDetect}
-                      className="col-span-2 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center"
+                      className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center"
                     >
                       <RefreshCw className="w-5 h-5 mr-2" />
                       Retry Detection
                     </button>
                   )}
+                  
                   <button
                     onClick={resetDetection}
                     disabled={loading}
-                    className="col-span-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold disabled:opacity-50"
+                    className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold disabled:opacity-50"
                   >
                     Clear
                   </button>
@@ -290,7 +388,10 @@ const Detection = ({ user, onLogout }) => {
 
           {/* Right Panel - Results */}
           <div>
-            {result && result.pest_name && result.pest_name !== 'Detection Failed - Service Unavailable' ? (
+            {result && result.pest_name && 
+             result.pest_name !== 'Detection Failed - Service Unavailable' && 
+             result.pest_name !== 'No Pest Detected' &&
+             result.pest_name !== 'Unknown Pest' ? (
               <div className="space-y-6">
                 {/* Detection Results */}
                 <div className="bg-white rounded-lg shadow-lg p-6">
