@@ -1,22 +1,16 @@
 // src/utils/api.js
 import axios from 'axios';
-import mockApi from './mockAPI';
-
-// Toggle between real API and mock data
-const USE_MOCK_DATA = falses; // Set to false when backend is ready
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://pestcheck-api.onrender.com/api';
 
 console.log('API Base URL:', API_BASE_URL);
-console.log('Using mock data:', USE_MOCK_DATA);
 
-// Real API instance
-const realApi = axios.create({
+const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 120000,
 });
 
-realApi.interceptors.request.use(
+api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
     if (token) {
@@ -35,7 +29,7 @@ realApi.interceptors.request.use(
   }
 );
 
-realApi.interceptors.response.use(
+api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
@@ -50,7 +44,7 @@ realApi.interceptors.response.use(
         const { access } = response.data;
         localStorage.setItem('access_token', access);
         originalRequest.headers.Authorization = `Bearer ${access}`;
-        return realApi(originalRequest);
+        return api(originalRequest);
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
         localStorage.removeItem('access_token');
@@ -63,8 +57,5 @@ realApi.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-// Export either mock or real API
-const api = USE_MOCK_DATA ? mockApi : realApi;
 
 export default api;
