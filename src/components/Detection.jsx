@@ -76,7 +76,7 @@ const Detection = ({ user, onLogout }) => {
       {
         enableHighAccuracy: false,
         timeout: 10000,
-        maximumAge: 300000 // Cache for 5 minutes
+        maximumAge: 300000
       }
     );
   };
@@ -84,13 +84,11 @@ const Detection = ({ user, onLogout }) => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         alert('Please select a valid image file');
         return;
       }
       
-      // Validate file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
         alert('Image size must be less than 10MB');
         return;
@@ -121,18 +119,18 @@ const Detection = ({ user, onLogout }) => {
     setCanRetry(false);
 
     try {
-      // Create FormData with proper field names
       const formData = new FormData();
       formData.append('image', image, image.name);
       formData.append('crop_type', cropType);
+      formData.append('severity', 'low'); // ← ADDED THIS REQUIRED FIELD
       formData.append('latitude', String(location.latitude));
       formData.append('longitude', String(location.longitude));
       formData.append('address', 'Magalang, Pampanga');
 
-      // Debug: Log what we're sending
       console.log('=== SENDING DETECTION REQUEST ===');
       console.log('Image:', image.name, image.type, image.size, 'bytes');
       console.log('Crop Type:', cropType);
+      console.log('Severity:', 'low');
       console.log('Latitude:', location.latitude);
       console.log('Longitude:', location.longitude);
       console.log('FormData entries:');
@@ -144,32 +142,26 @@ const Detection = ({ user, onLogout }) => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 120000, // 2 minutes timeout
+        timeout: 120000,
       });
       
       console.log('=== DETECTION RESPONSE ===');
       console.log('Status:', response.status);
       console.log('Data:', response.data);
       
-      // Check if we got valid pest data
       if (response.data && response.data.pest_name) {
         const pestName = response.data.pest_name;
         
-        // Check for failure indicators
         if (pestName === 'Detection Failed - Service Unavailable' || 
             pestName === 'No Pest Detected' ||
             pestName === 'Unknown Pest') {
           setError(response.data.description || 'No pest detected in the image. Please try another image with visible pest damage.');
           setCanRetry(true);
-          
-          // Still show some result info
           setResult(response.data);
         } else {
-          // Valid detection
           setResult(response.data);
         }
       } else {
-        // No pest data returned
         setError('Detection completed but no pest information was returned. Please try again.');
         setCanRetry(true);
       }
@@ -184,9 +176,7 @@ const Detection = ({ user, onLogout }) => {
       const errorData = error.response?.data;
       const statusCode = error.response?.status;
       
-      // Handle different error types
       if (statusCode === 400) {
-        // Bad request - validation error
         let errorMessage = 'Invalid request. ';
         
         if (errorData) {
@@ -198,6 +188,8 @@ const Detection = ({ user, onLogout }) => {
             errorMessage += 'Image: ' + (Array.isArray(errorData.image) ? errorData.image.join(', ') : errorData.image);
           } else if (errorData.latitude) {
             errorMessage += 'Location: ' + (Array.isArray(errorData.latitude) ? errorData.latitude.join(', ') : errorData.latitude);
+          } else if (errorData.severity) {
+            errorMessage += 'Severity: ' + (Array.isArray(errorData.severity) ? errorData.severity.join(', ') : errorData.severity);
           } else {
             errorMessage += JSON.stringify(errorData);
           }
@@ -209,27 +201,22 @@ const Detection = ({ user, onLogout }) => {
         setCanRetry(true);
         
       } else if (statusCode === 413) {
-        // Payload too large
         setError('Image file is too large. Please use a smaller image (max 10MB).');
         setCanRetry(false);
         
       } else if (statusCode === 503 || statusCode === 504) {
-        // Service unavailable or timeout
         setError('ML service is warming up. Please wait 30 seconds and try again.');
         setCanRetry(true);
         
       } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-        // Request timeout
         setError('Request timed out. The ML service may be processing. Please try again.');
         setCanRetry(true);
         
       } else if (!error.response) {
-        // Network error
         setError('Network error. Please check your internet connection and try again.');
         setCanRetry(true);
         
       } else {
-        // Generic error
         setError(errorData?.error || error.message || 'Detection failed. Please try again.');
         setCanRetry(true);
       }
@@ -275,7 +262,6 @@ const Detection = ({ user, onLogout }) => {
           <p className="text-gray-600">Upload or capture an image to identify pests and get treatment recommendations</p>
         </div>
 
-        {/* Location Status Banner */}
         {locationError && (
           <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-start">
@@ -295,7 +281,6 @@ const Detection = ({ user, onLogout }) => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Panel - Image Upload */}
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">1. Select Crop Type</h2>
@@ -466,14 +451,12 @@ const Detection = ({ user, onLogout }) => {
             </div>
           </div>
 
-          {/* Right Panel - Results */}
           <div>
             {result && result.pest_name && 
              result.pest_name !== 'Detection Failed - Service Unavailable' && 
              result.pest_name !== 'No Pest Detected' &&
              result.pest_name !== 'Unknown Pest' ? (
               <div className="space-y-6">
-                {/* Detection Results */}
                 <div className="bg-white rounded-lg shadow-lg p-6">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4">Detection Results</h2>
                   
@@ -525,7 +508,6 @@ const Detection = ({ user, onLogout }) => {
                   </div>
                 </div>
 
-                {/* Symptoms */}
                 {result.symptoms && (
                   <div className="bg-white rounded-lg shadow-lg p-6">
                     <h3 className="text-xl font-semibold text-gray-800 mb-3 flex items-center">
@@ -536,7 +518,6 @@ const Detection = ({ user, onLogout }) => {
                   </div>
                 )}
 
-                {/* Control Methods */}
                 {result.control_methods && result.control_methods.length > 0 && (
                   <div className="bg-white rounded-lg shadow-lg p-6">
                     <h3 className="text-xl font-semibold text-gray-800 mb-3 flex items-center">
@@ -556,7 +537,6 @@ const Detection = ({ user, onLogout }) => {
                   </div>
                 )}
 
-                {/* Prevention */}
                 {result.prevention && result.prevention.length > 0 && (
                   <div className="bg-white rounded-lg shadow-lg p-6">
                     <h3 className="text-xl font-semibold text-gray-800 mb-3 flex items-center">
@@ -576,7 +556,6 @@ const Detection = ({ user, onLogout }) => {
                   </div>
                 )}
 
-                {/* Action Button */}
                 <button
                   onClick={resetDetection}
                   className="w-full bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold shadow-lg"
@@ -600,7 +579,6 @@ const Detection = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Info Section */}
         <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-blue-900 mb-2">How it works</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
