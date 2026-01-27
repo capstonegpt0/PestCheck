@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Loader, MapPin, AlertCircle, CheckCircle, Info, RefreshCw } from 'lucide-react';
+import { Camera, Upload, Loader, MapPin, AlertCircle, CheckCircle, Info, RefreshCw, AlertTriangle } from 'lucide-react';
 import Navigation from './Navigation';
 import api from '../utils/api';
 
@@ -69,32 +69,48 @@ const Detection = ({ user, onLogout }) => {
     const formData = new FormData();
     formData.append('image', image);
     formData.append('crop_type', cropType);
-
-    // ✅ REQUIRED FIELDS
-    formData.append('severity', 'low');   // ← ADD THIS
     formData.append('latitude', location.latitude);
     formData.append('longitude', location.longitude);
-
-    // optional
     formData.append('address', 'Magalang, Pampanga');
 
     try {
-      const response = await api.post('/detections/', formData);
-      setResult(response.data);
+      console.log('Sending detection request...');
+      const response = await api.post('/detections/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('Detection response:', response.data);
+      
+      // Check if we got valid pest data
+      if (response.data && response.data.pest_name && response.data.pest_name !== 'Detection Failed - Service Unavailable') {
+        setResult(response.data);
+      } else {
+        // No pest detected or service unavailable
+        setError(response.data.error || 'No pest detected in the image. Please try another image with visible pest damage.');
+        setCanRetry(true);
+      }
     } catch (error) {
       console.error('Detection error:', error);
 
       const errorData = error.response?.data;
-      setError(
-        typeof errorData === 'object'
-          ? JSON.stringify(errorData)
-          : error.message
-      );
+      const statusCode = error.response?.status;
+      
+      if (statusCode === 503 || statusCode === 504) {
+        setError('ML service is warming up. Please wait 30 seconds and try again.');
+        setCanRetry(true);
+      } else if (errorData?.error) {
+        setError(errorData.error);
+        setCanRetry(errorData.retry || false);
+      } else {
+        setError('Detection failed. Please try again or contact support if the issue persists.');
+        setCanRetry(true);
+      }
     } finally {
       setLoading(false);
     }
   };
-
 
   const resetDetection = () => {
     setImage(null);
@@ -176,6 +192,7 @@ const Detection = ({ user, onLogout }) => {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="flex items-center justify-center px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                  disabled={loading}
                 >
                   <Upload className="w-5 h-5 mr-2" />
                   Upload
@@ -183,6 +200,7 @@ const Detection = ({ user, onLogout }) => {
                 <button
                   onClick={() => cameraInputRef.current?.click()}
                   className="flex items-center justify-center px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                  disabled={loading}
                 >
                   <Camera className="w-5 h-5 mr-2" />
                   Camera
@@ -217,7 +235,7 @@ const Detection = ({ user, onLogout }) => {
               {error && (
                 <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
                   <div className="flex items-start">
-                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3" />
+                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm text-red-800">{error}</p>
                       {canRetry && (
@@ -249,7 +267,7 @@ const Detection = ({ user, onLogout }) => {
                       </>
                     )}
                   </button>
-                  {canRetry && (
+                  {canRetry && !loading && (
                     <button
                       onClick={handleDetect}
                       className="col-span-2 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center"
@@ -260,7 +278,8 @@ const Detection = ({ user, onLogout }) => {
                   )}
                   <button
                     onClick={resetDetection}
-                    className="col-span-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                    disabled={loading}
+                    className="col-span-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold disabled:opacity-50"
                   >
                     Clear
                   </button>
@@ -271,7 +290,7 @@ const Detection = ({ user, onLogout }) => {
 
           {/* Right Panel - Results */}
           <div>
-            {result ? (
+            {result && result.pest_name && result.pest_name !== 'Detection Failed - Service Unavailable' ? (
               <div className="space-y-6">
                 {/* Detection Results */}
                 <div className="bg-white rounded-lg shadow-lg p-6">
