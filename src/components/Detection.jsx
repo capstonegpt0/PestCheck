@@ -75,9 +75,9 @@ const Detection = ({ user, onLogout }) => {
     formData.append('address', 'Magalang, Pampanga');
 
     try {
-      console.log('Sending detection request...');
-      console.log('Crop type:', cropType);
-      console.log('Location:', location);
+      console.log('🚀 Starting detection...');
+      console.log('📤 Crop type:', cropType);
+      console.log('📤 Image:', image.name);
       
       const response = await api.post('/detections/', formData, {
         headers: {
@@ -85,41 +85,58 @@ const Detection = ({ user, onLogout }) => {
         },
       });
       
-      console.log('Detection response:', response.data);
+      console.log('✅ Response received:', response);
+      console.log('✅ Status:', response.status);
+      console.log('✅ Data:', response.data);
 
-      // Check if we got valid pest detection
-      if (!response.data.pest_name || response.data.pest_name === 'Unknown Pest' || response.data.pest_name === '') {
-        setError('No pest detected in the image. Please try another image with clearer pest visibility.');
-        setCanRetry(true);
+      // ✅ SUCCESS - Backend accepted the detection
+      if (response.status === 201 && response.data) {
+        const pestName = response.data.pest_name || response.data.pest;
+        console.log('✅ Pest detected:', pestName);
+        
+        // Check if we got a valid pest
+        if (pestName && pestName !== 'Unknown Pest' && pestName !== '') {
+          console.log('✅ Valid pest detection - setting result');
+          setResult(response.data);
+          setError(null);
+        } else {
+          console.warn('⚠️ Empty or unknown pest name');
+          setError('No pest detected in the image. Please try another image with clearer pest visibility.');
+          setCanRetry(true);
+          setResult(null);
+        }
       } else {
-        // Valid detection
-        setResult(response.data);
+        console.warn('⚠️ Unexpected response status:', response.status);
+        setError('Unexpected response from server. Please try again.');
+        setCanRetry(true);
       }
-    } catch (error) {
-      console.error('Detection error:', error);
-      console.error('Error response:', error.response?.data);
 
-      const errorData = error.response?.data;
-      
-      if (error.response?.status === 503) {
+    } catch (error) {
+      console.error('❌ Detection error:', error);
+      console.error('❌ Error response:', error.response);
+      console.error('❌ Error data:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+
+      setResult(null);
+
+      if (error.response?.status === 400) {
+        // Backend validation rejected it
+        const errorMsg = error.response.data?.error || 'No pest detected in the image. Please try another image.';
+        console.log('❌ Backend rejected:', errorMsg);
+        setError(errorMsg);
+        setCanRetry(true);
+      } else if (error.response?.status === 503) {
         setError('ML service is warming up. Please wait 30 seconds and try again.');
         setCanRetry(true);
       } else if (error.response?.status === 504) {
         setError('ML service is taking longer than expected. Please try again.');
         setCanRetry(true);
-      } else if (errorData?.error) {
-        setError(errorData.error);
-        if (errorData.retry) {
-          setCanRetry(true);
-        }
-      } else if (typeof errorData === 'object') {
-        // Handle validation errors
-        const errorMessages = Object.entries(errorData)
-          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
-          .join('\n');
-        setError(errorMessages);
+      } else if (error.response?.data?.error) {
+        setError(error.response.data.error);
+        setCanRetry(error.response.data.retry || false);
       } else {
         setError('Detection failed. Please try again.');
+        setCanRetry(true);
       }
     } finally {
       setLoading(false);
@@ -310,7 +327,7 @@ const Detection = ({ user, onLogout }) => {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center pb-3 border-b">
                       <span className="font-semibold text-gray-700">Pest Identified:</span>
-                      <span className="text-lg font-bold text-gray-900">{result.pest_name}</span>
+                      <span className="text-lg font-bold text-gray-900">{result.pest_name || result.pest}</span>
                     </div>
                     
                     {result.scientific_name && (
@@ -331,10 +348,10 @@ const Detection = ({ user, onLogout }) => {
                         <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
                           <div 
                             className="bg-green-600 h-2 rounded-full" 
-                            style={{ width: `${result.confidence * 100}%` }}
+                            style={{ width: `${(result.confidence || 0) * 100}%` }}
                           ></div>
                         </div>
-                        <span className="font-semibold">{(result.confidence * 100).toFixed(1)}%</span>
+                        <span className="font-semibold">{((result.confidence || 0) * 100).toFixed(1)}%</span>
                       </div>
                     </div>
                     
