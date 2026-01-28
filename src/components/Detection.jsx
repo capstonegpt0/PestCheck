@@ -74,81 +74,52 @@ const Detection = ({ user, onLogout }) => {
     formData.append('longitude', location.longitude);
     formData.append('address', 'Magalang, Pampanga');
 
-    console.log('=== SENDING DETECTION REQUEST ===');
-    console.log('Image:', image.name, image.type, image.size, 'bytes');
-    console.log('Crop Type:', cropType);
-    console.log('Severity:', 'low');
-    console.log('Latitude:', location.latitude);
-    console.log('Longitude:', location.longitude);
-    console.log('FormData entries:');
-    for (let pair of formData.entries()) {
-      if (pair[1] instanceof File) {
-        console.log(`  ${pair[0]}: File(${pair[1].name})`);
-      } else {
-        console.log(`  ${pair[0]}: ${pair[1]}`);
-      }
-    }
-
     try {
-      const response = await api.post('/detections/', formData);
+      console.log('Sending detection request...');
+      console.log('Crop type:', cropType);
+      console.log('Location:', location);
       
-      console.log('=== DETECTION RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Full Response Data:', JSON.stringify(response.data, null, 2));
-      console.log('pest_name:', response.data.pest_name);
-      console.log('confidence:', response.data.confidence);
-      console.log('severity:', response.data.severity);
+      const response = await api.post('/detections/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       
-      // Check if we got actual detection results
-      const pestName = response.data.pest_name || '';
-      const confidence = response.data.confidence || 0;
-      
-      console.log('=== CHECKING RESPONSE ===');
-      console.log('pestName empty?', pestName === '');
-      console.log('confidence zero?', confidence === 0);
-      console.log('pestName value:', `"${pestName}"`);
-      console.log('confidence value:', confidence);
-      
-      if (!pestName || pestName === '' || confidence === 0) {
-        console.warn('⚠️ EMPTY DETECTION RESULT');
-        setError(
-          'No pest detected in image. This could mean:\n' +
-          '• No visible pest insects in the image\n' +
-          '• ML service is warming up (wait 30s and retry)\n' +
-          '• Image quality too low\n' +
-          '• Pest type not in trained classes\n\n' +
-          'Your model can detect:\n' +
-          '• adult_rice_borer\n' +
-          '• cut_worm\n' +
-          '• rice_leaf_roller\n' +
-          '• whorl_maggot\n' +
-          '• Asian Corn Borer (Larvae/Moth)\n' +
-          '• Fall Armyworm (Larvae/Moth)'
-        );
+      console.log('Detection response:', response.data);
+
+      // Check if we got valid pest detection
+      if (!response.data.pest_name || response.data.pest_name === 'Unknown Pest' || response.data.pest_name === '') {
+        setError('No pest detected in the image. Please try another image with clearer pest visibility.');
         setCanRetry(true);
-        setLoading(false);
-        return;
+      } else {
+        // Valid detection
+        setResult(response.data);
       }
-      
-      // We have valid results!
-      console.log('✅ VALID DETECTION - Setting result');
-      setResult(response.data);
-      
     } catch (error) {
-      console.error('=== DETECTION ERROR ===');
-      console.error('Error:', error);
-      console.error('Response:', error.response?.data);
-      console.error('Status:', error.response?.status);
-      
+      console.error('Detection error:', error);
+      console.error('Error response:', error.response?.data);
+
       const errorData = error.response?.data;
-      const errorMessage = typeof errorData === 'object' 
-        ? JSON.stringify(errorData, null, 2)
-        : error.message;
       
-      setError(`Detection failed: ${errorMessage}`);
-      
-      if (error.response?.status === 503 || error.response?.status === 504) {
+      if (error.response?.status === 503) {
+        setError('ML service is warming up. Please wait 30 seconds and try again.');
         setCanRetry(true);
+      } else if (error.response?.status === 504) {
+        setError('ML service is taking longer than expected. Please try again.');
+        setCanRetry(true);
+      } else if (errorData?.error) {
+        setError(errorData.error);
+        if (errorData.retry) {
+          setCanRetry(true);
+        }
+      } else if (typeof errorData === 'object') {
+        // Handle validation errors
+        const errorMessages = Object.entries(errorData)
+          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+          .join('\n');
+        setError(errorMessages);
+      } else {
+        setError('Detection failed. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -278,18 +249,23 @@ const Detection = ({ user, onLogout }) => {
                   <div className="flex items-start">
                     <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
                     <div className="flex-1">
-                      <pre className="text-sm text-red-800 whitespace-pre-wrap font-sans">{error}</pre>
+                      <p className="text-sm text-red-800 whitespace-pre-line">{error}</p>
+                      {canRetry && (
+                        <p className="text-xs text-red-600 mt-2">
+                          💡 Tip: Make sure the image clearly shows the pest. You can try again with a better photo.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
 
               {preview && !result && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
                   <button
                     onClick={handleDetect}
                     disabled={loading || locationLoading}
-                    className="col-span-2 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="w-full bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <>
@@ -303,18 +279,10 @@ const Detection = ({ user, onLogout }) => {
                       </>
                     )}
                   </button>
-                  {canRetry && (
-                    <button
-                      onClick={handleDetect}
-                      className="col-span-2 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center"
-                    >
-                      <RefreshCw className="w-5 h-5 mr-2" />
-                      Retry Detection
-                    </button>
-                  )}
+                  
                   <button
                     onClick={resetDetection}
-                    className="col-span-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                    className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
                   >
                     Clear
                   </button>
@@ -462,14 +430,17 @@ const Detection = ({ user, onLogout }) => {
               <span className="font-semibold">1. Select Crop:</span> Choose rice or corn to optimize detection
             </div>
             <div>
-              <span className="font-semibold">2. Upload Image:</span> Capture or upload a clear photo with visible pests
+              <span className="font-semibold">2. Upload Image:</span> Capture or upload a clear photo of the affected area
             </div>
             <div>
               <span className="font-semibold">3. Get Results:</span> Receive instant pest identification and treatment guidance
             </div>
           </div>
           <div className="mt-4 text-xs text-blue-700 bg-blue-100 p-3 rounded">
-            ℹ️ <strong>Note:</strong> Images must contain VISIBLE insects/pests. The model detects: adult_rice_borer, cut_worm, rice_leaf_roller, whorl_maggot, Asian Corn Borer (Larvae/Moth), Fall Armyworm (Larvae/Moth).
+            ℹ️ <strong>Note:</strong> The first detection may take 30-60 seconds as the ML service warms up. Subsequent detections will be faster.
+          </div>
+          <div className="mt-2 text-xs text-blue-700 bg-blue-100 p-3 rounded">
+            📸 <strong>Tip:</strong> For best results, ensure the pest is clearly visible in the image with good lighting and focus.
           </div>
         </div>
       </div>
