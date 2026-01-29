@@ -219,20 +219,21 @@ const Detection = ({ user, onLogout }) => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
+               <div className="grid grid-cols-2 gap-4 mb-6">
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="flex items-center justify-center px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
                 >
                   <Upload className="w-5 h-5 mr-2" />
-                  Upload
+                  Upload Photo
                 </button>
                 <button
                   onClick={() => cameraInputRef.current?.click()}
                   className="flex items-center justify-center px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                  title="Opens camera on mobile devices"
                 >
                   <Camera className="w-5 h-5 mr-2" />
-                  Camera
+                  Take Photo
                 </button>
                 <input
                   ref={fileInputRef}
@@ -249,6 +250,12 @@ const Detection = ({ user, onLogout }) => {
                   onChange={handleFileSelect}
                   className="hidden"
                 />
+              </div>
+
+              {/* Add helpful note */}
+              <div className="mb-4 text-xs text-gray-500 bg-gray-50 p-3 rounded">
+                <strong>💡 Tip:</strong> The "Take Photo" button opens your camera on mobile devices. 
+                On desktop, it will let you choose a file.
               </div>
 
               {preview && (
