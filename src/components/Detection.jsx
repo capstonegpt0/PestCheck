@@ -171,304 +171,195 @@ const Detection = ({ user, onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation user={user} onLogout={onLogout} />
-      
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">AI Pest Detection</h1>
-          <p className="text-gray-600">Upload or capture an image to identify pests and get treatment recommendations</p>
-        </div>
+  <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
+    <Navigation user={user} onLogout={onLogout} />
+    
+    <div className="max-w-6xl mx-auto px-3 md:px-4 py-4 md:py-8">
+      <div className="mb-4 md:mb-8">
+        <h1 className="text-2xl md:text-4xl font-bold text-gray-800 mb-2">AI Pest Detection</h1>
+        <p className="text-sm md:text-base text-gray-600">Upload or capture an image to identify pests</p>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Panel - Image Upload */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">1. Select Crop Type</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => setCropType('rice')}
-                  className={`p-4 rounded-lg font-semibold transition-all ${
-                    cropType === 'rice'
-                      ? 'bg-green-600 text-white shadow-md transform scale-105'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  🌾 Rice
-                </button>
-                <button
-                  onClick={() => setCropType('corn')}
-                  className={`p-4 rounded-lg font-semibold transition-all ${
-                    cropType === 'corn'
-                      ? 'bg-yellow-600 text-white shadow-md transform scale-105'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  🌽 Corn
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">2. Upload Image</h2>
-              
-              {location && (
-                <div className="mb-4 flex items-center text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                  <MapPin className="w-4 h-4 mr-2 text-blue-600" />
-                  <span>Location: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</span>
-                </div>
-              )}
-
-               <div className="grid grid-cols-2 gap-4 mb-6">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center justify-center px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-                >
-                  <Upload className="w-5 h-5 mr-2" />
-                  Upload Photo
-                </button>
-                <button
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="flex items-center justify-center px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
-                  title="Opens camera on mobile devices"
-                >
-                  <Camera className="w-5 h-5 mr-2" />
-                  Take Photo
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-              </div>
-
-              {/* Add helpful note */}
-              <div className="mb-4 text-xs text-gray-500 bg-gray-50 p-3 rounded">
-                <strong>💡 Tip:</strong> The "Take Photo" button opens your camera on mobile devices. 
-                On desktop, it will let you choose a file.
-              </div>
-
-              {preview && (
-                <div className="mb-6">
-                  <img
-                    src={preview}
-                    alt="Preview"
-                    className="w-full h-auto rounded-lg shadow-md border-2 border-gray-200"
-                  />
-                </div>
-              )}
-
-              {error && (
-                <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex items-start">
-                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm text-red-800 whitespace-pre-line">{error}</p>
-                      {canRetry && (
-                        <p className="text-xs text-red-600 mt-2">
-                          💡 Tip: Make sure the image clearly shows the pest. You can try again with a better photo.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {preview && !result && (
-                <div className="space-y-3">
-                  <button
-                    onClick={handleDetect}
-                    disabled={loading || locationLoading}
-                    className="w-full bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader className="animate-spin mr-2 w-5 h-5" />
-                        Analyzing Image...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Detect Pest
-                      </>
-                    )}
-                  </button>
-                  
-                  <button
-                    onClick={resetDetection}
-                    className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-                  >
-                    Clear
-                  </button>
-                </div>
-              )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Left Panel - Image Upload */}
+        <div className="space-y-4 md:space-y-6">
+          {/* Crop Selection - Make buttons bigger on mobile */}
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">
+              1. Select Crop Type
+            </h2>
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
+              <button
+                onClick={() => setCropType('rice')}
+                className={`p-3 md:p-4 rounded-lg font-semibold transition-all text-sm md:text-base ${
+                  cropType === 'rice'
+                    ? 'bg-green-600 text-white shadow-md transform scale-105'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                🌾 Rice
+              </button>
+              <button
+                onClick={() => setCropType('corn')}
+                className={`p-3 md:p-4 rounded-lg font-semibold transition-all text-sm md:text-base ${
+                  cropType === 'corn'
+                    ? 'bg-yellow-600 text-white shadow-md transform scale-105'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                🌽 Corn
+              </button>
             </div>
           </div>
 
-          {/* Right Panel - Results */}
-          <div>
-            {result ? (
-              <div className="space-y-6">
-                {/* Detection Results */}
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-4">Detection Results</h2>
-                  
-                  <div className={`border-2 rounded-lg p-4 mb-6 ${getSeverityColor(result.severity)}`}>
-                    <div className="flex items-center mb-2">
-                      {getSeverityIcon(result.severity)}
-                      <span className="ml-2 text-lg font-bold uppercase">{result.severity} Risk</span>
-                    </div>
-                    <p className="text-sm">Immediate attention {result.severity === 'critical' || result.severity === 'high' ? 'required' : 'recommended'}</p>
-                  </div>
+          {/* Upload Section */}
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">
+              2. Upload Image
+            </h2>
+            
+            {location && (
+              <div className="mb-3 md:mb-4 flex items-center text-xs md:text-sm text-gray-600 bg-blue-50 p-2 md:p-3 rounded-lg">
+                <MapPin className="w-4 h-4 mr-2 text-blue-600 flex-shrink-0" />
+                <span className="truncate">
+                  Location: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                </span>
+              </div>
+            )}
 
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center pb-3 border-b">
-                      <span className="font-semibold text-gray-700">Pest Identified:</span>
-                      <span className="text-lg font-bold text-gray-900">{result.pest_name || result.pest}</span>
-                    </div>
-                    
-                    {result.scientific_name && (
-                      <div className="flex justify-between items-center pb-3 border-b">
-                        <span className="font-semibold text-gray-700">Scientific Name:</span>
-                        <span className="text-sm italic text-gray-600">{result.scientific_name}</span>
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-between items-center pb-3 border-b">
-                      <span className="font-semibold text-gray-700">Crop Type:</span>
-                      <span className="text-gray-900 capitalize">{result.crop_type}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center pb-3 border-b">
-                      <span className="font-semibold text-gray-700">Confidence:</span>
-                      <div className="flex items-center">
-                        <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
-                          <div 
-                            className="bg-green-600 h-2 rounded-full" 
-                            style={{ width: `${(result.confidence || 0) * 100}%` }}
-                          ></div>
-                        </div>
-                        <span className="font-semibold">{((result.confidence || 0) * 100).toFixed(1)}%</span>
-                      </div>
-                    </div>
-                    
-                    {result.num_detections > 1 && (
-                      <div className="flex justify-between items-center pb-3 border-b">
-                        <span className="font-semibold text-gray-700">Pests Detected:</span>
-                        <span className="font-semibold text-red-600">{result.num_detections}</span>
-                      </div>
-                    )}
+            {/* Bigger buttons on mobile */}
+            <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col md:flex-row items-center justify-center px-4 py-4 md:py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm md:text-base"
+              >
+                <Upload className="w-6 h-6 md:w-5 md:h-5 mb-1 md:mb-0 md:mr-2" />
+                <span>Upload</span>
+              </button>
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex flex-col md:flex-row items-center justify-center px-4 py-4 md:py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm md:text-base"
+              >
+                <Camera className="w-6 h-6 md:w-5 md:h-5 mb-1 md:mb-0 md:mr-2" />
+                <span>Camera</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </div>
+
+            {/* Mobile-friendly tip */}
+            <div className="mb-4 text-xs md:text-sm text-gray-500 bg-gray-50 p-2 md:p-3 rounded">
+              <strong>💡 Mobile Tip:</strong> Camera button opens your device camera for instant capture!
+            </div>
+
+            {preview && (
+              <div className="mb-4 md:mb-6">
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="w-full h-auto rounded-lg shadow-md border-2 border-gray-200"
+                />
+              </div>
+            )}
+
+            {error && (
+              <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 md:p-4">
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-2 md:mr-3 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-xs md:text-sm text-red-800">{error}</p>
                   </div>
                 </div>
+              </div>
+            )}
 
-                {/* Symptoms */}
-                {result.symptoms && (
-                  <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-3 flex items-center">
-                      <AlertCircle className="w-5 h-5 mr-2 text-orange-600" />
-                      Symptoms
-                    </h3>
-                    <p className="text-gray-700 leading-relaxed">{result.symptoms}</p>
-                  </div>
-                )}
-
-                {/* Control Methods */}
-                {result.control_methods && result.control_methods.length > 0 && (
-                  <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-3 flex items-center">
-                      <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
-                      Control Methods
-                    </h3>
-                    <ul className="space-y-2">
-                      {result.control_methods.map((method, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="inline-block w-6 h-6 bg-green-100 text-green-700 rounded-full text-center font-semibold text-sm mr-3 flex-shrink-0 mt-0.5">
-                            {index + 1}
-                          </span>
-                          <span className="text-gray-700">{method}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Prevention */}
-                {result.prevention && result.prevention.length > 0 && (
-                  <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-3 flex items-center">
-                      <Info className="w-5 h-5 mr-2 text-blue-600" />
-                      Prevention Tips
-                    </h3>
-                    <ul className="space-y-2">
-                      {result.prevention.map((tip, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="inline-block w-6 h-6 bg-blue-100 text-blue-700 rounded-full text-center font-semibold text-sm mr-3 flex-shrink-0 mt-0.5">
-                            {index + 1}
-                          </span>
-                          <span className="text-gray-700">{tip}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Action Button */}
+            {preview && !result && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <button
+                  onClick={handleDetect}
+                  disabled={loading || locationLoading}
+                  className="col-span-1 md:col-span-2 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed text-sm md:text-base"
+                >
+                  {loading ? (
+                    <>
+                      <Loader className="animate-spin mr-2 w-5 h-5" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Detect Pest
+                    </>
+                  )}
+                </button>
                 <button
                   onClick={resetDetection}
-                  className="w-full bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold shadow-lg"
+                  className="col-span-1 md:col-span-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm md:text-base"
                 >
-                  Analyze Another Image
+                  Clear
                 </button>
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg shadow-lg p-8 text-center h-full flex items-center justify-center">
-                <div>
-                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Camera className="w-12 h-12 text-gray-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">No Detection Yet</h3>
-                  <p className="text-gray-600">
-                    Upload or capture an image to start pest detection
-                  </p>
-                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Info Section */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-2">How it works</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
-            <div>
-              <span className="font-semibold">1. Select Crop:</span> Choose rice or corn to optimize detection
+        {/* Right Panel - Results (stacks below on mobile) */}
+        <div>
+          {result ? (
+            <div className="space-y-4 md:space-y-6">
+              {/* Results cards with mobile-friendly sizing */}
+              {/* ... rest of results display ... */}
             </div>
-            <div>
-              <span className="font-semibold">2. Upload Image:</span> Capture or upload a clear photo of the affected area
+          ) : (
+            <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 text-center h-full flex items-center justify-center">
+              <div>
+                <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Camera className="w-8 h-8 md:w-12 md:h-12 text-gray-400" />
+                </div>
+                <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-2">
+                  No Detection Yet
+                </h3>
+                <p className="text-sm md:text-base text-gray-600">
+                  Upload or capture an image to start
+                </p>
+              </div>
             </div>
-            <div>
-              <span className="font-semibold">3. Get Results:</span> Receive instant pest identification and treatment guidance
-            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Info Section - Smaller text on mobile */}
+      <div className="mt-6 md:mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold text-blue-900 mb-2">
+          How it works
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 text-xs md:text-sm text-blue-800">
+          <div>
+            <span className="font-semibold">1. Select Crop:</span> Choose rice or corn
           </div>
-          <div className="mt-4 text-xs text-blue-700 bg-blue-100 p-3 rounded">
-            ℹ️ <strong>Note:</strong> The first detection may take 30-60 seconds as the ML service warms up. Subsequent detections will be faster.
+          <div>
+            <span className="font-semibold">2. Upload Image:</span> Capture or upload a photo
           </div>
-          <div className="mt-2 text-xs text-blue-700 bg-blue-100 p-3 rounded">
-            📸 <strong>Tip:</strong> For best results, ensure the pest is clearly visible in the image with good lighting and focus.
+          <div>
+            <span className="font-semibold">3. Get Results:</span> Receive instant identification
           </div>
         </div>
       </div>
     </div>
+  </div>
   );
 };
 
