@@ -9,6 +9,11 @@ services:
         value: 18.17.0
       - key: VITE_API_URL
         value: https://pestcheck-api.onrender.com/api
+    # Critical: This makes React Router work on refresh
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
     routes:
       - type: rewrite
         source: /*
