@@ -14,6 +14,7 @@ const Detection = ({ user, onLogout }) => {
   const [error, setError] = useState(null);
   const [canRetry, setCanRetry] = useState(false);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -55,22 +56,10 @@ const Detection = ({ user, onLogout }) => {
   };
 
   const handleCameraClick = () => {
-    // Directly trigger file input with camera
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment'; // Use back camera on mobile
-    input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        setImage(file);
-        setPreview(URL.createObjectURL(file));
-        setResult(null);
-        setError(null);
-        setCanRetry(false);
-      }
-    };
-    input.click();
+    // Trigger the camera input
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    }
   };
 
   const handleDetect = async () => {
@@ -257,6 +246,14 @@ const Detection = ({ user, onLogout }) => {
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
