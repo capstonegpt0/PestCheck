@@ -126,14 +126,14 @@ const HeatMap = ({ user, onLogout }) => {
         lng: selectedLocation.lng
       };
       
-      const response = await api.post('/farms/', farmData);
+      const response = await api.post('/farm-requests/', farmData);
       const newFarm = response.data;
       
       const updatedFarms = [...farms, newFarm];
       setFarms(updatedFarms);
       
       resetFarmForm();
-      alert('Farm added successfully!');
+      alert('Farm request submitted successfully! An admin will review your request soon.');
     } catch (error) {
       console.error('Error saving farm:', error);
       alert('Failed to save farm: ' + (error.response?.data?.error || error.message));
