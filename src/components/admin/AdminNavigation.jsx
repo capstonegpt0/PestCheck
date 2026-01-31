@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, MapPin, AlertTriangle, Book, Bell, Activity, LogOut, Shield } from 'lucide-react';
-import api from '../../utils/api';
+import { LayoutDashboard, Users, MapPin, AlertTriangle, Book, Bell, Activity, LogOut, Shield, FileText } from 'lucide-react';
 
 const AdminNavigation = ({ user, onLogout }) => {
   const location = useLocation();
@@ -10,6 +9,7 @@ const AdminNavigation = ({ user, onLogout }) => {
     { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/admin/users', icon: Users, label: 'Users' },
     { path: '/admin/farms', icon: MapPin, label: 'Farms' },
+    { path: '/admin/farm-requests', icon: FileText, label: 'Farm Requests' },
     { path: '/admin/detections', icon: AlertTriangle, label: 'Detections' },
     { path: '/admin/pests', icon: Book, label: 'Pest Info' },
     { path: '/admin/alerts', icon: Bell, label: 'Alerts' },
