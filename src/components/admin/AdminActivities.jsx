@@ -250,7 +250,6 @@ const AdminActivities = ({ user, onLogout }) => {
                           <span className="font-semibold text-gray-900">{activity.user_name}</span>
                           <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
                             activity.user_role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                            activity.user_role === 'expert' ? 'bg-blue-100 text-blue-800' :
                             'bg-green-100 text-green-800'
                           }`}>
                             {activity.user_role}

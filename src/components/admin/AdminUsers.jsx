@@ -24,7 +24,6 @@ const AdminUsers = ({ user, onLogout }) => {
   const fetchUsers = async () => {
     try {
       const response = await api.get('/admin/users/');
-      // Handle both array and paginated response
       const userData = Array.isArray(response.data) 
         ? response.data 
         : (response.data.results || []);
@@ -106,8 +105,7 @@ const AdminUsers = ({ user, onLogout }) => {
   const getRoleBadgeColor = (role) => {
     const colors = {
       admin: 'bg-purple-100 text-purple-800',
-      farmer: 'bg-green-100 text-green-800',
-      expert: 'bg-blue-100 text-blue-800'
+      farmer: 'bg-green-100 text-green-800'
     };
     return colors[role] || 'bg-gray-100 text-gray-800';
   };
@@ -149,14 +147,6 @@ const AdminUsers = ({ user, onLogout }) => {
                 }`}
               >
                 Farmers
-              </button>
-              <button
-                onClick={() => setRoleFilter('expert')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  roleFilter === 'expert' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Experts
               </button>
               <button
                 onClick={() => setRoleFilter('admin')}
@@ -306,7 +296,6 @@ const AdminUsers = ({ user, onLogout }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="farmer">Farmer</option>
-                <option value="expert">Expert</option>
                 <option value="admin">Admin</option>
               </select>
             </div>

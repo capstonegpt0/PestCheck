@@ -6,7 +6,7 @@ import api from '../../utils/api';
 
 const AdminDashboard = ({ user, onLogout }) => {
   const [stats, setStats] = useState({
-    users: { total: 0, farmers: 0, experts: 0, verified: 0, unverified: 0 },
+    users: { total: 0, farmers: 0, verified: 0, unverified: 0 },
     farms: { total: 0, verified: 0, unverified: 0, by_crop: {} },
     detections: { total: 0, pending: 0, verified: 0, rejected: 0, resolved: 0, by_severity: {} }
   });
@@ -64,7 +64,6 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const userRoleData = [
     { name: 'Farmers', value: stats.users.farmers },
-    { name: 'Experts', value: stats.users.experts },
     { name: 'Admins', value: stats.users.admins }
   ];
 
@@ -174,7 +173,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                   dataKey="value"
                 >
                   {userRoleData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={[COLORS.primary, COLORS.blue, COLORS.purple][index]} />
+                    <Cell key={`cell-${index}`} fill={[COLORS.primary, COLORS.purple][index]} />
                   ))}
                 </Pie>
                 <Tooltip />
