@@ -325,22 +325,12 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const getFarmHeatmapRadius = (farmId) => {
-    const farmInfestations = detections.filter(d => d.farm_id === farmId && d.active !== false);
-    if (farmInfestations.length === 0) return 80;
-    
-    const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
-    let worstSeverity = 'low';
-    let worstLevel = 0;
-    
-    farmInfestations.forEach(infestation => {
-      const level = severityOrder[infestation.severity] || 0;
-      if (level > worstLevel) {
-        worstLevel = level;
-        worstSeverity = infestation.severity;
-      }
-    });
-    
-    return getSeverityRadius(worstSeverity);
+    const farm = farms.find(f => f.id === farmId);
+    const hectares = parseFloat(farm?.size) || 1;
+    // 1 hectare is a 100m × 100m square → circle with equivalent area has radius ≈ 56m
+    const radius = hectares * 56;
+    // Clamp between 50m and 500m so tiny or huge farms still look reasonable on the map
+    return Math.min(Math.max(radius, 50), 500);
   };
 
   const getFarmStatus = (farmId) => {
