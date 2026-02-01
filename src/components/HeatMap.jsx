@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMapEvents } from 'react-leaflet';
-import { Filter, MapPin, AlertTriangle, Save, X, Trash2, CheckCircle, Activity } from 'lucide-react';
+import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity } from 'lucide-react';
 import Navigation from './Navigation';
 import api from '../utils/api';
 import L from 'leaflet';
@@ -40,9 +40,7 @@ const HeatMap = ({ user, onLogout }) => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showFarmModal, setShowFarmModal] = useState(false);
   const [showInfestationModal, setShowInfestationModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
-  const [selectedFarmToDelete, setSelectedFarmToDelete] = useState(null);
   const [selectedInfestationToResolve, setSelectedInfestationToResolve] = useState(null);
   const [farmForm, setFarmForm] = useState({ name: '', size: '', crop_type: '' });
   const [infestationForm, setInfestationForm] = useState({ pest_type: '', severity: 'low', description: '', farm_id: '' });
@@ -127,50 +125,15 @@ const HeatMap = ({ user, onLogout }) => {
       };
       
       const response = await api.post('/farm-requests/', farmData);
-      const newFarm = response.data;
-      
-      const updatedFarms = [...farms, newFarm];
-      setFarms(updatedFarms);
       
       resetFarmForm();
       alert('Farm request submitted successfully! An admin will review your request soon.');
+      
+      // Refresh data to show any updates
+      fetchInitialData();
     } catch (error) {
-      console.error('Error saving farm:', error);
-      alert('Failed to save farm: ' + (error.response?.data?.error || error.message));
-    }
-  };
-
-  const confirmDeleteFarm = (farmId) => {
-    setSelectedFarmToDelete(farmId);
-    setShowDeleteConfirm(true);
-  };
-
-  const deleteFarm = async () => {
-    try {
-      const farmToDelete = farms.find(f => f.id === selectedFarmToDelete);
-      
-      // Check if user owns this farm
-      if (farmToDelete && farmToDelete.user_name !== user.username && user.role !== 'admin') {
-        alert('You can only delete your own farms!');
-        setShowDeleteConfirm(false);
-        setSelectedFarmToDelete(null);
-        return;
-      }
-      
-      await api.delete(`/farms/${selectedFarmToDelete}/`);
-      
-      const updatedFarms = farms.filter(f => f.id !== selectedFarmToDelete);
-      const updatedDetections = detections.filter(d => d.farm_id !== selectedFarmToDelete);
-      
-      setFarms(updatedFarms);
-      setDetections(updatedDetections);
-      
-      setShowDeleteConfirm(false);
-      setSelectedFarmToDelete(null);
-      alert('Farm and related infestations deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting farm:', error);
-      alert('Failed to delete farm: ' + (error.response?.data?.error || error.message));
+      console.error('Error saving farm request:', error);
+      alert('Failed to submit farm request: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -443,13 +406,13 @@ const HeatMap = ({ user, onLogout }) => {
               }`}
             >
               <MapPin className="w-4 h-4 mr-2" />
-              Add Farm
+              Request Farm
             </button>
             
             <button
               onClick={() => {
                 if (farms.length === 0) {
-                  alert('Please add a farm first before reporting infestations');
+                  alert('Please request a farm first before reporting infestations');
                   return;
                 }
                 setIsReportingInfestation(true);
@@ -471,7 +434,7 @@ const HeatMap = ({ user, onLogout }) => {
         {isAddingFarm && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-blue-800 font-medium">
-              ðŸ“ Click on the map to place your farm location
+              📍 Click on the map to place your farm location. An admin will review your request.
             </p>
           </div>
         )}
@@ -572,63 +535,17 @@ const HeatMap = ({ user, onLogout }) => {
                     <Popup>
                       <div className="p-2">
                         <p className="font-semibold text-green-700">{farm.name}</p>
-                        <p className="text-xs text-gray-500">Owner: {farm.user_name}</p>
                         <p className="text-sm text-gray-600">Crop: {farm.crop_type}</p>
                         <p className="text-sm text-gray-600">Size: {farm.size} hectares</p>
                         <p className={`text-sm font-medium ${getFarmStatus(farm.id).color}`}>
                           Status: {getFarmStatus(farm.id).text}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {detections.filter(d => d.farm_id === farm.id && d.active !== false).length} active infestation(s)
-                        </p>
-                        {farm.user_name === user.username && (
-                          <button
-                            onClick={() => confirmDeleteFarm(farm.id)}
-                            className="mt-2 flex items-center text-red-600 hover:text-red-800 text-sm font-medium"
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Delete Farm
-                          </button>
-                        )}
                       </div>
                     </Popup>
                   </Marker>
                 </React.Fragment>
               ))}
             </MapContainer>
-          </div>
-        )}
-
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-              <div className="flex items-center mb-4">
-                <Trash2 className="w-6 h-6 text-red-600 mr-3" />
-                <h2 className="text-xl font-bold text-gray-800">Delete Farm</h2>
-              </div>
-              
-              <p className="text-gray-700 mb-6">
-                Are you sure you want to delete this farm? This will also remove all related infestations.
-              </p>
-
-              <div className="flex space-x-3">
-                <button
-                  onClick={deleteFarm}
-                  className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 font-medium"
-                >
-                  Yes, Delete
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDeleteConfirm(false);
-                    setSelectedFarmToDelete(null);
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -669,10 +586,16 @@ const HeatMap = ({ user, onLogout }) => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">Add New Farm</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Request New Farm</h2>
                 <button onClick={resetFarmForm} className="text-gray-500 hover:text-gray-700">
                   <X className="w-6 h-6" />
                 </button>
+              </div>
+              
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3">
+                <p className="text-sm text-blue-800">
+                  ℹ️ Your farm request will be reviewed by an administrator before being added to the map.
+                </p>
               </div>
               
               <div className="space-y-4">
@@ -732,7 +655,7 @@ const HeatMap = ({ user, onLogout }) => {
                     className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    Save Farm
+                    Submit Request
                   </button>
                   <button
                     onClick={resetFarmForm}
@@ -846,19 +769,16 @@ const HeatMap = ({ user, onLogout }) => {
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Farms</h2>
             <div className="space-y-3">
               {farms.length === 0 ? (
-                <p className="text-gray-500">No farms added yet. Click "Add Farm" to get started.</p>
+                <p className="text-gray-500">No farms yet. Click "Request Farm" to submit a request to admin.</p>
               ) : (
                 farms.map(farm => {
                   const status = getFarmStatus(farm.id);
                   const infestationCount = detections.filter(d => d.farm_id === farm.id && d.active !== false).length;
-                  const isOwnFarm = farm.user_name === user.username;
-                  
                   return (
                     <div key={farm.id} className="border border-gray-200 rounded-lg p-3">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <p className="font-semibold text-gray-800">{farm.name}</p>
-                          <p className="text-xs text-gray-500">Owner: {farm.user_name}</p>
                           <p className="text-sm text-gray-600">{farm.crop_type} - {farm.size} hectares</p>
                           <p className={`text-sm font-medium mt-1 ${status.color}`}>
                             {status.text}
@@ -869,20 +789,11 @@ const HeatMap = ({ user, onLogout }) => {
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center">
                           <div 
                             className="w-4 h-4 rounded-full" 
                             style={{ backgroundColor: getFarmHeatmapColor(farm.id) }}
                           ></div>
-                          {isOwnFarm && (
-                            <button
-                              onClick={() => confirmDeleteFarm(farm.id)}
-                              className="text-red-600 hover:text-red-800 p-2"
-                              title="Delete farm"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          )}
                         </div>
                       </div>
                     </div>
