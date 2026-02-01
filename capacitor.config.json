@@ -1,0 +1,9 @@
+{
+  "appId": "com.pestcheck.app",
+  "appName": "PestCheck",
+  "webDir": "dist",
+  "plugins": {
+    "Camera": {},
+    "Geolocation": {}
+  }
+}
