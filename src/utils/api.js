@@ -3,35 +3,23 @@ import axios from 'axios';
 
 // ---------------------------------------------------------------
 // BASE URL RESOLUTION
-// Detects whether we are running inside a Capacitor WebView,
-// an Android emulator, or a normal browser and picks the
-// correct backend URL accordingly.
 // ---------------------------------------------------------------
 function getBaseURL() {
-  // 1) Build-time env var always wins (works for browser dev server)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
 
-  // 2) Runtime detection for Capacitor / native WebView
   const origin = window.location.origin;
 
   if (
-    origin === 'capacitor://localhost' ||   // Capacitor iOS
-    origin === 'ionic://localhost' ||        // Ionic Capacitor
-    origin === 'http://localhost' ||         // Capacitor Android (real device)
-    origin === 'null'                        // some WebView contexts report "null"
+    origin === 'capacitor://localhost' ||
+    origin === 'ionic://localhost' ||
+    origin === 'http://localhost' ||
+    origin === 'null'
   ) {
-    // -------------------------------------------------------
-    // CHANGE THIS if you are testing against a LOCAL dev server:
-    //   Android emulator  -> 'http://10.0.2.2:8000/api'
-    //   iOS simulator     -> 'http://localhost:8000/api'
-    // For production Capacitor builds keep the line below:
-    // -------------------------------------------------------
     return 'https://pestcheck.onrender.com/api';
   }
 
-  // 3) Default fallback (production)
   return 'https://pestcheck.onrender.com/api';
 }
 
@@ -40,13 +28,6 @@ console.log('API Base URL:', API_BASE_URL);
 
 // ---------------------------------------------------------------
 // CSRF HELPER
-// Django sets a cookie called "csrftoken" that is readable from
-// JavaScript because CSRF_COOKIE_HTTPONLY = False in settings.py.
-// We extract it here and attach it as the X-CSRFToken header on
-// every unsafe request (POST, PUT, PATCH, DELETE).
-// Without this, Django's CsrfViewMiddleware returns 403 and the
-// app shows "incorrect credentials" even though the credentials
-// are actually fine.
 // ---------------------------------------------------------------
 function getCsrfToken() {
   const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
@@ -54,9 +35,18 @@ function getCsrfToken() {
 }
 
 // ---------------------------------------------------------------
+// Endpoints that are supposed to return 401 on failure.
+// The token-refresh interceptor must SKIP these — otherwise it
+// swallows the real error before the component ever sees it.
+// ---------------------------------------------------------------
+const AUTH_ENDPOINTS = ['/auth/login/', '/auth/register/', '/auth/token/', '/auth/token/refresh/'];
+
+function isAuthEndpoint(url) {
+  return AUTH_ENDPOINTS.some((endpoint) => url && url.endsWith(endpoint));
+}
+
+// ---------------------------------------------------------------
 // AXIOS INSTANCE
-// withCredentials: true is required so the browser sends and
-// receives cookies (including csrftoken) on cross-origin requests.
 // ---------------------------------------------------------------
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -108,7 +98,17 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 401 (unauthorized) — attempt a silent token refresh
+    // -------------------------------------------------------
+    // SKIP auth endpoints entirely.
+    // /auth/login/ legitimately returns 401 when credentials
+    // are wrong. If we intercept that here we swallow the real
+    // error and the login component never sees it.
+    // -------------------------------------------------------
+    if (isAuthEndpoint(originalRequest.url)) {
+      return Promise.reject(error);
+    }
+
+    // For every other endpoint, attempt a silent token refresh on 401
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
