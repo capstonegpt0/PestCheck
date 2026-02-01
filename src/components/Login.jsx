@@ -20,7 +20,39 @@ const Login = ({ onLogin }) => {
       const response = await api.post('/auth/login/', formData);
       onLogin(response.data.user, response.data.tokens);
     } catch (err) {
-      setError(err.response?.data?.non_field_errors?.[0] || 'Login failed. Please check your credentials.');
+      // --- DEBUG: log everything so we can see exactly what is happening ---
+      console.error('=== LOGIN ERROR DEBUG ===');
+      console.error('err.message:', err.message);
+      console.error('err.response?.status:', err.response?.status);
+      console.error('err.response?.data:', JSON.stringify(err.response?.data));
+      console.error('err.response?.headers:', JSON.stringify(err.response?.headers));
+      console.error('err.config?.url:', err.config?.url);
+      console.error('err.config?.baseURL:', err.config?.baseURL);
+      console.error('========================');
+
+      // Show the ACTUAL error from Django if available, otherwise show
+      // the raw status + message so we can diagnose remotely.
+      if (err.response?.data) {
+        const data = err.response.data;
+        // Django non_field_errors (e.g. wrong credentials)
+        if (data.non_field_errors?.[0]) {
+          setError(data.non_field_errors[0]);
+        }
+        // Django field errors or detail message
+        else if (data.detail) {
+          setError(data.detail);
+        }
+        // Any other error shape — stringify it so we see it
+        else {
+          setError(JSON.stringify(data));
+        }
+      } else if (err.message) {
+        // No response at all — network error or CORS block.
+        // Show the raw message so we know it's not a credentials issue.
+        setError(`Network error: ${err.message}`);
+      } else {
+        setError('Login failed. Please check your credentials.');
+      }
     } finally {
       setLoading(false);
     }
