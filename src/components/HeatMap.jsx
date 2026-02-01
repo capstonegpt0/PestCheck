@@ -766,10 +766,10 @@ const HeatMap = ({ user, onLogout }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Farms</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">All Farms</h2>
             <div className="space-y-3">
               {farms.length === 0 ? (
-                <p className="text-gray-500">No farms yet. Click "Request Farm" to submit a request to admin.</p>
+                <p className="text-gray-500">No farms registered yet.</p>
               ) : (
                 farms.map(farm => {
                   const status = getFarmStatus(farm.id);
@@ -779,6 +779,7 @@ const HeatMap = ({ user, onLogout }) => {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <p className="font-semibold text-gray-800">{farm.name}</p>
+                          <p className="text-xs text-gray-400">Owner: {farm.user_name}</p>
                           <p className="text-sm text-gray-600">{farm.crop_type} - {farm.size} hectares</p>
                           <p className={`text-sm font-medium mt-1 ${status.color}`}>
                             {status.text}
@@ -819,6 +820,7 @@ const HeatMap = ({ user, onLogout }) => {
                           {farm && (
                             <p className="text-xs text-gray-500">Farm: {farm.name}</p>
                           )}
+                          <p className="text-xs text-gray-400">Reported by: {detection.user_name || 'Unknown'}</p>
                           <p className="text-sm text-gray-600">
                             Severity: <span className={`font-medium ${
                               detection.severity === 'critical' ? 'text-red-900' : 
@@ -835,13 +837,15 @@ const HeatMap = ({ user, onLogout }) => {
                             detection.severity === 'medium' ? 'bg-yellow-500' : 
                             'bg-green-500'
                           }`}></div>
-                          <button
-                            onClick={() => confirmResolveInfestation(detection.id)}
-                            className="text-green-600 hover:text-green-800 p-1"
-                            title="Mark as resolved"
-                          >
-                            <CheckCircle className="w-5 h-5" />
-                          </button>
+                          {(detection.user_name === user.username || user.role === 'admin') && (
+                            <button
+                              onClick={() => confirmResolveInfestation(detection.id)}
+                              className="text-green-600 hover:text-green-800 p-1"
+                              title="Mark as resolved"
+                            >
+                              <CheckCircle className="w-5 h-5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
