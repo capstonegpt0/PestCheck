@@ -2,177 +2,55 @@
 import axios from 'axios';
 
 // ---------------------------------------------------------------
-// BASE URL RESOLUTION - ENHANCED FOR CAPACITOR
+// BASE URL RESOLUTION - FIXED FOR CAPACITOR
 // ---------------------------------------------------------------
 function getBaseURL() {
   const origin = window.location.origin;
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
   
-  console.log('🔍 Environment Detection:');
-  console.log('  Origin:', origin);
-  console.log('  Protocol:', protocol);
-  console.log('  Hostname:', hostname);
-  console.log('  User Agent:', navigator.userAgent);
+  console.log('🔍 Current origin:', origin);
+  console.log('🔍 Protocol:', window.location.protocol);
+  console.log('🔍 Hostname:', window.location.hostname);
   
-  // Detect if running in Capacitor
-  const isCapacitor = 
+  // ✅ Capacitor detection - use FULL Render URL
+  if (
     origin === 'capacitor://localhost' ||
     origin === 'ionic://localhost' ||
     origin === 'http://localhost' ||
     origin === 'null' ||
-    protocol === 'capacitor:' ||
-    protocol === 'ionic:' ||
-    protocol === 'file:' ||
-    (typeof window.Capacitor !== 'undefined');
-  
-  if (isCapacitor) {
+    window.location.protocol === 'capacitor:' ||
+    window.location.protocol === 'ionic:'
+  ) {
     const renderURL = 'https://pestcheck.onrender.com/api';
-    console.log('📱 CAPACITOR MODE DETECTED');
-    console.log('  Using Render URL:', renderURL);
+    console.log('📱 Capacitor detected, using Render URL:', renderURL);
     return renderURL;
   }
 
-  // Web app mode
+  // For web app - check environment variable first
   if (import.meta.env.VITE_API_URL) {
-    console.log('🌐 WEB MODE - Using VITE_API_URL:', import.meta.env.VITE_API_URL);
+    console.log('🌐 Using VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
 
+  // Default to Render for web deployment
   const defaultURL = 'https://pestcheck.onrender.com/api';
-  console.log('🌐 WEB MODE - Using default URL:', defaultURL);
+  console.log('🌐 Using default URL:', defaultURL);
   return defaultURL;
 }
 
 const API_BASE_URL = getBaseURL();
-console.log('✅ FINAL API BASE URL:', API_BASE_URL);
+console.log('✅ API Base URL set to:', API_BASE_URL);
 
 // ---------------------------------------------------------------
-// NETWORK TEST FUNCTION
-// ---------------------------------------------------------------
-export async function testNetworkConnectivity() {
-  console.log('🔬 === NETWORK CONNECTIVITY TEST ===');
-  
-  const results = {
-    internetAccess: false,
-    backendReachable: false,
-    corsConfigured: false,
-    details: [],
-    errors: []
-  };
-  
-  try {
-    // Test 1: Check internet connectivity
-    console.log('Test 1: Checking internet access...');
-    try {
-      const response = await fetch('https://www.google.com', { 
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-cache'
-      });
-      results.internetAccess = true;
-      results.details.push('✅ Internet access confirmed');
-      console.log('✅ Internet access: OK');
-    } catch (err) {
-      results.errors.push('❌ No internet access - Check WiFi/cellular');
-      console.error('❌ Internet test failed:', err.message);
-    }
-    
-    // Test 2: Check if backend is reachable
-    console.log('Test 2: Checking backend reachability...');
-    try {
-      const backendURL = API_BASE_URL.replace('/api', '');
-      console.log('  Testing:', backendURL);
-      
-      const response = await fetch(backendURL, {
-        method: 'GET',
-        headers: {
-          'Accept': 'text/html,application/json',
-        },
-        // Don't use mode: 'no-cors' here as we need to see the response
-      });
-      
-      results.backendReachable = response.ok || response.status === 404;
-      results.details.push(`✅ Backend reachable (${response.status})`);
-      console.log('✅ Backend reachable:', response.status);
-    } catch (err) {
-      results.errors.push(`❌ Cannot reach backend: ${err.message}`);
-      console.error('❌ Backend test failed:', err.message);
-      
-      if (err.message.includes('Failed to fetch')) {
-        results.errors.push('💡 Possible causes:');
-        results.errors.push('  - Backend is down/sleeping (Render free tier)');
-        results.errors.push('  - Wrong backend URL');
-        results.errors.push('  - Network firewall blocking requests');
-      }
-    }
-    
-    // Test 3: Check CORS
-    console.log('Test 3: Checking CORS configuration...');
-    try {
-      const loginURL = `${API_BASE_URL}/auth/login/`;
-      console.log('  Testing:', loginURL);
-      
-      const response = await fetch(loginURL, {
-        method: 'OPTIONS',
-        headers: {
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'content-type,authorization',
-        },
-      });
-      
-      const allowOrigin = response.headers.get('Access-Control-Allow-Origin');
-      const allowMethods = response.headers.get('Access-Control-Allow-Methods');
-      
-      results.corsConfigured = allowOrigin === '*' || allowOrigin !== null;
-      results.details.push(`✅ CORS configured: ${allowOrigin || 'Not set'}`);
-      console.log('✅ CORS Allow-Origin:', allowOrigin);
-      console.log('✅ CORS Allow-Methods:', allowMethods);
-    } catch (err) {
-      results.errors.push(`❌ CORS check failed: ${err.message}`);
-      console.error('❌ CORS test failed:', err.message);
-    }
-    
-    // Test 4: Try actual API call
-    console.log('Test 4: Testing actual API endpoint...');
-    try {
-      const response = await axios.get(`${API_BASE_URL}/pests/`, {
-        timeout: 10000,
-        validateStatus: () => true, // Accept any status
-      });
-      
-      results.details.push(`✅ API endpoint accessible (${response.status})`);
-      console.log('✅ API test:', response.status);
-    } catch (err) {
-      results.errors.push(`❌ API call failed: ${err.message}`);
-      console.error('❌ API test failed:', err);
-    }
-    
-  } catch (err) {
-    results.errors.push(`❌ Test suite error: ${err.message}`);
-    console.error('❌ Test suite error:', err);
-  }
-  
-  console.log('🔬 === TEST RESULTS ===');
-  console.log('Internet:', results.internetAccess ? '✅' : '❌');
-  console.log('Backend:', results.backendReachable ? '✅' : '❌');
-  console.log('CORS:', results.corsConfigured ? '✅' : '❌');
-  console.log('Details:', results.details);
-  console.log('Errors:', results.errors);
-  
-  return results;
-}
-
-// ---------------------------------------------------------------
-// CSRF HELPER
+// CSRF HELPER - FIXED FOR CAPACITOR
 // ---------------------------------------------------------------
 function getCsrfToken() {
+  // In Capacitor, cookies might not work the same way
   const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
 // ---------------------------------------------------------------
-// Auth endpoints
+// Auth endpoints that should not trigger token refresh
 // ---------------------------------------------------------------
 const AUTH_ENDPOINTS = [
   '/auth/login/',
@@ -186,7 +64,7 @@ function isAuthEndpoint(url) {
 }
 
 // ---------------------------------------------------------------
-// AXIOS INSTANCE - ENHANCED
+// AXIOS INSTANCE - FIXED FOR CAPACITOR
 // ---------------------------------------------------------------
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -195,43 +73,35 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  // CRITICAL: No credentials for Capacitor
+  // ✅ CRITICAL: withCredentials should be false for Capacitor
+  // because cookies don't work reliably in native apps
   withCredentials: false,
-  
-  // Enhanced error messages
-  validateStatus: function (status) {
-    return status >= 200 && status < 500; // Accept 4xx errors
-  },
 });
 
 // ---------------------------------------------------------------
-// REQUEST INTERCEPTOR - ENHANCED
+// REQUEST INTERCEPTOR - FIXED FOR CAPACITOR
 // ---------------------------------------------------------------
 api.interceptors.request.use(
   (config) => {
     console.log('📤 API Request:', {
       method: config.method?.toUpperCase(),
       url: config.url,
+      baseURL: config.baseURL,
       fullURL: `${config.baseURL}${config.url}`,
-      timeout: config.timeout,
-      timestamp: new Date().toISOString(),
     });
 
-    // 1) JWT token
+    // 1) Attach JWT Bearer token if available
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔐 Authorization header added');
+      console.log('🔐 Added Authorization header');
     }
 
-    // 2) Skip CSRF for Capacitor
-    const isCapacitor = 
-      window.location.protocol === 'capacitor:' ||
-      window.location.protocol === 'ionic:' ||
-      window.location.protocol === 'file:' ||
-      window.location.origin === 'capacitor://localhost' ||
-      window.location.origin === 'ionic://localhost' ||
-      (typeof window.Capacitor !== 'undefined');
+    // 2) CSRF token handling - skip for Capacitor
+    const isCapacitor = window.location.protocol === 'capacitor:' ||
+                       window.location.protocol === 'ionic:' ||
+                       window.location.origin === 'capacitor://localhost' ||
+                       window.location.origin === 'ionic://localhost';
     
     if (!isCapacitor) {
       const unsafeMethods = ['post', 'put', 'patch', 'delete'];
@@ -239,17 +109,17 @@ api.interceptors.request.use(
         const csrfToken = getCsrfToken();
         if (csrfToken) {
           config.headers['X-CSRFToken'] = csrfToken;
-          console.log('🛡️ CSRF token added');
+          console.log('🛡️ Added CSRF token');
         }
       }
     } else {
-      console.log('📱 Capacitor mode - CSRF skipped');
+      console.log('📱 Capacitor detected - skipping CSRF');
     }
 
-    // 3) FormData handling
+    // 3) Let axios auto-set Content-Type for FormData
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
-      console.log('📎 FormData detected - Content-Type removed');
+      console.log('📎 Removed Content-Type for FormData');
     }
 
     return config;
@@ -261,57 +131,35 @@ api.interceptors.request.use(
 );
 
 // ---------------------------------------------------------------
-// RESPONSE INTERCEPTOR - ENHANCED ERROR HANDLING
+// RESPONSE INTERCEPTOR - FIXED ERROR HANDLING
 // ---------------------------------------------------------------
 api.interceptors.response.use(
   (response) => {
     console.log('✅ API Response:', {
       status: response.status,
-      statusText: response.statusText,
       url: response.config.url,
-      dataSize: JSON.stringify(response.data || {}).length,
-      timestamp: new Date().toISOString(),
+      dataKeys: Object.keys(response.data || {}),
     });
     return response;
   },
   async (error) => {
-    // Enhanced error logging
-    console.error('❌ === API ERROR DETAILS ===');
-    console.error('Message:', error.message);
-    console.error('Code:', error.code);
-    console.error('Status:', error.response?.status);
-    console.error('URL:', error.config?.url);
-    console.error('Full URL:', `${error.config?.baseURL}${error.config?.url}`);
-    console.error('Method:', error.config?.method?.toUpperCase());
-    console.error('Response Data:', error.response?.data);
-    console.error('Network Error:', !error.response);
-    console.error('Timestamp:', new Date().toISOString());
-    
-    // Categorize error
-    if (!error.response) {
-      console.error('🔴 NETWORK ERROR - No response from server');
-      console.error('Possible causes:');
-      console.error('  1. No internet connection');
-      console.error('  2. Backend is down/sleeping');
-      console.error('  3. CORS blocking the request');
-      console.error('  4. Request timeout');
-      console.error('  5. Wrong backend URL');
-    } else if (error.response.status >= 500) {
-      console.error('🔴 SERVER ERROR -', error.response.status);
-    } else if (error.response.status >= 400) {
-      console.error('🔴 CLIENT ERROR -', error.response.status);
-    }
-    console.error('========================');
+    console.error('❌ API Error:', {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      url: error.config?.url,
+      responseData: error.response?.data,
+    });
 
     const originalRequest = error.config;
 
-    // Skip auth endpoints
+    // Skip auth endpoints entirely
     if (isAuthEndpoint(originalRequest.url)) {
       console.log('⚠️ Auth endpoint failed - not retrying');
       return Promise.reject(error);
     }
 
-    // Token refresh on 401
+    // For other endpoints, attempt silent token refresh on 401
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       console.log('🔄 Attempting token refresh...');
@@ -338,6 +186,7 @@ api.interceptors.response.use(
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         
+        // Only redirect if we're not already on login page
         if (!window.location.hash.includes('/login')) {
           window.location.href = '/#/login';
         }
