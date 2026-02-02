@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Bug, Loader } from 'lucide-react';
-import api from '../utils/api';
+import { Bug, Loader, Wifi, WifiOff, Activity } from 'lucide-react';
+import api, { testNetworkConnectivity } from '../utils/api';
 
 const Login = ({ onLogin }) => {
   const [formData, setFormData] = useState({
@@ -11,6 +11,29 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState('');
+  const [networkStatus, setNetworkStatus] = useState(null);
+  const [testing, setTesting] = useState(false);
+
+  // Auto-test network on mount
+  useEffect(() => {
+    autoTestNetwork();
+  }, []);
+
+  const autoTestNetwork = async () => {
+    console.log('🔄 Auto-testing network on mount...');
+    try {
+      const results = await testNetworkConnectivity();
+      setNetworkStatus(results);
+      
+      if (!results.internetAccess) {
+        setError('❌ No internet connection detected. Please check your WiFi or cellular data.');
+      } else if (!results.backendReachable) {
+        setError('⚠️ Cannot reach backend server. It may be sleeping (Render free tier). Click "Test Connection" to wake it up.');
+      }
+    } catch (err) {
+      console.error('Auto-test failed:', err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,6 +46,8 @@ const Login = ({ onLogin }) => {
       console.log('API Base URL:', api.defaults.baseURL);
       console.log('Form data:', { username: formData.username, password: '***' });
       console.log('Origin:', window.location.origin);
+      console.log('Protocol:', window.location.protocol);
+      console.log('Is Capacitor:', typeof window.Capacitor !== 'undefined');
       
       const response = await api.post('/auth/login/', formData);
       
@@ -32,210 +57,183 @@ const Login = ({ onLogin }) => {
       
       onLogin(response.data.user, response.data.tokens);
     } catch (err) {
-      // --- DEBUG: log everything so we can see exactly what is happening ---
-      console.error('=== LOGIN ERROR DEBUG ===');
-      console.error('err.message:', err.message);
-      console.error('err.response?.status:', err.response?.status);
-      console.error('err.response?.data:', JSON.stringify(err.response?.data));
-      console.error('err.response?.headers:', JSON.stringify(err.response?.headers));
-      console.error('err.config?.url:', err.config?.url);
-      console.error('err.config?.baseURL:', err.config?.baseURL);
-      console.error('========================');
+      console.error('=== LOGIN ERROR ===');
+      console.error('Full error:', err);
+      console.error('Error message:', err.message);
+      console.error('Error code:', err.code);
+      console.error('Response status:', err.response?.status);
+      console.error('Response data:', err.response?.data);
+      console.error('Request URL:', err.config?.url);
+      console.error('Request method:', err.config?.method);
+      console.error('===================');
 
-      // Show the ACTUAL error from Django if available, otherwise show
-      // the raw status + message so we can diagnose remotely.
-      if (err.response?.data) {
-        const data = err.response.data;
-        // Django non_field_errors (e.g. wrong credentials)
-        if (data.non_field_errors?.[0]) {
-          setError(data.non_field_errors[0]);
-        }
-        // Django field errors or detail message
-        else if (data.detail) {
-          setError(data.detail);
-        }
-        // Any other error shape — stringify it so we see it
-        else {
-          setError(JSON.stringify(data));
-        }
-      } else if (err.message) {
-        // No response at all — network error or CORS block.
-        // Show the raw message so we know it's not a credentials issue.
-        setError(`Network error: ${err.message}`);
-      } else {
-        setError('Login failed. Please check your credentials.');
-      }
-      // --- ENHANCED ERROR LOGGING ---
-      console.error('=== LOGIN ERROR DEBUG ===');
-      console.error('Full error object:', err);
-      console.error('err.message:', err.message);
-      console.error('err.code:', err.code);
-      console.error('err.response?.status:', err.response?.status);
-      console.error('err.response?.data:', JSON.stringify(err.response?.data, null, 2));
-      console.error('err.response?.headers:', JSON.stringify(err.response?.headers, null, 2));
-      console.error('err.config?.url:', err.config?.url);
-      console.error('err.config?.baseURL:', err.config?.baseURL);
-      console.error('err.config?.method:', err.config?.method);
-      console.error('err.config?.headers:', JSON.stringify(err.config?.headers, null, 2));
-      console.error('========================');
+      let errorMessage = '';
+      let debugDetails = '';
 
-      // Build debug info
-      const debug = `
-Error Code: ${err.code || 'N/A'}
-Status: ${err.response?.status || 'N/A'}
-URL: ${err.config?.baseURL}${err.config?.url}
-Method: ${err.config?.method?.toUpperCase()}
-Origin: ${window.location.origin}
-      `.trim();
-      setDebugInfo(debug);
+      // Network errors (no response)
+      if (!err.response) {
+        if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) {
+          errorMessage = `❌ Network Error - Cannot connect to server
 
-      // Show the ACTUAL error from Django if available
-      if (err.response?.data) {
-        const data = err.response.data;
-        
-        // Django non_field_errors (e.g. wrong credentials)
-        if (data.non_field_errors?.[0]) {
-          setError(data.non_field_errors[0]);
-        }
-        // Django field errors or detail message
-        else if (data.detail) {
-          setError(data.detail);
-        }
-        // Username or password errors
-        else if (data.username || data.password) {
-          const errors = [];
-          if (data.username) {
-            errors.push(...(Array.isArray(data.username) ? data.username : [data.username]));
-          }
-          if (data.password) {
-            errors.push(...(Array.isArray(data.password) ? data.password : [data.password]));
-          }
-          setError(errors.join(', '));
-        }
-        // Any other error shape – stringify it so we see it
-        else {
-          setError(JSON.stringify(data, null, 2));
-        }
-      } else if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) {
-        // Network error – can't reach server
-        setError(`❌ Cannot connect to server
+Possible causes:
+1️⃣ No internet connection
+2️⃣ Backend server is down or sleeping (Render free tier)
+3️⃣ Firewall/VPN blocking requests
+4️⃣ Wrong backend URL
 
-Please check:
-1. Backend is deployed and running on Render
-2. You have an active internet connection
-3. Backend URL is correct: ${api.defaults.baseURL}
+🔧 Quick fixes:
+• Check your internet connection
+• Click "Test Connection" to wake up server
+• Wait 30 seconds and try again
+• Try cellular data instead of WiFi`;
 
-If using Render free tier, the server may be sleeping.
-Wait 30 seconds and try again.`);
-      } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
-        setError(`⏱️ Request timeout
+          debugDetails = `
+Network Error Details:
+• Error Code: ${err.code}
+• Message: ${err.message}
+• Backend URL: ${api.defaults.baseURL}
+• Your Origin: ${window.location.origin}
+• Is Capacitor: ${typeof window.Capacitor !== 'undefined'}
+          `.trim();
+        } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+          errorMessage = `⏱️ Request Timeout
 
-The server is taking too long to respond.
+The server took too long to respond.
 
 If using Render free tier:
-- The server may be sleeping (cold start)
-- Wait 30-60 seconds and try again
-- First request after sleep takes longer
+• First request after sleep takes 30-60 seconds
+• Click "Test Connection" to wake it up
+• Wait and try again
 
 If problem persists:
-- Check Render dashboard for errors
-- Check server logs`);
-      } else if (err.code === 'ERR_BAD_REQUEST' && err.response?.status === 400) {
-        setError(`Bad request - Invalid credentials or missing data`);
-      } else if (err.message) {
-        // No response at all – network error or CORS block
-        setError(`Network error: ${err.message}`);
-      } else {
-        setError('Login failed. Please check your credentials.');
+• Check if backend is running on Render dashboard
+• Look at Render logs for errors`;
+
+          debugDetails = `
+Timeout Details:
+• Timeout: ${err.config?.timeout}ms
+• Backend URL: ${api.defaults.baseURL}
+          `.trim();
+        } else {
+          errorMessage = `❌ Connection Failed
+
+${err.message}
+
+Check:
+• Internet connection
+• Backend server status on Render
+• Firewall settings`;
+
+          debugDetails = `
+Error: ${err.message}
+Code: ${err.code || 'N/A'}
+URL: ${api.defaults.baseURL}
+          `.trim();
+        }
       }
+      // HTTP error responses
+      else {
+        const status = err.response.status;
+        const data = err.response.data;
+
+        if (status === 400) {
+          // Django validation errors
+          if (data.non_field_errors) {
+            errorMessage = data.non_field_errors[0];
+          } else if (data.username || data.password) {
+            const errors = [];
+            if (data.username) errors.push(...(Array.isArray(data.username) ? data.username : [data.username]));
+            if (data.password) errors.push(...(Array.isArray(data.password) ? data.password : [data.password]));
+            errorMessage = errors.join('\n');
+          } else if (data.detail) {
+            errorMessage = data.detail;
+          } else {
+            errorMessage = 'Invalid login credentials';
+          }
+        } else if (status === 401) {
+          errorMessage = 'Invalid username or password';
+        } else if (status === 403) {
+          errorMessage = data.detail || 'Access forbidden';
+        } else if (status === 404) {
+          errorMessage = 'Login endpoint not found. Backend configuration issue.';
+        } else if (status >= 500) {
+          errorMessage = `Server Error (${status})
+
+The backend server encountered an error.
+Check Render logs for details.`;
+        } else {
+          errorMessage = data.detail || data.error || `HTTP ${status} error`;
+        }
+
+        debugDetails = `
+HTTP ${status} Error:
+${JSON.stringify(data, null, 2)}
+        `.trim();
+      }
+
+      setError(errorMessage);
+      setDebugInfo(debugDetails);
     } finally {
       setLoading(false);
     }
   };
 
-  // Test connection function
-  const testConnection = async () => {
-    console.log('=== TESTING CONNECTION ===');
-    console.log('API Base URL:', api.defaults.baseURL);
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setError('');
     setDebugInfo('Testing connection...');
     
+    console.log('🔬 Starting comprehensive connection test...');
+    
     try {
-      // Test 1: Check if backend is reachable
-      const testURL = api.defaults.baseURL.replace('/api', '');
-      console.log('Test 1: Fetching backend root:', testURL);
+      const results = await testNetworkConnectivity();
+      setNetworkStatus(results);
       
-      const response1 = await fetch(testURL, {
-        method: 'GET',
-        mode: 'cors',
-      });
+      // Build report
+      let report = '🔬 CONNECTION TEST RESULTS\n\n';
       
-      console.log('✅ Backend reachable');
-      console.log('  Status:', response1.status);
-      console.log('  OK:', response1.ok);
+      report += `Internet Access: ${results.internetAccess ? '✅ OK' : '❌ FAILED'}\n`;
+      report += `Backend Reachable: ${results.backendReachable ? '✅ OK' : '❌ FAILED'}\n`;
+      report += `CORS Configured: ${results.corsConfigured ? '✅ OK' : '❌ FAILED'}\n\n`;
       
-      // Test 2: Check CORS preflight for login endpoint
-      const loginURL = `${api.defaults.baseURL}/auth/login/`;
-      console.log('Test 2: Testing login endpoint CORS:', loginURL);
-      
-      const response2 = await fetch(loginURL, {
-        method: 'OPTIONS',
-        headers: {
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'content-type',
-        },
-      });
-      
-      console.log('✅ CORS preflight response');
-      console.log('  Status:', response2.status);
-      console.log('  Allow-Origin:', response2.headers.get('Access-Control-Allow-Origin'));
-      console.log('  Allow-Methods:', response2.headers.get('Access-Control-Allow-Methods'));
-      
-      // Test 3: Try actual API call
-      console.log('Test 3: Testing actual API instance');
-      
-      try {
-        await api.get('/pests/');
-        console.log('✅ API instance works (public endpoint accessible)');
-      } catch (apiError) {
-        console.log('⚠️ API call failed (expected if auth required):', apiError.response?.status);
+      if (results.details.length > 0) {
+        report += 'Details:\n';
+        results.details.forEach(detail => {
+          report += `  ${detail}\n`;
+        });
       }
       
-      const results = `
-✅ Connection Test Results:
-
-1. Backend Reachable: ${response1.ok ? 'YES' : 'NO'} (${response1.status})
-2. CORS Configured: ${response2.ok ? 'YES' : 'NO'} (${response2.status})
-3. Backend URL: ${api.defaults.baseURL}
-4. Origin: ${window.location.origin}
-
-${response1.ok && response2.ok ? 
-  '✅ Backend is accessible! If login fails, check credentials.' : 
-  '❌ Connection issues detected. Check backend deployment.'}
-      `.trim();
+      if (results.errors.length > 0) {
+        report += '\nErrors:\n';
+        results.errors.forEach(error => {
+          report += `  ${error}\n`;
+        });
+      }
       
-      setDebugInfo(results);
-      alert('Connection test completed - check results below login form');
+      report += `\nBackend URL: ${api.defaults.baseURL}`;
+      report += `\nYour Origin: ${window.location.origin}`;
+      report += `\nProtocol: ${window.location.protocol}`;
+      report += `\nIs Capacitor: ${typeof window.Capacitor !== 'undefined'}`;
       
-    } catch (error) {
-      console.error('❌ Connection test failed:', error);
+      setDebugInfo(report);
       
-      const errorInfo = `
-❌ Connection Test Failed
-
-Error: ${error.message}
-Code: ${error.code || 'N/A'}
-
-Possible causes:
-- Backend is not deployed or stopped
-- Wrong backend URL
-- No internet connection
-- CORS not configured
-
-Backend URL: ${api.defaults.baseURL}
-      `.trim();
+      // Show appropriate message
+      if (results.internetAccess && results.backendReachable && results.corsConfigured) {
+        setError('✅ All tests passed! Backend is accessible. You can try logging in now.');
+      } else if (!results.internetAccess) {
+        setError('❌ No internet connection. Check your WiFi or cellular data.');
+      } else if (!results.backendReachable) {
+        setError('⚠️ Backend not responding. It may be sleeping. Wait 30 seconds and test again.');
+      } else if (!results.corsConfigured) {
+        setError('⚠️ CORS issue detected. Check backend settings.py CORS configuration.');
+      }
       
-      setDebugInfo(errorInfo);
-      alert(`Connection test failed: ${error.message}`);
+    } catch (err) {
+      console.error('Connection test failed:', err);
+      setError(`Test failed: ${err.message}`);
+      setDebugInfo(`Error: ${err.message}\nStack: ${err.stack}`);
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -246,6 +244,27 @@ Backend URL: ${api.defaults.baseURL}
           <Bug className="w-12 h-12 text-primary mr-2" />
           <h1 className="text-3xl font-bold text-gray-800">PestCheck</h1>
         </div>
+
+        {/* Network Status Indicator */}
+        {networkStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center ${
+            networkStatus.internetAccess && networkStatus.backendReachable
+              ? 'bg-green-50 text-green-800'
+              : 'bg-red-50 text-red-800'
+          }`}>
+            {networkStatus.internetAccess && networkStatus.backendReachable ? (
+              <>
+                <Wifi className="w-5 h-5 mr-2" />
+                <span className="text-sm">Connected to backend</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-5 h-5 mr-2" />
+                <span className="text-sm">Connection issue detected</span>
+              </>
+            )}
+          </div>
+        )}
         
         <h2 className="text-2xl font-semibold text-center text-gray-700 mb-6">
           Welcome Back
@@ -270,6 +289,7 @@ Backend URL: ${api.defaults.baseURL}
               required
               autoCapitalize="none"
               autoCorrect="off"
+              disabled={loading}
             />
           </div>
 
@@ -283,6 +303,7 @@ Backend URL: ${api.defaults.baseURL}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               required
+              disabled={loading}
             />
           </div>
 
@@ -306,10 +327,21 @@ Backend URL: ${api.defaults.baseURL}
         <div className="mt-4 space-y-2">
           <button
             type="button"
-            onClick={testConnection}
-            className="w-full bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
+            onClick={handleTestConnection}
+            disabled={testing}
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center justify-center disabled:bg-gray-400"
           >
-            🔧 Test Backend Connection
+            {testing ? (
+              <>
+                <Loader className="animate-spin mr-2 w-4 h-4" />
+                Testing...
+              </>
+            ) : (
+              <>
+                <Activity className="w-4 h-4 mr-2" />
+                Test Connection
+              </>
+            )}
           </button>
         </div>
 
@@ -332,7 +364,7 @@ Backend URL: ${api.defaults.baseURL}
                 ✕
               </button>
             </div>
-            <pre className="whitespace-pre-wrap">{debugInfo}</pre>
+            <pre className="whitespace-pre-wrap overflow-auto max-h-64">{debugInfo}</pre>
           </div>
         )}
 
@@ -341,6 +373,8 @@ Backend URL: ${api.defaults.baseURL}
           <p className="font-semibold mb-1">System Info:</p>
           <p className="truncate">API: {api.defaults.baseURL}</p>
           <p>Origin: {window.location.origin}</p>
+          <p>Protocol: {window.location.protocol}</p>
+          <p>Capacitor: {typeof window.Capacitor !== 'undefined' ? 'Yes' : 'No'}</p>
           <p>Platform: {navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'}</p>
         </div>
       </div>
