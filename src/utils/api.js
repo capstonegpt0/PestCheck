@@ -2,24 +2,21 @@
 import axios from 'axios';
 
 // ---------------------------------------------------------------
-// BASE URL RESOLUTION - FIXED FOR CAPACITOR
+// BASE URL RESOLUTION
 // ---------------------------------------------------------------
 function getBaseURL() {
+  // For Capacitor apps, ALWAYS use the full Render URL
   const origin = window.location.origin;
   
   console.log('🔍 Current origin:', origin);
-  console.log('🔍 Protocol:', window.location.protocol);
-  console.log('🔍 Hostname:', window.location.hostname);
   
-  // ✅ Capacitor detection - use FULL Render URL
   if (
     origin === 'capacitor://localhost' ||
     origin === 'ionic://localhost' ||
     origin === 'http://localhost' ||
-    origin === 'null' ||
-    window.location.protocol === 'capacitor:' ||
-    window.location.protocol === 'ionic:'
+    origin === 'null'
   ) {
+    // ✅ Make sure this is your correct Render backend URL
     const renderURL = 'https://pestcheck.onrender.com/api';
     console.log('📱 Capacitor detected, using Render URL:', renderURL);
     return renderURL;
@@ -41,45 +38,38 @@ const API_BASE_URL = getBaseURL();
 console.log('✅ API Base URL set to:', API_BASE_URL);
 
 // ---------------------------------------------------------------
-// CSRF HELPER - FIXED FOR CAPACITOR
+// CSRF HELPER
 // ---------------------------------------------------------------
 function getCsrfToken() {
-  // In Capacitor, cookies might not work the same way
   const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
 // ---------------------------------------------------------------
-// Auth endpoints that should not trigger token refresh
+// Endpoints that are supposed to return 401 on failure.
+// The token-refresh interceptor must SKIP these – otherwise it
+// swallows the real error before the component ever sees it.
 // ---------------------------------------------------------------
-const AUTH_ENDPOINTS = [
-  '/auth/login/',
-  '/auth/register/',
-  '/auth/token/',
-  '/auth/token/refresh/'
-];
+const AUTH_ENDPOINTS = ['/auth/login/', '/auth/register/', '/auth/token/', '/auth/token/refresh/'];
 
 function isAuthEndpoint(url) {
   return AUTH_ENDPOINTS.some((endpoint) => url && url.endsWith(endpoint));
 }
 
 // ---------------------------------------------------------------
-// AXIOS INSTANCE - FIXED FOR CAPACITOR
+// AXIOS INSTANCE
 // ---------------------------------------------------------------
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 120000, // 2 minutes for cold starts
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
   },
-  // ✅ CRITICAL: withCredentials should be false for Capacitor
-  // because cookies don't work reliably in native apps
-  withCredentials: false,
+  withCredentials: true,
 });
 
 // ---------------------------------------------------------------
-// REQUEST INTERCEPTOR - FIXED FOR CAPACITOR
+// REQUEST INTERCEPTOR
 // ---------------------------------------------------------------
 api.interceptors.request.use(
   (config) => {
@@ -94,29 +84,20 @@ api.interceptors.request.use(
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔐 Added Authorization header');
+      console.log('🔑 Added Authorization header');
     }
 
-    // 2) CSRF token handling - skip for Capacitor
-    const isCapacitor = window.location.protocol === 'capacitor:' ||
-                       window.location.protocol === 'ionic:' ||
-                       window.location.origin === 'capacitor://localhost' ||
-                       window.location.origin === 'ionic://localhost';
-    
-    if (!isCapacitor) {
-      const unsafeMethods = ['post', 'put', 'patch', 'delete'];
-      if (unsafeMethods.includes(config.method)) {
-        const csrfToken = getCsrfToken();
-        if (csrfToken) {
-          config.headers['X-CSRFToken'] = csrfToken;
-          console.log('🛡️ Added CSRF token');
-        }
+    // 2) Attach CSRF token for unsafe HTTP methods
+    const unsafeMethods = ['post', 'put', 'patch', 'delete'];
+    if (unsafeMethods.includes(config.method)) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        config.headers['X-CSRFToken'] = csrfToken;
+        console.log('🛡️ Added CSRF token');
       }
-    } else {
-      console.log('📱 Capacitor detected - skipping CSRF');
     }
 
-    // 3) Let axios auto-set Content-Type for FormData
+    // 3) Let axios auto-set Content-Type for FormData (image uploads)
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
       console.log('📎 Removed Content-Type for FormData');
@@ -131,7 +112,7 @@ api.interceptors.request.use(
 );
 
 // ---------------------------------------------------------------
-// RESPONSE INTERCEPTOR - FIXED ERROR HANDLING
+// RESPONSE INTERCEPTOR – automatic JWT refresh on 401
 // ---------------------------------------------------------------
 api.interceptors.response.use(
   (response) => {
@@ -153,13 +134,18 @@ api.interceptors.response.use(
 
     const originalRequest = error.config;
 
-    // Skip auth endpoints entirely
+    // -------------------------------------------------------
+    // SKIP auth endpoints entirely.
+    // /auth/login/ legitimately returns 401 when credentials
+    // are wrong. If we intercept that here we swallow the real
+    // error and the login component never sees it.
+    // -------------------------------------------------------
     if (isAuthEndpoint(originalRequest.url)) {
       console.log('⚠️ Auth endpoint failed - not retrying');
       return Promise.reject(error);
     }
 
-    // For other endpoints, attempt silent token refresh on 401
+    // For every other endpoint, attempt a silent token refresh on 401
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       console.log('🔄 Attempting token refresh...');
