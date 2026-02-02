@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">PestCheck</string>
-    <string name="title_activity_main">PestCheck</string>
-    <string name="package_name">com.pestcheck.app</string>
-    <string name="custom_url_scheme">com.pestcheck.app</string>
-</resources>

@@ -6,16 +6,23 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "cap sync",
+    "cap:android": "cap open android",
+    "cap:ios": "cap open ios",
+    "mobile:build": "npm run build && npx cap sync",
+    "mobile:android": "npm run mobile:build && npx cap open android",
+    "mobile:ios": "npm run mobile:build && npx cap open ios"
   },
   "dependencies": {
-    "@capacitor/android": "^8.0.2",
+    "@capacitor/app": "^8.0.0",
     "@capacitor/camera": "^8.0.0",
-    "@capacitor/cli": "^8.0.2",
-    "@capacitor/core": "^8.0.2",
+    "@capacitor/filesystem": "^8.1.0",
     "@capacitor/geolocation": "^8.0.0",
-    "@capacitor/http": "^0.0.2",
+    "@capacitor/ios": "^8.0.2",
     "@capacitor/network": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
     "axios": "^1.6.2",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
@@ -33,6 +40,7 @@
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
+    "typescript": "^5.9.3",
     "vite": "^6.4.1"
   }
 }
