@@ -5,6 +5,7 @@ import axios from 'axios';
 // BASE URL RESOLUTION
 // ---------------------------------------------------------------
 function getBaseURL() {
+<<<<<<< HEAD
   // For Capacitor apps, ALWAYS use the full Render URL
   const origin = window.location.origin;
   
@@ -37,6 +38,29 @@ function getBaseURL() {
 const API_BASE_URL = getBaseURL();
 console.log('✅ API Base URL set to:', API_BASE_URL);
 
+=======
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  const origin = window.location.origin;
+
+  if (
+    origin === 'capacitor://localhost' ||
+    origin === 'ionic://localhost' ||
+    origin === 'http://localhost' ||
+    origin === 'null'
+  ) {
+    return 'https://pestcheck.onrender.com/api';
+  }
+
+  return 'https://pestcheck.onrender.com/api';
+}
+
+const API_BASE_URL = getBaseURL();
+console.log('API Base URL:', API_BASE_URL);
+
+>>>>>>> e4814e28c7c2e7f76c1561a3ef790679debf72ba
 // ---------------------------------------------------------------
 // CSRF HELPER
 // ---------------------------------------------------------------
@@ -47,7 +71,11 @@ function getCsrfToken() {
 
 // ---------------------------------------------------------------
 // Endpoints that are supposed to return 401 on failure.
+<<<<<<< HEAD
 // The token-refresh interceptor must SKIP these – otherwise it
+=======
+// The token-refresh interceptor must SKIP these — otherwise it
+>>>>>>> e4814e28c7c2e7f76c1561a3ef790679debf72ba
 // swallows the real error before the component ever sees it.
 // ---------------------------------------------------------------
 const AUTH_ENDPOINTS = ['/auth/login/', '/auth/register/', '/auth/token/', '/auth/token/refresh/'];
@@ -73,6 +101,7 @@ const api = axios.create({
 // ---------------------------------------------------------------
 api.interceptors.request.use(
   (config) => {
+<<<<<<< HEAD
     console.log('📤 API Request:', {
       method: config.method?.toUpperCase(),
       url: config.url,
@@ -80,6 +109,8 @@ api.interceptors.request.use(
       fullURL: `${config.baseURL}${config.url}`,
     });
 
+=======
+>>>>>>> e4814e28c7c2e7f76c1561a3ef790679debf72ba
     // 1) Attach JWT Bearer token if available
     const token = localStorage.getItem('access_token');
     if (token) {
@@ -93,7 +124,10 @@ api.interceptors.request.use(
       const csrfToken = getCsrfToken();
       if (csrfToken) {
         config.headers['X-CSRFToken'] = csrfToken;
+<<<<<<< HEAD
         console.log('🛡️ Added CSRF token');
+=======
+>>>>>>> e4814e28c7c2e7f76c1561a3ef790679debf72ba
       }
     }
 
@@ -112,7 +146,11 @@ api.interceptors.request.use(
 );
 
 // ---------------------------------------------------------------
+<<<<<<< HEAD
 // RESPONSE INTERCEPTOR – automatic JWT refresh on 401
+=======
+// RESPONSE INTERCEPTOR — automatic JWT refresh on 401
+>>>>>>> e4814e28c7c2e7f76c1561a3ef790679debf72ba
 // ---------------------------------------------------------------
 api.interceptors.response.use(
   (response) => {
@@ -141,14 +179,20 @@ api.interceptors.response.use(
     // error and the login component never sees it.
     // -------------------------------------------------------
     if (isAuthEndpoint(originalRequest.url)) {
+<<<<<<< HEAD
       console.log('⚠️ Auth endpoint failed - not retrying');
+=======
+>>>>>>> e4814e28c7c2e7f76c1561a3ef790679debf72ba
       return Promise.reject(error);
     }
 
     // For every other endpoint, attempt a silent token refresh on 401
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+<<<<<<< HEAD
       console.log('🔄 Attempting token refresh...');
+=======
+>>>>>>> e4814e28c7c2e7f76c1561a3ef790679debf72ba
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
@@ -162,7 +206,10 @@ api.interceptors.response.use(
 
         const { access } = response.data;
         localStorage.setItem('access_token', access);
+<<<<<<< HEAD
         console.log('✅ Token refreshed successfully');
+=======
+>>>>>>> e4814e28c7c2e7f76c1561a3ef790679debf72ba
 
         originalRequest.headers.Authorization = `Bearer ${access}`;
         return api(originalRequest);
