@@ -18,6 +18,8 @@ import AdminDetections from './components/admin/AdminDetections';
 import AdminPests from './components/admin/AdminPests';
 import AdminAlerts from './components/admin/AdminAlerts';
 import AdminActivities from './components/admin/AdminActivities';
+import AdminFarmRequests from './components/admin/AdminFarmrequests';
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -53,7 +55,7 @@ function App() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    window.location.href = '/#/login';
   };
 
   // Protected Route Component
@@ -214,7 +216,15 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route 
+          path="/admin/farm-requests" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminFarmRequests user={user} onLogout={handleLogout} />
+             </ProtectedRoute>
+          }
+        />
+        
         {/* Default Route */}
         <Route path="/" element={<RoleBasedRedirect />} />
         

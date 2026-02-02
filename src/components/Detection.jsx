@@ -1,136 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Loader, MapPin, AlertCircle, CheckCircle, Info, X } from 'lucide-react';
+import { Camera, Upload, Loader, MapPin, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import Navigation from './Navigation';
 import api from '../utils/api';
-
-// Camera Modal Component
-const CameraModal = ({ onCapture, onClose }) => {
-  const videoRef = useRef(null);
-  const [stream, setStream] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    startCamera();
-    return () => {
-      stopCamera();
-    };
-  }, []);
-
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'environment', // Use back camera on mobile
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        }
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-      setStream(mediaStream);
-      setError(null);
-    } catch (err) {
-      console.error('Camera error:', err);
-      if (err.name === 'NotAllowedError') {
-        setError('Camera permission denied. Please allow camera access in your browser settings.');
-      } else if (err.name === 'NotFoundError') {
-        setError('No camera found on this device.');
-      } else {
-        setError('Unable to access camera. Please check your browser settings.');
-      }
-    }
-  };
-
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
-  };
-
-  const capturePhoto = () => {
-    if (!videoRef.current) return;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoRef.current, 0, 0);
-    
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], `pest-${Date.now()}.jpg`, { type: 'image/jpeg' });
-        onCapture(file);
-        stopCamera();
-        onClose();
-      }
-    }, 'image/jpeg', 0.95);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-gray-900 text-white p-4 flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Take Photo</h3>
-        <button
-          onClick={() => {
-            stopCamera();
-            onClose();
-          }}
-          className="p-2 hover:bg-gray-800 rounded-full transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
-
-      {/* Camera View */}
-      <div className="flex-1 flex items-center justify-center bg-black">
-        {error ? (
-          <div className="text-center p-6">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <p className="text-white text-lg mb-4">{error}</p>
-            <button
-              onClick={() => {
-                stopCamera();
-                onClose();
-              }}
-              className="bg-white text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100"
-            >
-              Close
-            </button>
-          </div>
-        ) : (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="max-w-full max-h-full"
-          />
-        )}
-      </div>
-
-      {/* Controls */}
-      {!error && (
-        <div className="bg-gray-900 p-6">
-          <div className="flex justify-center space-x-4">
-            <button
-              onClick={capturePhoto}
-              className="bg-white text-gray-900 p-6 rounded-full shadow-lg hover:bg-gray-100 transition-all transform hover:scale-105"
-            >
-              <Camera className="w-8 h-8" />
-            </button>
-          </div>
-          <p className="text-center text-white mt-4 text-sm">
-            Tap the button to capture
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const Detection = ({ user, onLogout }) => {
   const [image, setImage] = useState(null);
@@ -142,8 +13,8 @@ const Detection = ({ user, onLogout }) => {
   const [locationLoading, setLocationLoading] = useState(true);
   const [error, setError] = useState(null);
   const [canRetry, setCanRetry] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -184,12 +55,11 @@ const Detection = ({ user, onLogout }) => {
     }
   };
 
-  const handleCameraCapture = (file) => {
-    setImage(file);
-    setPreview(URL.createObjectURL(file));
-    setResult(null);
-    setError(null);
-    setCanRetry(false);
+  const handleCameraClick = () => {
+    // Trigger the camera input
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    }
   };
 
   const handleDetect = async () => {
@@ -303,14 +173,6 @@ const Detection = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
       <Navigation user={user} onLogout={onLogout} />
       
-      {/* Camera Modal */}
-      {showCamera && (
-        <CameraModal
-          onCapture={handleCameraCapture}
-          onClose={() => setShowCamera(false)}
-        />
-      )}
-      
       <div className="max-w-6xl mx-auto px-3 md:px-4 py-4 md:py-8">
         <div className="mb-4 md:mb-8">
           <h1 className="text-2xl md:text-4xl font-bold text-gray-800 mb-2">AI Pest Detection</h1>
@@ -374,7 +236,7 @@ const Detection = ({ user, onLogout }) => {
                   <span>Upload</span>
                 </button>
                 <button
-                  onClick={() => setShowCamera(true)}
+                  onClick={handleCameraClick}
                   className="flex flex-col md:flex-row items-center justify-center px-4 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm md:text-base"
                 >
                   <Camera className="w-6 h-6 md:w-5 md:h-5 mb-1 md:mb-0 md:mr-2" />
@@ -387,11 +249,19 @@ const Detection = ({ user, onLogout }) => {
                   onChange={handleFileSelect}
                   className="hidden"
                 />
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
               </div>
 
               {/* Tip */}
               <div className="mb-4 text-xs md:text-sm text-gray-500 bg-gray-50 p-2 md:p-3 rounded">
-                <strong>💡 Tip:</strong> Camera button opens live camera for instant capture!
+                <strong>💡 Tip:</strong> Camera button opens your device camera for instant capture!
               </div>
 
               {preview && (
