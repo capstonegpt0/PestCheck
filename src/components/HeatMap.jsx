@@ -210,7 +210,7 @@ const HeatMap = ({ user, onLogout }) => {
     const activeInfestations = detections.filter(d => d.farm_id === farmId && d.active !== false);
     const count = activeInfestations.length;
 
-    if (count === 0) return '#10b981'; // Green - No infestations
+    if (count === 0) return '#d1d5db'; // Gray - No status/No infestations
     if (count < 3) return '#3b82f6'; // Blue - Monitoring
     if (count < 5) return '#fbbf24'; // Yellow - Low risk
     if (count < 7) return '#f97316'; // Orange - Moderate
@@ -385,7 +385,7 @@ const HeatMap = ({ user, onLogout }) => {
           <h3 className="font-semibold text-gray-800 mb-3">Map Legend</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
             <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full bg-green-500"></div>
+              <div className="w-4 h-4 rounded-full bg-gray-300"></div>
               <span>No Infestations</span>
             </div>
             <div className="flex items-center space-x-2">
