@@ -19,6 +19,46 @@ const farmIcon = new L.Icon({
   popupAnchor: [0, -32]
 });
 
+// Function to create a labeled farm icon
+const createLabeledFarmIcon = (farmName, ownerName) => {
+  return L.divIcon({
+    className: 'custom-farm-marker',
+    html: `
+      <div style="position: relative; text-align: center;">
+        <div style="
+          background: white;
+          padding: 4px 8px;
+          border-radius: 4px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          font-size: 11px;
+          font-weight: 600;
+          white-space: nowrap;
+          margin-bottom: 4px;
+          border: 2px solid #10b981;
+          color: #047857;
+          max-width: 150px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        ">
+          ${farmName}<br/>
+          <span style="font-size: 9px; color: #6b7280; font-weight: 500;">${ownerName}</span>
+        </div>
+        <div style="
+          width: 32px;
+          height: 32px;
+          margin: 0 auto;
+          background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjMTBiOTgxIj48cGF0aCBkPSJNMTIgMkw0IDhWMjBIMjBWOEwxMiAyWk0xOCAxOEg2VjlMMTIgNC41TDE4IDlWMThaTTggMTBIMTBWMTZIOFYxMFpNMTQgMTBIMTZWMTZIMTRWMTBaIi8+PC9zdmc+');
+          background-size: contain;
+          background-repeat: no-repeat;
+        "></div>
+      </div>
+    `,
+    iconSize: [150, 70],
+    iconAnchor: [75, 70],
+    popupAnchor: [0, -70]
+  });
+};
+
 // Farm status thresholds configuration
 const FARM_STATUS_CONFIG = {
   MINIMUM_THRESHOLD: 3,    // Minimum detections before showing any status
@@ -463,7 +503,7 @@ const HeatMap = ({ user, onLogout }) => {
                 <Marker
                   key={farm.id}
                   position={[farm.lat, farm.lng]}
-                  icon={farmIcon}
+                  icon={createLabeledFarmIcon(farm.name, farm.user_name || 'Unknown')}
                 >
                   <Popup>
                     <div className="p-2">
