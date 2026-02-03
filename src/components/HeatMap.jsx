@@ -113,6 +113,9 @@ const HeatMap = ({ user, onLogout }) => {
       const detectionsRes = await api.get(`/detections/heatmap_data/?days=${days}`);
       const farmsRes = await api.get('/farms/');
       
+      console.log('Raw farms response:', farmsRes.data);
+      console.log('Raw detections response:', detectionsRes.data);
+      
       const detectionsData = Array.isArray(detectionsRes.data) 
         ? detectionsRes.data 
         : (detectionsRes.data.results || []);
@@ -121,26 +124,68 @@ const HeatMap = ({ user, onLogout }) => {
         ? farmsRes.data 
         : (farmsRes.data.results || []);
       
-      // Validate and filter out invalid data
+      console.log('Farms array:', farmsData);
+      console.log('Detections array:', detectionsData);
+      
+      // Validate and filter out invalid data with detailed logging
       const validFarms = farmsData.filter(farm => {
-        if (!farm.lat || !farm.lng || isNaN(farm.lat) || isNaN(farm.lng)) {
-          console.warn('Invalid farm coordinates:', farm);
+        const hasLat = farm.lat !== null && farm.lat !== undefined && farm.lat !== '';
+        const hasLng = farm.lng !== null && farm.lng !== undefined && farm.lng !== '';
+        const isLatValid = hasLat && !isNaN(parseFloat(farm.lat));
+        const isLngValid = hasLng && !isNaN(parseFloat(farm.lng));
+        
+        if (!hasLat || !hasLng || !isLatValid || !isLngValid) {
+          console.warn('Invalid farm coordinates:', {
+            farm_id: farm.id,
+            name: farm.name,
+            lat: farm.lat,
+            lng: farm.lng,
+            hasLat,
+            hasLng,
+            isLatValid,
+            isLngValid
+          });
           return false;
         }
         return true;
       });
       
       const validDetections = detectionsData.filter(detection => {
-        if (!detection.latitude || !detection.longitude || 
-            isNaN(detection.latitude) || isNaN(detection.longitude)) {
-          console.warn('Invalid detection coordinates:', detection);
+        const hasLat = detection.latitude !== null && detection.latitude !== undefined && detection.latitude !== '' &&
+                       detection.lat !== null && detection.lat !== undefined && detection.lat !== '';
+        const hasLng = detection.longitude !== null && detection.longitude !== undefined && detection.longitude !== '' &&
+                       detection.lng !== null && detection.lng !== undefined && detection.lng !== '';
+        
+        // Try both 'latitude/longitude' and 'lat/lng' properties
+        const lat = detection.latitude || detection.lat;
+        const lng = detection.longitude || detection.lng;
+        
+        const isLatValid = lat !== null && lat !== undefined && lat !== '' && !isNaN(parseFloat(lat));
+        const isLngValid = lng !== null && lng !== undefined && lng !== '' && !isNaN(parseFloat(lng));
+        
+        if (!isLatValid || !isLngValid) {
+          console.warn('Invalid detection coordinates:', {
+            detection_id: detection.id,
+            pest: detection.pest || detection.pest_name,
+            latitude: detection.latitude,
+            longitude: detection.longitude,
+            lat: detection.lat,
+            lng: detection.lng,
+            isLatValid,
+            isLngValid
+          });
           return false;
         }
+        
+        // Normalize the coordinates
+        detection.latitude = parseFloat(lat);
+        detection.longitude = parseFloat(lng);
+        
         return true;
       });
       
-      console.log(`Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
-      console.log(`Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
+      console.log(`✅ Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
+      console.log(`✅ Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
       
       setDetections(validDetections);
       setFarms(validFarms);
@@ -161,13 +206,28 @@ const HeatMap = ({ user, onLogout }) => {
         ? detectionsRes.data 
         : (detectionsRes.data.results || []);
       
-      // Validate and filter out invalid coordinates
+      // Validate and filter out invalid coordinates with normalization
       const validDetections = detectionsData.filter(detection => {
-        if (!detection.latitude || !detection.longitude || 
-            isNaN(detection.latitude) || isNaN(detection.longitude)) {
-          console.warn('Invalid detection coordinates:', detection);
+        // Try both 'latitude/longitude' and 'lat/lng' properties
+        const lat = detection.latitude || detection.lat;
+        const lng = detection.longitude || detection.lng;
+        
+        const isLatValid = lat !== null && lat !== undefined && lat !== '' && !isNaN(parseFloat(lat));
+        const isLngValid = lng !== null && lng !== undefined && lng !== '' && !isNaN(parseFloat(lng));
+        
+        if (!isLatValid || !isLngValid) {
+          console.warn('Invalid detection coordinates during filter:', {
+            detection_id: detection.id,
+            lat,
+            lng
+          });
           return false;
         }
+        
+        // Normalize the coordinates
+        detection.latitude = parseFloat(lat);
+        detection.longitude = parseFloat(lng);
+        
         return true;
       });
       
@@ -498,67 +558,140 @@ const HeatMap = ({ user, onLogout }) => {
 
               {/* Farm Markers */}
               {farms
-                .filter(farm => farm.lat && farm.lng && !isNaN(farm.lat) && !isNaN(farm.lng))
-                .map((farm) => (
-                <Marker
-                  key={farm.id}
-                  position={[farm.lat, farm.lng]}
-                  icon={createLabeledFarmIcon(farm.name, farm.user_name || 'Unknown')}
-                >
-                  <Popup>
-                    <div className="p-2">
-                      <h3 className="font-bold text-lg">{farm.name}</h3>
-                      <p className="text-sm text-gray-600">Owner: {farm.user_name}</p>
-                      <p className="text-sm">{farm.crop_type} - {farm.size} hectares</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Active Infestations: {detections.filter(d => d.farm_id === farm.id && d.active !== false).length}
-                      </p>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+                .filter(farm => {
+                  // Triple check coordinates are valid
+                  const hasValidLat = farm.lat !== null && 
+                                     farm.lat !== undefined && 
+                                     farm.lat !== '' && 
+                                     !isNaN(parseFloat(farm.lat)) &&
+                                     isFinite(parseFloat(farm.lat));
+                  const hasValidLng = farm.lng !== null && 
+                                     farm.lng !== undefined && 
+                                     farm.lng !== '' && 
+                                     !isNaN(parseFloat(farm.lng)) &&
+                                     isFinite(parseFloat(farm.lng));
+                  
+                  if (!hasValidLat || !hasValidLng) {
+                    console.error('❌ Filtering out invalid farm before render:', {
+                      id: farm.id,
+                      name: farm.name,
+                      lat: farm.lat,
+                      lng: farm.lng,
+                      hasValidLat,
+                      hasValidLng
+                    });
+                    return false;
+                  }
+                  return true;
+                })
+                .map((farm) => {
+                  // Double safety check
+                  const lat = parseFloat(farm.lat);
+                  const lng = parseFloat(farm.lng);
+                  
+                  if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+                    console.error('❌ Skipping farm with invalid coords in map:', farm);
+                    return null;
+                  }
+                  
+                  return (
+                    <Marker
+                      key={farm.id}
+                      position={[lat, lng]}
+                      icon={createLabeledFarmIcon(farm.name || 'Unknown Farm', farm.user_name || 'Unknown')}
+                    >
+                      <Popup>
+                        <div className="p-2">
+                          <h3 className="font-bold text-lg">{farm.name}</h3>
+                          <p className="text-sm text-gray-600">Owner: {farm.user_name}</p>
+                          <p className="text-sm">{farm.crop_type} - {farm.size} hectares</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Active Infestations: {detections.filter(d => d.farm_id === farm.id && d.active !== false).length}
+                          </p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })
+                .filter(marker => marker !== null)
+              }
 
               {/* Detection Circles */}
               {activeDetections
-                .filter(detection => 
-                  detection.latitude && 
-                  detection.longitude && 
-                  !isNaN(detection.latitude) && 
-                  !isNaN(detection.longitude)
-                )
+                .filter(detection => {
+                  // Try both property names
+                  const lat = detection.latitude || detection.lat;
+                  const lng = detection.longitude || detection.lng;
+                  
+                  const hasValidLat = lat !== null && 
+                                     lat !== undefined && 
+                                     lat !== '' && 
+                                     !isNaN(parseFloat(lat)) &&
+                                     isFinite(parseFloat(lat));
+                  const hasValidLng = lng !== null && 
+                                     lng !== undefined && 
+                                     lng !== '' && 
+                                     !isNaN(parseFloat(lng)) &&
+                                     isFinite(parseFloat(lng));
+                  
+                  if (!hasValidLat || !hasValidLng) {
+                    console.error('❌ Filtering out invalid detection before render:', {
+                      id: detection.id,
+                      pest: detection.pest,
+                      lat,
+                      lng,
+                      hasValidLat,
+                      hasValidLng
+                    });
+                    return false;
+                  }
+                  return true;
+                })
                 .map((detection) => {
-                const radius = detection.severity === 'critical' ? 300 :
+                  // Normalize coordinates
+                  const lat = parseFloat(detection.latitude || detection.lat);
+                  const lng = parseFloat(detection.longitude || detection.lng);
+                  
+                  // Double safety check
+                  if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+                    console.error('❌ Skipping detection with invalid coords in map:', detection);
+                    return null;
+                  }
+                  
+                  const radius = detection.severity === 'critical' ? 300 :
                               detection.severity === 'high' ? 200 :
                               detection.severity === 'medium' ? 150 : 100;
                 
-                const color = detection.severity === 'critical' ? '#7f1d1d' :
+                  const color = detection.severity === 'critical' ? '#7f1d1d' :
                              detection.severity === 'high' ? '#ef4444' :
                              detection.severity === 'medium' ? '#f97316' : '#fbbf24';
 
-                return (
-                  <Circle
-                    key={detection.id}
-                    center={[detection.latitude, detection.longitude]}
-                    radius={radius}
-                    pathOptions={{
-                      fillColor: color,
-                      fillOpacity: 0.3,
-                      color: color,
-                      weight: 2
-                    }}
-                  >
-                    <Popup>
-                      <div className="p-2">
-                        <h3 className="font-bold">{detection.pest}</h3>
-                        <p className="text-sm">Severity: {detection.severity}</p>
-                        <p className="text-xs text-gray-600">
-                          {new Date(detection.detected_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </Popup>
-                  </Circle>
-                );
-              })}
+                  return (
+                    <Circle
+                      key={detection.id}
+                      center={[lat, lng]}
+                      radius={radius}
+                      pathOptions={{
+                        fillColor: color,
+                        fillOpacity: 0.3,
+                        color: color,
+                        weight: 2
+                      }}
+                    >
+                      <Popup>
+                        <div className="p-2">
+                          <h3 className="font-bold">{detection.pest}</h3>
+                          <p className="text-sm">Severity: {detection.severity}</p>
+                          <p className="text-xs text-gray-600">
+                            {new Date(detection.detected_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </Popup>
+                    </Circle>
+                  );
+                })
+                .filter(circle => circle !== null)
+              }
             </MapContainer>
           )}
         </div>
