@@ -14,6 +14,11 @@ const AdminDetections = ({ user, onLogout }) => {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [actionType, setActionType] = useState(''); // 'verify' or 'reject'
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     fetchDetections();
@@ -25,13 +30,15 @@ const AdminDetections = ({ user, onLogout }) => {
 
   const fetchDetections = async () => {
     try {
-      const response = await api.get('/admin/detections/');
+      // Request a large page size to get all detections
+      const response = await api.get('/admin/detections/?page_size=1000');
       const detectionData = Array.isArray(response.data) 
         ? response.data 
         : (response.data.results || []);
       
       setDetections(detectionData);
       setFilteredDetections(detectionData);
+      setTotalItems(response.data.count || detectionData.length);
     } catch (error) {
       console.error('Error fetching detections:', error);
       alert('Failed to load detections');
@@ -59,6 +66,8 @@ const AdminDetections = ({ user, onLogout }) => {
     }
 
     setFilteredDetections(filtered);
+    setTotalItems(filtered.length);
+    setCurrentPage(1); // Reset to first page when filtering
   };
 
   const handleVerify = async () => {
@@ -129,7 +138,24 @@ const AdminDetections = ({ user, onLogout }) => {
       <AdminNavigation user={user} onLogout={onLogout} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">Detection Management</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Detection Management</h1>
+          {!loading && (
+            <div className="flex items-center space-x-6 text-sm text-gray-600">
+              <span className="flex items-center">
+                <span className="font-semibold text-gray-800 mr-1">{detections.length}</span> Total Detections
+              </span>
+              <span className="flex items-center">
+                <span className="font-semibold text-gray-800 mr-1">{filteredDetections.length}</span> Shown
+              </span>
+              {statusFilter !== 'all' && (
+                <span className="text-blue-600">
+                  (Filtered by: {statusFilter})
+                </span>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -224,7 +250,9 @@ const AdminDetections = ({ user, onLogout }) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredDetections.map((detection) => (
+                  {filteredDetections
+                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .map((detection) => (
                     <tr key={detection.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         #{detection.id}
@@ -289,6 +317,105 @@ const AdminDetections = ({ user, onLogout }) => {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && filteredDetections.length > 0 && (
+          <div className="bg-white rounded-lg shadow mt-4 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-700">
+                  {itemsPerPage >= totalItems ? (
+                    <>Showing all {totalItems} detections</>
+                  ) : (
+                    <>
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+                      {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} detections
+                    </>
+                  )}
+                </span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="ml-4 px-3 py-1 border border-gray-300 rounded text-sm"
+                >
+                  <option value={10}>10 per page</option>
+                  <option value={20}>20 per page</option>
+                  <option value={50}>50 per page</option>
+                  <option value={100}>100 per page</option>
+                  <option value={10000}>Show All</option>
+                </select>
+              </div>
+
+              {itemsPerPage < totalItems && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  >
+                    First
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, Math.ceil(totalItems / itemsPerPage)) }, (_, i) => {
+                      const totalPages = Math.ceil(totalItems / itemsPerPage);
+                      let pageNum;
+                      
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`px-3 py-1 border rounded text-sm ${
+                            currentPage === pageNum
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalItems / itemsPerPage), prev + 1))}
+                  disabled={currentPage >= Math.ceil(totalItems / itemsPerPage)}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Next
+                </button>
+                <button
+                  onClick={() => setCurrentPage(Math.ceil(totalItems / itemsPerPage))}
+                  disabled={currentPage >= Math.ceil(totalItems / itemsPerPage)}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Last
+                </button>
+              </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Detail Modal */}
