@@ -419,9 +419,8 @@ const HeatMap = ({ user, onLogout }) => {
               <span className="text-gray-600">Loading map data...</span>
             </div>
           ) : (
-            <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
+            <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }} attributionControl={false}>
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <MapClickHandler onMapClick={handleMapClick} isAddingFarm={isAddingFarm} />
