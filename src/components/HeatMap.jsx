@@ -81,8 +81,29 @@ const HeatMap = ({ user, onLogout }) => {
         ? farmsRes.data 
         : (farmsRes.data.results || []);
       
-      setDetections(detectionsData);
-      setFarms(farmsData);
+      // Validate and filter out invalid data
+      const validFarms = farmsData.filter(farm => {
+        if (!farm.lat || !farm.lng || isNaN(farm.lat) || isNaN(farm.lng)) {
+          console.warn('Invalid farm coordinates:', farm);
+          return false;
+        }
+        return true;
+      });
+      
+      const validDetections = detectionsData.filter(detection => {
+        if (!detection.latitude || !detection.longitude || 
+            isNaN(detection.latitude) || isNaN(detection.longitude)) {
+          console.warn('Invalid detection coordinates:', detection);
+          return false;
+        }
+        return true;
+      });
+      
+      console.log(`Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
+      console.log(`Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
+      
+      setDetections(validDetections);
+      setFarms(validFarms);
       
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -100,7 +121,17 @@ const HeatMap = ({ user, onLogout }) => {
         ? detectionsRes.data 
         : (detectionsRes.data.results || []);
       
-      setDetections(detectionsData);
+      // Validate and filter out invalid coordinates
+      const validDetections = detectionsData.filter(detection => {
+        if (!detection.latitude || !detection.longitude || 
+            isNaN(detection.latitude) || isNaN(detection.longitude)) {
+          console.warn('Invalid detection coordinates:', detection);
+          return false;
+        }
+        return true;
+      });
+      
+      setDetections(validDetections);
     } catch (error) {
       console.error('Error fetching filtered detections:', error);
       setDetections([]);
@@ -426,7 +457,9 @@ const HeatMap = ({ user, onLogout }) => {
               <MapClickHandler onMapClick={handleMapClick} isAddingFarm={isAddingFarm} />
 
               {/* Farm Markers */}
-              {farms.map((farm) => (
+              {farms
+                .filter(farm => farm.lat && farm.lng && !isNaN(farm.lat) && !isNaN(farm.lng))
+                .map((farm) => (
                 <Marker
                   key={farm.id}
                   position={[farm.lat, farm.lng]}
@@ -446,7 +479,14 @@ const HeatMap = ({ user, onLogout }) => {
               ))}
 
               {/* Detection Circles */}
-              {activeDetections.map((detection) => {
+              {activeDetections
+                .filter(detection => 
+                  detection.latitude && 
+                  detection.longitude && 
+                  !isNaN(detection.latitude) && 
+                  !isNaN(detection.longitude)
+                )
+                .map((detection) => {
                 const radius = detection.severity === 'critical' ? 300 :
                               detection.severity === 'high' ? 200 :
                               detection.severity === 'medium' ? 150 : 100;
