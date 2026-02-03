@@ -373,7 +373,7 @@ const HeatMap = ({ user, onLogout }) => {
   const getFarmStatus = (farmId) => {
     const farmInfestations = detections.filter(d => d.farm_id === farmId && d.active !== false);
     if (farmInfestations.length === 0) {
-      return { text: 'Healthy', color: 'text-gray-600' };
+      return { text: '', color: 'text-gray-600' };
     }
     
     const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -395,7 +395,7 @@ const HeatMap = ({ user, onLogout }) => {
       low: { text: 'Low Infestation', color: 'text-green-500' }
     };
     
-    return statusMap[worstSeverity] || { text: 'Healthy', color: 'text-gray-600' };
+    return statusMap[worstSeverity] || { text: '', color: 'text-gray-600' };
   };
 
   const activeDetections = detections.filter(d => d.active !== false);
@@ -461,7 +461,7 @@ const HeatMap = ({ user, onLogout }) => {
         {isAddingFarm && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-blue-800 font-medium">
-              ðŸ“ Click on the map to place your farm location
+              Ã°Å¸â€œÂ Click on the map to place your farm location
             </p>
           </div>
         )}
