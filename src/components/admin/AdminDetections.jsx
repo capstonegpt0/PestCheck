@@ -324,6 +324,7 @@ const AdminDetections = ({ user, onLogout }) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
+<<<<<<< HEAD
                   {itemsPerPage >= totalItems ? (
                     <>Showing all {totalItems} detections</>
                   ) : (
@@ -332,6 +333,10 @@ const AdminDetections = ({ user, onLogout }) => {
                       {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} detections
                     </>
                   )}
+=======
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+                  {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} detections
+>>>>>>> a1821720c18466ce2adebae69e8eb6ed1b069f28
                 </span>
                 <select
                   value={itemsPerPage}
@@ -345,6 +350,7 @@ const AdminDetections = ({ user, onLogout }) => {
                   <option value={20}>20 per page</option>
                   <option value={50}>50 per page</option>
                   <option value={100}>100 per page</option>
+<<<<<<< HEAD
                   <option value={10000}>Show All</option>
                 </select>
               </div>
@@ -396,6 +402,57 @@ const AdminDetections = ({ user, onLogout }) => {
                       );
                     })}
                   </div>
+=======
+                </select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  First
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Previous
+                </button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, Math.ceil(totalItems / itemsPerPage)) }, (_, i) => {
+                    const totalPages = Math.ceil(totalItems / itemsPerPage);
+                    let pageNum;
+                    
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1 border rounded text-sm ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+>>>>>>> a1821720c18466ce2adebae69e8eb6ed1b069f28
 
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalItems / itemsPerPage), prev + 1))}
@@ -412,7 +469,10 @@ const AdminDetections = ({ user, onLogout }) => {
                   Last
                 </button>
               </div>
+<<<<<<< HEAD
               )}
+=======
+>>>>>>> a1821720c18466ce2adebae69e8eb6ed1b069f28
             </div>
           </div>
         )}
