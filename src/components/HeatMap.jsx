@@ -151,14 +151,9 @@ const HeatMap = ({ user, onLogout }) => {
       });
       
       const validDetections = detectionsData.filter(detection => {
-        const hasLat = detection.latitude !== null && detection.latitude !== undefined && detection.latitude !== '' &&
-                       detection.lat !== null && detection.lat !== undefined && detection.lat !== '';
-        const hasLng = detection.longitude !== null && detection.longitude !== undefined && detection.longitude !== '' &&
-                       detection.lng !== null && detection.lng !== undefined && detection.lng !== '';
-        
-        // Try both 'latitude/longitude' and 'lat/lng' properties
-        const lat = detection.latitude || detection.lat;
-        const lng = detection.longitude || detection.lng;
+        // The API returns 'lat' and 'lng', NOT 'latitude' and 'longitude'
+        const lat = detection.lat || detection.latitude;
+        const lng = detection.lng || detection.longitude;
         
         const isLatValid = lat !== null && lat !== undefined && lat !== '' && !isNaN(parseFloat(lat));
         const isLngValid = lng !== null && lng !== undefined && lng !== '' && !isNaN(parseFloat(lng));
@@ -167,19 +162,23 @@ const HeatMap = ({ user, onLogout }) => {
           console.warn('Invalid detection coordinates:', {
             detection_id: detection.id,
             pest: detection.pest || detection.pest_name,
-            latitude: detection.latitude,
-            longitude: detection.longitude,
-            lat: detection.lat,
-            lng: detection.lng,
+            lat: lat,
+            lng: lng,
+            original_lat: detection.lat,
+            original_lng: detection.lng,
+            original_latitude: detection.latitude,
+            original_longitude: detection.longitude,
             isLatValid,
             isLngValid
           });
           return false;
         }
         
-        // Normalize the coordinates
+        // Normalize to both property names for compatibility
         detection.latitude = parseFloat(lat);
         detection.longitude = parseFloat(lng);
+        detection.lat = parseFloat(lat);
+        detection.lng = parseFloat(lng);
         
         return true;
       });
@@ -206,11 +205,10 @@ const HeatMap = ({ user, onLogout }) => {
         ? detectionsRes.data 
         : (detectionsRes.data.results || []);
       
-      // Validate and filter out invalid coordinates with normalization
+      // Validate and filter - API returns 'lat' and 'lng'
       const validDetections = detectionsData.filter(detection => {
-        // Try both 'latitude/longitude' and 'lat/lng' properties
-        const lat = detection.latitude || detection.lat;
-        const lng = detection.longitude || detection.lng;
+        const lat = detection.lat || detection.latitude;
+        const lng = detection.lng || detection.longitude;
         
         const isLatValid = lat !== null && lat !== undefined && lat !== '' && !isNaN(parseFloat(lat));
         const isLngValid = lng !== null && lng !== undefined && lng !== '' && !isNaN(parseFloat(lng));
@@ -224,9 +222,11 @@ const HeatMap = ({ user, onLogout }) => {
           return false;
         }
         
-        // Normalize the coordinates
+        // Normalize to both property names
         detection.latitude = parseFloat(lat);
         detection.longitude = parseFloat(lng);
+        detection.lat = parseFloat(lat);
+        detection.lng = parseFloat(lng);
         
         return true;
       });
@@ -619,9 +619,9 @@ const HeatMap = ({ user, onLogout }) => {
               {/* Detection Circles */}
               {activeDetections
                 .filter(detection => {
-                  // Try both property names
-                  const lat = detection.latitude || detection.lat;
-                  const lng = detection.longitude || detection.lng;
+                  // API returns 'lat' and 'lng' - check these first
+                  const lat = detection.lat || detection.latitude;
+                  const lng = detection.lng || detection.longitude;
                   
                   const hasValidLat = lat !== null && 
                                      lat !== undefined && 
@@ -648,9 +648,9 @@ const HeatMap = ({ user, onLogout }) => {
                   return true;
                 })
                 .map((detection) => {
-                  // Normalize coordinates
-                  const lat = parseFloat(detection.latitude || detection.lat);
-                  const lng = parseFloat(detection.longitude || detection.lng);
+                  // API returns 'lat' and 'lng'
+                  const lat = parseFloat(detection.lat || detection.latitude);
+                  const lng = parseFloat(detection.lng || detection.longitude);
                   
                   // Double safety check
                   if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
@@ -683,7 +683,7 @@ const HeatMap = ({ user, onLogout }) => {
                           <h3 className="font-bold">{detection.pest}</h3>
                           <p className="text-sm">Severity: {detection.severity}</p>
                           <p className="text-xs text-gray-600">
-                            {new Date(detection.detected_at).toLocaleDateString()}
+                            {new Date(detection.detected_at || detection.reported_at).toLocaleDateString()}
                           </p>
                         </div>
                       </Popup>
