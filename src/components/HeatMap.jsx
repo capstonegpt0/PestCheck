@@ -183,8 +183,8 @@ const HeatMap = ({ user, onLogout }) => {
         return true;
       });
       
-      console.log(`✅ Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
-      console.log(`✅ Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
+      console.log(`âœ… Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
+      console.log(`âœ… Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
       
       setDetections(validDetections);
       setFarms(validFarms);
@@ -552,7 +552,7 @@ const HeatMap = ({ user, onLogout }) => {
         </div>
 
         {/* Map */}
-        <div className="bg-white rounded-lg shadow overflow-hidden mb-6" style={{ height: '500px' }}>
+        <div className="bg-white rounded-lg shadow overflow-hidden mb-6" style={{ height: '500px', position: 'relative', zIndex: 1 }}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Activity className="w-8 h-8 text-primary animate-spin mr-2" />
@@ -581,7 +581,7 @@ const HeatMap = ({ user, onLogout }) => {
                                      isFinite(parseFloat(farm.lng));
                   
                   if (!hasValidLat || !hasValidLng) {
-                    console.error('❌ Filtering out invalid farm before render:', {
+                    console.error('âŒ Filtering out invalid farm before render:', {
                       id: farm.id,
                       name: farm.name,
                       lat: farm.lat,
@@ -599,7 +599,7 @@ const HeatMap = ({ user, onLogout }) => {
                   const lng = parseFloat(farm.lng);
                   
                   if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-                    console.error('❌ Skipping farm with invalid coords in map:', farm);
+                    console.error('âŒ Skipping farm with invalid coords in map:', farm);
                     return null;
                   }
                   
@@ -644,7 +644,7 @@ const HeatMap = ({ user, onLogout }) => {
                                      isFinite(parseFloat(lng));
                   
                   if (!hasValidLat || !hasValidLng) {
-                    console.error('❌ Filtering out invalid detection before render:', {
+                    console.error('âŒ Filtering out invalid detection before render:', {
                       id: detection.id,
                       pest: detection.pest,
                       lat,
@@ -663,7 +663,7 @@ const HeatMap = ({ user, onLogout }) => {
                   
                   // Double safety check
                   if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-                    console.error('❌ Skipping detection with invalid coords in map:', detection);
+                    console.error('âŒ Skipping detection with invalid coords in map:', detection);
                     return null;
                   }
                   
@@ -707,7 +707,7 @@ const HeatMap = ({ user, onLogout }) => {
 
         {/* Farm Modal */}
         {showFarmModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800">Request New Farm</h2>
@@ -761,7 +761,7 @@ const HeatMap = ({ user, onLogout }) => {
 
                 <div className="bg-gray-50 p-3 rounded">
                   <p className="text-sm text-gray-600">
-                    📍 Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}
+                    ðŸ“ Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}
                   </p>
                   <p className="text-xs text-gray-500 mt-2">
                     Your farm request will be reviewed by an administrator before approval.
@@ -790,7 +790,7 @@ const HeatMap = ({ user, onLogout }) => {
 
         {/* Infestation Modal */}
         {showInfestationModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800">Report Infestation</h2>
@@ -886,7 +886,7 @@ const HeatMap = ({ user, onLogout }) => {
 
         {/* Resolve Confirmation Modal */}
         {showResolveConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Confirm Resolution</h2>
               <p className="text-gray-600 mb-6">
