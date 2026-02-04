@@ -760,10 +760,11 @@ const HeatMap = ({ user, onLogout }) => {
                 </div>
 
                 <div className="bg-gray-50 p-3 rounded">
-                  <p className="text-sm text-gray-600">
-                    ðŸ“ Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <div className="flex items-center text-sm text-gray-600 mb-2">
+                    <MapPin className="w-4 h-4 mr-2 text-green-600 flex-shrink-0" />
+                    <span>Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}</span>
+                  </div>
+                  <p className="text-xs text-gray-500">
                     Your farm request will be reviewed by an administrator before approval.
                   </p>
                 </div>
