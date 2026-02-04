@@ -255,6 +255,34 @@ const HeatMap = ({ user, onLogout }) => {
     return isActive;
   });
 
+  // Debug logging for detection states
+  useEffect(() => {
+    if (detections.length > 0) {
+      console.log('=== Detection States Debug ===');
+      console.log('Total detections:', detections.length);
+      console.log('Active detections:', activeDetections.length);
+      
+      // Group by active state
+      const activeTrue = detections.filter(d => d.active === true);
+      const activeFalse = detections.filter(d => d.active === false);
+      const activeUndefined = detections.filter(d => d.active === undefined || d.active === null);
+      
+      console.log('Explicitly active (active=true):', activeTrue.length);
+      console.log('Explicitly inactive (active=false):', activeFalse.length);
+      console.log('Undefined/null active field:', activeUndefined.length);
+      
+      // Show details of resolved ones
+      if (activeFalse.length > 0) {
+        console.log('Resolved infestations:', activeFalse.map(d => ({
+          id: d.id,
+          pest: getPestName(d),
+          active: d.active
+        })));
+      }
+      console.log('==============================');
+    }
+  }, [detections, activeDetections.length]);
+
   const getFarmStatus = (farmId) => {
     const farmDetections = detections.filter(d => d.farm_id === farmId && (d.active === true || d.active === undefined || d.active === null));
     const count = farmDetections.length;
@@ -485,10 +513,30 @@ const HeatMap = ({ user, onLogout }) => {
     if (!selectedInfestationToResolve) return;
     
     try {
-      await api.patch(`/detections/${selectedInfestationToResolve}/`, {
-        active: false
-      });
+      console.log('Resolving infestation:', selectedInfestationToResolve);
       
+      // Try multiple methods to resolve the infestation
+      // Method 1: PATCH with active: false
+      try {
+        const response = await api.patch(`/detections/${selectedInfestationToResolve}/`, {
+          active: false
+        });
+        console.log('PATCH Method - Resolution response:', response.data);
+      } catch (patchError) {
+        console.warn('PATCH method failed, trying PUT method:', patchError);
+        
+        // Method 2: PUT with full detection data
+        const detection = detections.find(d => d.id === selectedInfestationToResolve);
+        if (detection) {
+          const response = await api.put(`/detections/${selectedInfestationToResolve}/`, {
+            ...detection,
+            active: false
+          });
+          console.log('PUT Method - Resolution response:', response.data);
+        }
+      }
+      
+      // Update local state immediately
       setDetections(detections.map(d => 
         d.id === selectedInfestationToResolve 
           ? { ...d, active: false }
@@ -497,9 +545,23 @@ const HeatMap = ({ user, onLogout }) => {
       
       setShowResolveConfirm(false);
       setSelectedInfestationToResolve(null);
+      
+      // Show success message
+      alert('Infestation marked as resolved successfully!');
+      
+      // Refresh data from server to ensure consistency
+      console.log('Refreshing detection data...');
+      await fetchFilteredDetections();
+      
     } catch (error) {
       console.error('Error resolving infestation:', error);
-      alert('Failed to resolve infestation. Please try again.');
+      console.error('Error details:', error.response?.data);
+      
+      const errorMsg = error.response?.data?.error 
+        || error.response?.data?.detail 
+        || 'Failed to resolve infestation. Please try again.';
+      
+      alert(errorMsg);
     }
   };
 
