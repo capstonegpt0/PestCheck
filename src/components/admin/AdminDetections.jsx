@@ -138,24 +138,7 @@ const AdminDetections = ({ user, onLogout }) => {
       <AdminNavigation user={user} onLogout={onLogout} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Detection Management</h1>
-          {!loading && (
-            <div className="flex items-center space-x-6 text-sm text-gray-600">
-              <span className="flex items-center">
-                <span className="font-semibold text-gray-800 mr-1">{detections.length}</span> Total Detections
-              </span>
-              <span className="flex items-center">
-                <span className="font-semibold text-gray-800 mr-1">{filteredDetections.length}</span> Shown
-              </span>
-              {statusFilter !== 'all' && (
-                <span className="text-blue-600">
-                  (Filtered by: {statusFilter})
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Detection Management</h1>
 
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -324,14 +307,8 @@ const AdminDetections = ({ user, onLogout }) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
-                  {itemsPerPage >= totalItems ? (
-                    <>Showing all {totalItems} detections</>
-                  ) : (
-                    <>
-                      Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
-                      {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} detections
-                    </>
-                  )}
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+                  {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} detections
                 </span>
                 <select
                   value={itemsPerPage}
@@ -345,57 +322,55 @@ const AdminDetections = ({ user, onLogout }) => {
                   <option value={20}>20 per page</option>
                   <option value={50}>50 per page</option>
                   <option value={100}>100 per page</option>
-                  <option value={10000}>Show All</option>
                 </select>
               </div>
 
-              {itemsPerPage < totalItems && (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                  >
-                    First
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center space-x-1">
-                    {Array.from({ length: Math.min(5, Math.ceil(totalItems / itemsPerPage)) }, (_, i) => {
-                      const totalPages = Math.ceil(totalItems / itemsPerPage);
-                      let pageNum;
-                      
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`px-3 py-1 border rounded text-sm ${
-                            currentPage === pageNum
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  First
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Previous
+                </button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, Math.ceil(totalItems / itemsPerPage)) }, (_, i) => {
+                    const totalPages = Math.ceil(totalItems / itemsPerPage);
+                    let pageNum;
+                    
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1 border rounded text-sm ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
 
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalItems / itemsPerPage), prev + 1))}
@@ -412,7 +387,6 @@ const AdminDetections = ({ user, onLogout }) => {
                   Last
                 </button>
               </div>
-              )}
             </div>
           </div>
         )}

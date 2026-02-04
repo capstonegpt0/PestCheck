@@ -19,7 +19,6 @@ import AdminPests from './components/admin/AdminPests';
 import AdminAlerts from './components/admin/AdminAlerts';
 import AdminActivities from './components/admin/AdminActivities';
 import AdminFarmRequests from './components/admin/AdminFarmrequests';
-import SuperAdminDatabase from './components/admin/SuperAdminDatabase';
 
 
 function App() {
@@ -74,16 +73,16 @@ function App() {
 
   // Role-based redirect
   const RoleBasedRedirect = () => {
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-  
-  if (user.role === 'super_admin' || user.role === 'admin') {
-    return <Navigate to="/admin/dashboard" />;
-  }
-  
-  return <Navigate to="/dashboard" />;
-};
+    if (!user) {
+      return <Navigate to="/login" />;
+    }
+    
+    if (user.role === 'admin') {
+      return <Navigate to="/admin/dashboard" />;
+    }
+    
+    return <Navigate to="/dashboard" />;
+  };
 
   if (loading) {
     return (
@@ -161,18 +160,6 @@ function App() {
         />
 
         {/* Admin Routes */}
-        <Route
-          path="/super-admin/database"
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              {user.role === 'super_admin' ? (
-                <SuperAdminDatabase user={user} onLogout={handleLogout} />
-              ) : (
-                <Navigate to="/admin/dashboard" />
-              )}
-            </ProtectedRoute>
-          }
-/>
         <Route
           path="/admin/dashboard"
           element={
