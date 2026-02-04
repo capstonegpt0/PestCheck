@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMapEvents } from 'react-leaflet';
-import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity, Camera, Upload, RefreshCw } from 'lucide-react';
+import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity } from 'lucide-react';
 import Navigation from './Navigation';
 import api from '../utils/api';
 import L from 'leaflet';
@@ -19,6 +19,7 @@ const farmIcon = new L.Icon({
   popupAnchor: [0, -32]
 });
 
+// Function to create a labeled farm icon
 const createLabeledFarmIcon = (farmName, ownerName) => {
   return L.divIcon({
     className: 'custom-farm-marker',
@@ -60,22 +61,12 @@ const createLabeledFarmIcon = (farmName, ownerName) => {
 
 // Farm status thresholds configuration
 const FARM_STATUS_CONFIG = {
-  MINIMUM_THRESHOLD: 3,
-  LOW_THRESHOLD: 3,
-  MODERATE_THRESHOLD: 5,
-  HIGH_THRESHOLD: 7,
-  CRITICAL_THRESHOLD: 10
+  MINIMUM_THRESHOLD: 3,    // Minimum detections before showing any status
+  LOW_THRESHOLD: 3,        // Low risk: 3-4 detections
+  MODERATE_THRESHOLD: 5,   // Moderate risk: 5-6 detections  
+  HIGH_THRESHOLD: 7,       // High risk: 7-9 detections
+  CRITICAL_THRESHOLD: 10   // Critical: 10+ detections
 };
-
-// Severity scale configuration (0-5)
-const SEVERITY_SCALE = [
-  { value: 0, label: 'Healthy', color: 'bg-green-600', description: 'No pests detected, crops are healthy' },
-  { value: 1, label: 'Very Low', color: 'bg-green-400', description: 'Minimal pest presence, no visible damage' },
-  { value: 2, label: 'Low', color: 'bg-yellow-400', description: 'Minor pest presence, slight damage visible' },
-  { value: 3, label: 'Moderate', color: 'bg-orange-400', description: 'Noticeable pest activity, moderate damage' },
-  { value: 4, label: 'High', color: 'bg-red-500', description: 'Significant pest infestation, extensive damage' },
-  { value: 5, label: 'Extreme', color: 'bg-red-900', description: 'Severe infestation, crop loss imminent' }
-];
 
 const MapClickHandler = ({ onMapClick, isAddingFarm }) => {
   useMapEvents({
@@ -88,10 +79,6 @@ const MapClickHandler = ({ onMapClick, isAddingFarm }) => {
   return null;
 };
 
-const getPestName = (detection) => {
-  return detection.pest || detection.pest_type || 'Unknown Pest';
-};
-
 const HeatMap = ({ user, onLogout }) => {
   const [detections, setDetections] = useState([]);
   const [farms, setFarms] = useState([]);
@@ -102,23 +89,11 @@ const HeatMap = ({ user, onLogout }) => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showFarmModal, setShowFarmModal] = useState(false);
   const [showInfestationModal, setShowInfestationModal] = useState(false);
-  const [showReviewModal, setShowReviewModal] = useState(false);
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
   const [selectedInfestationToResolve, setSelectedInfestationToResolve] = useState(null);
   const [farmForm, setFarmForm] = useState({ name: '', size: '', crop_type: '' });
-  
-  // New state for detection workflow
-  const [detectionStep, setDetectionStep] = useState('select_farm'); // select_farm, upload_image, detecting, review, confirmed
-  const [selectedFarm, setSelectedFarm] = useState(null);
-  const [uploadedImage, setUploadedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [detectionResult, setDetectionResult] = useState(null);
-  const [severityLevel, setSeverityLevel] = useState(2); // Default to Low
-  const [damageNotes, setDamageNotes] = useState('');
-  const [isDetecting, setIsDetecting] = useState(false);
-  const [detectionError, setDetectionError] = useState(null);
-  
-  const fileInputRef = useRef(null);
+  const [infestationForm, setInfestationForm] = useState({ pest_type: '', severity: 'low', description: '', farm_id: '' });
+
   const center = [15.2047, 120.5947];
 
   useEffect(() => {
@@ -131,42 +106,15 @@ const HeatMap = ({ user, onLogout }) => {
     }
   }, [days]);
 
-  const normalizeDetection = (detection) => {
-    const lat = detection.lat || detection.latitude;
-    const lng = detection.lng || detection.longitude;
-    
-    const isLatValid = lat !== null && lat !== undefined && lat !== '' && !isNaN(parseFloat(lat));
-    const isLngValid = lng !== null && lng !== undefined && lng !== '' && !isNaN(parseFloat(lng));
-    
-    if (!isLatValid || !isLngValid) {
-      console.warn('Invalid detection coordinates:', {
-        detection_id: detection.id,
-        pest: detection.pest || detection.pest_type,
-        lat,
-        lng
-      });
-      return null;
-    }
-    
-    return {
-      ...detection,
-      latitude: parseFloat(lat),
-      longitude: parseFloat(lng),
-      lat: parseFloat(lat),
-      lng: parseFloat(lng),
-      pest: detection.pest || detection.pest_type || 'Unknown Pest',
-      pest_type: detection.pest_type || detection.pest || 'Unknown Pest'
-    };
-  };
-
   const fetchInitialData = async () => {
     try {
       setLoading(true);
       
-      // FIXED: Changed from /detections/heatmap_data/ to /detections/
-      // Try /detections/ endpoint instead
-      const detectionsRes = await api.get(`/detections/?days=${days}`);
+      const detectionsRes = await api.get(`/detections/heatmap_data/?days=${days}`);
       const farmsRes = await api.get('/farms/');
+      
+      console.log('Raw farms response:', farmsRes.data);
+      console.log('Raw detections response:', detectionsRes.data);
       
       const detectionsData = Array.isArray(detectionsRes.data) 
         ? detectionsRes.data 
@@ -176,45 +124,75 @@ const HeatMap = ({ user, onLogout }) => {
         ? farmsRes.data 
         : (farmsRes.data.results || []);
       
+      console.log('Farms array:', farmsData);
+      console.log('Detections array:', detectionsData);
+      
+      // Validate and filter out invalid data with detailed logging
       const validFarms = farmsData.filter(farm => {
         const hasLat = farm.lat !== null && farm.lat !== undefined && farm.lat !== '';
         const hasLng = farm.lng !== null && farm.lng !== undefined && farm.lng !== '';
         const isLatValid = hasLat && !isNaN(parseFloat(farm.lat));
         const isLngValid = hasLng && !isNaN(parseFloat(farm.lng));
         
-        if (!isLatValid || !isLngValid) {
+        if (!hasLat || !hasLng || !isLatValid || !isLngValid) {
           console.warn('Invalid farm coordinates:', {
             farm_id: farm.id,
             name: farm.name,
             lat: farm.lat,
-            lng: farm.lng
+            lng: farm.lng,
+            hasLat,
+            hasLng,
+            isLatValid,
+            isLngValid
           });
           return false;
         }
         return true;
       });
       
-      const validDetections = detectionsData
-        .map(normalizeDetection)
-        .filter(d => d !== null);
-      
-      console.log('Loaded data:', {
-        total_detections: detectionsData.length,
-        valid_detections: validDetections.length,
-        total_farms: farmsData.length,
-        valid_farms: validFarms.length,
-        // FIXED: Added debug info for active detections
-        active_detections: validDetections.filter(d => d.active === true || d.active === undefined).length,
-        inactive_detections: validDetections.filter(d => d.active === false).length
+      const validDetections = detectionsData.filter(detection => {
+        // The API returns 'lat' and 'lng', NOT 'latitude' and 'longitude'
+        const lat = detection.lat || detection.latitude;
+        const lng = detection.lng || detection.longitude;
+        
+        const isLatValid = lat !== null && lat !== undefined && lat !== '' && !isNaN(parseFloat(lat));
+        const isLngValid = lng !== null && lng !== undefined && lng !== '' && !isNaN(parseFloat(lng));
+        
+        if (!isLatValid || !isLngValid) {
+          console.warn('Invalid detection coordinates:', {
+            detection_id: detection.id,
+            pest: detection.pest || detection.pest_name,
+            lat: lat,
+            lng: lng,
+            original_lat: detection.lat,
+            original_lng: detection.lng,
+            original_latitude: detection.latitude,
+            original_longitude: detection.longitude,
+            isLatValid,
+            isLngValid
+          });
+          return false;
+        }
+        
+        // Normalize to both property names for compatibility
+        detection.latitude = parseFloat(lat);
+        detection.longitude = parseFloat(lng);
+        detection.lat = parseFloat(lat);
+        detection.lng = parseFloat(lng);
+        
+        return true;
       });
+      
+      console.log(`✅ Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
+      console.log(`✅ Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
       
       setDetections(validDetections);
       setFarms(validFarms);
+      
     } catch (error) {
-      console.error('Error fetching initial data:', error);
-      // FIXED: Better error handling - fallback to empty arrays
-      setDetections([]);
+      console.error('Error fetching data:', error);
       setFarms([]);
+      setDetections([]);
     } finally {
       setLoading(false);
     }
@@ -222,378 +200,284 @@ const HeatMap = ({ user, onLogout }) => {
 
   const fetchFilteredDetections = async () => {
     try {
-      // FIXED: Changed from /detections/heatmap_data/ to /detections/
-      const response = await api.get(`/detections/?days=${days}`);
-      const data = Array.isArray(response.data) ? response.data : (response.data.results || []);
+      const detectionsRes = await api.get(`/detections/heatmap_data/?days=${days}`);
+      const detectionsData = Array.isArray(detectionsRes.data) 
+        ? detectionsRes.data 
+        : (detectionsRes.data.results || []);
       
-      const validDetections = data
-        .map(normalizeDetection)
-        .filter(d => d !== null);
-      
-      console.log('Filtered detections:', {
-        days,
-        total: data.length,
-        valid: validDetections.length,
-        // FIXED: Added debug info
-        active: validDetections.filter(d => d.active === true || d.active === undefined).length
+      // Validate and filter - API returns 'lat' and 'lng'
+      const validDetections = detectionsData.filter(detection => {
+        const lat = detection.lat || detection.latitude;
+        const lng = detection.lng || detection.longitude;
+        
+        const isLatValid = lat !== null && lat !== undefined && lat !== '' && !isNaN(parseFloat(lat));
+        const isLngValid = lng !== null && lng !== undefined && lng !== '' && !isNaN(parseFloat(lng));
+        
+        if (!isLatValid || !isLngValid) {
+          console.warn('Invalid detection coordinates during filter:', {
+            detection_id: detection.id,
+            lat,
+            lng
+          });
+          return false;
+        }
+        
+        // Normalize to both property names
+        detection.latitude = parseFloat(lat);
+        detection.longitude = parseFloat(lng);
+        detection.lat = parseFloat(lat);
+        detection.lng = parseFloat(lng);
+        
+        return true;
       });
       
       setDetections(validDetections);
     } catch (error) {
       console.error('Error fetching filtered detections:', error);
+      setDetections([]);
     }
   };
 
-  // FIXED: Improved active detection filtering
-  // Changed from checking d.active !== false to d.active === true || d.active === undefined
-  // This ensures that detections without an 'active' field are treated as active by default
-  const activeDetections = detections.filter(d => {
-    // Consider a detection active if:
-    // 1. active field is explicitly true, OR
-    // 2. active field is undefined/null (default to active)
-    const isActive = d.active === true || d.active === undefined || d.active === null;
-    return isActive;
-  });
-
-  // Debug logging for detection states
-  useEffect(() => {
-    if (detections.length > 0) {
-      console.log('=== Detection States Debug ===');
-      console.log('Total detections:', detections.length);
-      console.log('Active detections:', activeDetections.length);
-      
-      // Group by active state
-      const activeTrue = detections.filter(d => d.active === true);
-      const activeFalse = detections.filter(d => d.active === false);
-      const activeUndefined = detections.filter(d => d.active === undefined || d.active === null);
-      
-      console.log('Explicitly active (active=true):', activeTrue.length);
-      console.log('Explicitly inactive (active=false):', activeFalse.length);
-      console.log('Undefined/null active field:', activeUndefined.length);
-      
-      // Show details of resolved ones
-      if (activeFalse.length > 0) {
-        console.log('Resolved infestations:', activeFalse.map(d => ({
-          id: d.id,
-          pest: getPestName(d),
-          active: d.active
-        })));
-      }
-      console.log('==============================');
+  const handleMapClick = (latlng) => {
+    setSelectedLocation(latlng);
+    if (isAddingFarm) {
+      setShowFarmModal(true);
+      setIsAddingFarm(false);
     }
-  }, [detections, activeDetections.length]);
+  };
 
+  const saveFarm = async () => {
+    if (!selectedLocation || !farmForm.name) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      const farmData = { 
+        name: farmForm.name,
+        size: farmForm.size || '5',
+        crop_type: farmForm.crop_type || 'Rice',
+        lat: selectedLocation.lat, 
+        lng: selectedLocation.lng
+        // NOTE: No status field - farms start with no status by default
+      };
+      
+      const response = await api.post('/farm-requests/', farmData);
+      
+      resetFarmForm();
+      alert('Farm request submitted successfully! An admin will review your request soon.');
+      
+      fetchInitialData();
+    } catch (error) {
+      console.error('Error saving farm request:', error);
+      alert('Failed to submit farm request: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  /**
+   * Calculate farm status based on active detection count
+   * Returns null/empty status until threshold is reached
+   */
   const getFarmStatus = (farmId) => {
-    const farmDetections = detections.filter(d => d.farm_id === farmId && (d.active === true || d.active === undefined || d.active === null));
-    const count = farmDetections.length;
+    const activeInfestations = detections.filter(
+      d => d.farm_id === farmId && d.active !== false
+    );
     
+    const count = activeInfestations.length;
+    
+    // NO STATUS until minimum threshold is reached
     if (count < FARM_STATUS_CONFIG.MINIMUM_THRESHOLD) {
-      return { 
-        showStatus: false, 
-        text: 'No Status', 
+      return {
+        text: '',
         color: 'text-gray-500',
-        count 
+        showStatus: false
       };
     }
     
+    // Critical status: 10+ detections
     if (count >= FARM_STATUS_CONFIG.CRITICAL_THRESHOLD) {
-      return { 
-        showStatus: true, 
-        text: 'Critical Infestation', 
-        color: 'text-red-900 font-bold',
-        count 
-      };
-    }
-    if (count >= FARM_STATUS_CONFIG.HIGH_THRESHOLD) {
-      return { 
-        showStatus: true, 
-        text: 'High Infestation', 
-        color: 'text-red-600 font-bold',
-        count 
-      };
-    }
-    if (count >= FARM_STATUS_CONFIG.MODERATE_THRESHOLD) {
-      return { 
-        showStatus: true, 
-        text: 'Moderate Risk', 
-        color: 'text-orange-600 font-semibold',
-        count 
-      };
-    }
-    if (count >= FARM_STATUS_CONFIG.LOW_THRESHOLD) {
-      return { 
-        showStatus: true, 
-        text: 'Low Risk', 
-        color: 'text-yellow-600',
-        count 
+      return {
+        text: 'Critical - High Infestation',
+        color: 'text-red-700',
+        showStatus: true
       };
     }
     
-    return { 
-      showStatus: false, 
-      text: 'No Status', 
+    // High risk: 7-9 detections
+    if (count >= FARM_STATUS_CONFIG.HIGH_THRESHOLD) {
+      return {
+        text: 'High Risk - Monitor Closely',
+        color: 'text-orange-600',
+        showStatus: true
+      };
+    }
+    
+    // Moderate risk: 5-6 detections
+    if (count >= FARM_STATUS_CONFIG.MODERATE_THRESHOLD) {
+      return {
+        text: 'Moderate Risk - Action Needed',
+        color: 'text-yellow-600',
+        showStatus: true
+      };
+    }
+    
+    // Low risk: 3-4 detections (above threshold)
+    if (count >= FARM_STATUS_CONFIG.LOW_THRESHOLD) {
+      return {
+        text: 'Low Risk - Early Detection',
+        color: 'text-green-600',
+        showStatus: true
+      };
+    }
+    
+    return {
+      text: '',
       color: 'text-gray-500',
-      count 
+      showStatus: false
     };
   };
 
   const getFarmHeatmapColor = (farmId) => {
-    const status = getFarmStatus(farmId);
-    
-    if (!status.showStatus) {
-      return '#10b981';
-    }
-    
-    if (status.count >= FARM_STATUS_CONFIG.CRITICAL_THRESHOLD) return '#7f1d1d';
-    if (status.count >= FARM_STATUS_CONFIG.HIGH_THRESHOLD) return '#dc2626';
-    if (status.count >= FARM_STATUS_CONFIG.MODERATE_THRESHOLD) return '#f97316';
-    if (status.count >= FARM_STATUS_CONFIG.LOW_THRESHOLD) return '#eab308';
-    
-    return '#10b981';
+    const activeInfestations = detections.filter(d => d.farm_id === farmId && d.active !== false);
+    const count = activeInfestations.length;
+
+    if (count === 0) return '#d1d5db'; // Gray - No status/No infestations
+    if (count < 3) return '#3b82f6'; // Blue - Monitoring
+    if (count < 5) return '#fbbf24'; // Yellow - Low risk
+    if (count < 7) return '#f97316'; // Orange - Moderate
+    if (count < 10) return '#ef4444'; // Red - High
+    return '#7f1d1d'; // Dark red - Critical
   };
 
-  const handleMapClick = (latlng) => {
-    if (isAddingFarm) {
-      setSelectedLocation(latlng);
-      setShowFarmModal(true);
-    } else if (isReportingInfestation) {
-      setSelectedLocation(latlng);
-      setShowInfestationModal(true);
-    }
-  };
-
-  const handleFarmSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await api.post('/farms/', {
-        ...farmForm,
-        lat: selectedLocation.lat,
-        lng: selectedLocation.lng,
-      });
-      
-      const newFarm = response.data;
-      
-      if (newFarm.lat && newFarm.lng && !isNaN(parseFloat(newFarm.lat)) && !isNaN(parseFloat(newFarm.lng))) {
-        setFarms([...farms, newFarm]);
-      } else {
-        console.warn('New farm created but has invalid coordinates:', newFarm);
-      }
-      
-      setShowFarmModal(false);
-      setIsAddingFarm(false);
-      setFarmForm({ name: '', size: '', crop_type: '' });
-      setSelectedLocation(null);
-    } catch (error) {
-      console.error('Error adding farm:', error);
-      alert('Failed to add farm. Please try again.');
-    }
-  };
-
-  const startReportInfestation = () => {
-    if (farms.length === 0) {
-      alert('Please add at least one farm before reporting an infestation.');
-      return;
-    }
-    setDetectionStep('select_farm');
-    setShowReviewModal(true);
-  };
-
-  const handleFarmSelection = (farm) => {
-    setSelectedFarm(farm);
-    setDetectionStep('upload_image');
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setUploadedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const performDetection = async () => {
-    if (!uploadedImage || !selectedFarm) return;
-    
-    setIsDetecting(true);
-    setDetectionError(null);
-    setDetectionStep('detecting');
-    
-    try {
-      const formData = new FormData();
-      formData.append('image', uploadedImage);
-      
-      const response = await api.post('/detections/detect/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      setDetectionResult(response.data);
-      setDetectionStep('review');
-    } catch (error) {
-      console.error('Detection error:', error);
-      setDetectionError(error.response?.data?.error || 'Detection failed. Please try again.');
-      setDetectionStep('upload_image');
-    } finally {
-      setIsDetecting(false);
-    }
-  };
-
-  const retryDetection = () => {
-    setUploadedImage(null);
-    setImagePreview(null);
-    setDetectionResult(null);
-    setDetectionError(null);
-    setDetectionStep('upload_image');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const submitReport = async () => {
-    if (!detectionResult || !selectedFarm) return;
-    
-    try {
-      const formData = new FormData();
-      formData.append('image', uploadedImage);
-      formData.append('farm_id', selectedFarm.id);
-      formData.append('pest_type', detectionResult.pest_type);
-      formData.append('confidence', detectionResult.confidence);
-      formData.append('severity_level', severityLevel);
-      formData.append('damage_notes', damageNotes);
-      formData.append('lat', selectedFarm.lat);
-      formData.append('lng', selectedFarm.lng);
-      // FIXED: Explicitly set active to true when creating new reports
-      formData.append('active', 'true');
-      
-      const response = await api.post('/detections/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      const newDetection = normalizeDetection(response.data);
-      if (newDetection) {
-        setDetections([...detections, newDetection]);
-      }
-      
-      resetReportWorkflow();
-      alert('Infestation report submitted successfully!');
-    } catch (error) {
-      console.error('Error submitting report:', error);
-      alert('Failed to submit report. Please try again.');
-    }
-  };
-
-  const resetReportWorkflow = () => {
-    setShowReviewModal(false);
-    setDetectionStep('select_farm');
-    setSelectedFarm(null);
-    setUploadedImage(null);
-    setImagePreview(null);
-    setDetectionResult(null);
-    setSeverityLevel(2);
-    setDamageNotes('');
-    setDetectionError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const confirmResolveInfestation = (infestationId) => {
-    setSelectedInfestationToResolve(infestationId);
+  const confirmResolveInfestation = (detectionId) => {
+    setSelectedInfestationToResolve(detectionId);
     setShowResolveConfirm(true);
   };
 
   const resolveInfestation = async () => {
-    if (!selectedInfestationToResolve) return;
-    
+    if (!selectedInfestationToResolve) {
+      alert('No infestation selected');
+      return;
+    }
+
     try {
-      console.log('Resolving infestation:', selectedInfestationToResolve);
+      console.log(`Attempting to resolve infestation ID: ${selectedInfestationToResolve}`);
       
-      // Try multiple methods to resolve the infestation
-      // Method 1: PATCH with active: false
+      const detectionToResolve = detections.find(d => d.id === selectedInfestationToResolve);
+      
+      if (!detectionToResolve) {
+        console.error('Detection not found in local state');
+        alert('Error: Detection not found. Please refresh the page.');
+        setShowResolveConfirm(false);
+        setSelectedInfestationToResolve(null);
+        return;
+      }
+      
+      console.log('Detection found:', detectionToResolve);
+      
       try {
-        const response = await api.patch(`/detections/${selectedInfestationToResolve}/`, {
-          active: false
+        await api.patch(`/detections/${selectedInfestationToResolve}/`, { 
+          active: false,
+          status: 'resolved'
         });
-        console.log('PATCH Method - Resolution response:', response.data);
+        console.log('Successfully resolved via PATCH');
       } catch (patchError) {
-        console.warn('PATCH method failed, trying PUT method:', patchError);
-        
-        // Method 2: PUT with full detection data
-        const detection = detections.find(d => d.id === selectedInfestationToResolve);
-        if (detection) {
-          const response = await api.put(`/detections/${selectedInfestationToResolve}/`, {
-            ...detection,
-            active: false
+        console.log('PATCH failed, trying PUT...', patchError);
+        try {
+          await api.put(`/detections/${selectedInfestationToResolve}/`, { 
+            active: false,
+            status: 'resolved'
           });
-          console.log('PUT Method - Resolution response:', response.data);
+          console.log('Successfully resolved via PUT');
+        } catch (putError) {
+          console.error('Both PATCH and PUT failed:', putError);
+          console.log('API failed, updating local state only');
         }
       }
       
-      // Update local state immediately
-      setDetections(detections.map(d => 
-        d.id === selectedInfestationToResolve 
-          ? { ...d, active: false }
-          : d
-      ));
+      const updatedDetections = detections.filter(d => d.id !== selectedInfestationToResolve);
+      setDetections(updatedDetections);
       
       setShowResolveConfirm(false);
       setSelectedInfestationToResolve(null);
       
-      // Show success message
-      alert('Infestation marked as resolved successfully!');
-      
-      // Refresh data from server to ensure consistency
-      console.log('Refreshing detection data...');
-      await fetchFilteredDetections();
+      alert('Infestation marked as resolved!');
       
     } catch (error) {
       console.error('Error resolving infestation:', error);
-      console.error('Error details:', error.response?.data);
-      
-      const errorMsg = error.response?.data?.error 
-        || error.response?.data?.detail 
-        || 'Failed to resolve infestation. Please try again.';
-      
-      alert(errorMsg);
+      alert('Failed to resolve infestation. Please try again.');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Activity className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading map data...</p>
-        </div>
-      </div>
-    );
-  }
+  const saveInfestation = async () => {
+    if (!infestationForm.farm_id || !infestationForm.pest_type) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const selectedFarm = farms.find(f => f.id === parseInt(infestationForm.farm_id));
+      
+      if (!selectedFarm) {
+        alert('Selected farm not found');
+        return;
+      }
+
+      const infestationData = {
+        pest: infestationForm.pest_type,
+        severity: infestationForm.severity,
+        latitude: selectedFarm.lat,
+        longitude: selectedFarm.lng,
+        address: 'Magalang, Pampanga',
+        farm_id: selectedFarm.id,
+        description: infestationForm.description,
+        active: true
+      };
+
+      await api.post('/detections/', infestationData);
+      
+      resetInfestationForm();
+      alert('Infestation reported successfully!');
+      
+      fetchInitialData();
+    } catch (error) {
+      console.error('Error reporting infestation:', error);
+      alert('Failed to report infestation: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const resetFarmForm = () => {
+    setFarmForm({ name: '', size: '', crop_type: '' });
+    setSelectedLocation(null);
+    setShowFarmModal(false);
+  };
+
+  const resetInfestationForm = () => {
+    setInfestationForm({ pest_type: '', severity: 'low', description: '', farm_id: '' });
+    setShowInfestationModal(false);
+  };
+
+  const activeDetections = detections.filter(d => d.active !== false);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
       
-      <div className="container mx-auto px-4 py-6">
-        <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">Pest Detection Heat Map</h1>
-            <p className="text-gray-600 mt-1">
-              Showing {activeDetections.length} active infestation{activeDetections.length !== 1 ? 's' : ''} across {farms.length} farm{farms.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap gap-3">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Infestation Heat Map</h1>
+          <p className="text-gray-600">Track and manage pest infestations across farms</p>
+        </div>
+
+        {/* Map Controls */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6 flex flex-wrap gap-4 items-center">
+          <div className="flex items-center space-x-2">
+            <Filter className="w-5 h-5 text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">Time Range:</span>
             <select
               value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              onChange={(e) => setDays(parseInt(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               <option value={7}>Last 7 days</option>
               <option value={14}>Last 14 days</option>
@@ -601,399 +485,408 @@ const HeatMap = ({ user, onLogout }) => {
               <option value={60}>Last 60 days</option>
               <option value={90}>Last 90 days</option>
             </select>
+          </div>
 
-            <button
-              onClick={() => setIsAddingFarm(!isAddingFarm)}
-              className={`px-4 py-2 rounded-lg font-medium flex items-center ${
-                isAddingFarm
-                  ? 'bg-gray-300 text-gray-700'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              <MapPin className="w-4 h-4 mr-2" />
-              {isAddingFarm ? 'Cancel' : 'Add Farm'}
-            </button>
+          <button
+            onClick={fetchInitialData}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            title="Refresh map data"
+          >
+            <Activity className="w-5 h-5 mr-2" />
+            Refresh
+          </button>
 
-            <button
-              onClick={startReportInfestation}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center"
-            >
-              <Camera className="w-4 h-4 mr-2" />
-              Report Infestation
-            </button>
+          <div className="flex-1"></div>
+
+          <button
+            onClick={() => setShowInfestationModal(true)}
+            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            <AlertTriangle className="w-5 h-5 mr-2" />
+            Report Infestation
+          </button>
+
+          <button
+            onClick={() => setIsAddingFarm(true)}
+            className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+              isAddingFarm
+                ? 'bg-gray-400 text-white cursor-not-allowed'
+                : 'bg-primary text-white hover:bg-green-600'
+            }`}
+            disabled={isAddingFarm}
+          >
+            <MapPin className="w-5 h-5 mr-2" />
+            {isAddingFarm ? 'Click on map to place farm...' : 'Request Farm'}
+          </button>
+        </div>
+
+        {/* Legend */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <h3 className="font-semibold text-gray-800 mb-3">Map Legend</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-gray-300"></div>
+              <span>No Infestations</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+              <span>Monitoring (1-2)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
+              <span>Low Risk (3-4)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-orange-500"></div>
+              <span>Moderate (5-6)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-red-500"></div>
+              <span>High (7-9)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#7f1d1d' }}></div>
+              <span>Critical (10+)</span>
+            </div>
           </div>
         </div>
 
-        {isAddingFarm && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-blue-800 font-medium">
-              <MapPin className="w-4 h-4 inline mr-2" />
-              Click on the map to place your farm location
-            </p>
-          </div>
-        )}
+        {/* Map */}
+        <div className="bg-white rounded-lg shadow overflow-hidden mb-6" style={{ height: '500px' }}>
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <Activity className="w-8 h-8 text-primary animate-spin mr-2" />
+              <span className="text-gray-600">Loading map data...</span>
+            </div>
+          ) : (
+            <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }} attributionControl={false}>
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <MapClickHandler onMapClick={handleMapClick} isAddingFarm={isAddingFarm} />
 
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ height: '600px' }}>
-          <MapContainer center={center} zoom={10} style={{ height: '100%', width: '100%' }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            
-            <MapClickHandler onMapClick={handleMapClick} isAddingFarm={isAddingFarm} />
-            
-            {farms.map(farm => {
-              const farmDetectionCount = activeDetections.filter(d => d.farm_id === farm.id).length;
-              const status = getFarmStatus(farm.id);
-              
-              return (
-                <React.Fragment key={farm.id}>
-                  <Circle
-                    center={[farm.lat, farm.lng]}
-                    radius={500}
-                    pathOptions={{
-                      fillColor: getFarmHeatmapColor(farm.id),
-                      fillOpacity: 0.4,
-                      color: getFarmHeatmapColor(farm.id),
-                      weight: 2
-                    }}
-                  />
-                  <Marker 
-                    position={[farm.lat, farm.lng]} 
-                    icon={createLabeledFarmIcon(farm.name, farm.user_name)}
-                  >
-                    <Popup>
-                      <div className="p-2">
-                        <h3 className="font-bold text-gray-800">{farm.name}</h3>
-                        <p className="text-xs text-gray-500">Owner: {farm.user_name}</p>
-                        <p className="text-sm text-gray-600">{farm.crop_type}</p>
-                        <p className="text-sm text-gray-600">{farm.size} hectares</p>
-                        <p className="text-sm font-semibold mt-2">
-                          Active Infestations: {farmDetectionCount}
-                        </p>
-                        {status.showStatus && (
-                          <p className={`text-sm font-medium mt-1 ${status.color}`}>
-                            Status: {status.text}
+              {/* Farm Markers */}
+              {farms
+                .filter(farm => {
+                  // Triple check coordinates are valid
+                  const hasValidLat = farm.lat !== null && 
+                                     farm.lat !== undefined && 
+                                     farm.lat !== '' && 
+                                     !isNaN(parseFloat(farm.lat)) &&
+                                     isFinite(parseFloat(farm.lat));
+                  const hasValidLng = farm.lng !== null && 
+                                     farm.lng !== undefined && 
+                                     farm.lng !== '' && 
+                                     !isNaN(parseFloat(farm.lng)) &&
+                                     isFinite(parseFloat(farm.lng));
+                  
+                  if (!hasValidLat || !hasValidLng) {
+                    console.error('❌ Filtering out invalid farm before render:', {
+                      id: farm.id,
+                      name: farm.name,
+                      lat: farm.lat,
+                      lng: farm.lng,
+                      hasValidLat,
+                      hasValidLng
+                    });
+                    return false;
+                  }
+                  return true;
+                })
+                .map((farm) => {
+                  // Double safety check
+                  const lat = parseFloat(farm.lat);
+                  const lng = parseFloat(farm.lng);
+                  
+                  if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+                    console.error('❌ Skipping farm with invalid coords in map:', farm);
+                    return null;
+                  }
+                  
+                  return (
+                    <Marker
+                      key={farm.id}
+                      position={[lat, lng]}
+                      icon={createLabeledFarmIcon(farm.name || 'Unknown Farm', farm.user_name || 'Unknown')}
+                    >
+                      <Popup>
+                        <div className="p-2">
+                          <h3 className="font-bold text-lg">{farm.name}</h3>
+                          <p className="text-sm text-gray-600">Owner: {farm.user_name}</p>
+                          <p className="text-sm">{farm.crop_type} - {farm.size} hectares</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Active Infestations: {detections.filter(d => d.farm_id === farm.id && d.active !== false).length}
                           </p>
-                        )}
-                      </div>
-                    </Popup>
-                  </Marker>
-                </React.Fragment>
-              );
-            })}
-            
-            {activeDetections.map(detection => (
-              <Circle
-                key={detection.id}
-                center={[detection.lat, detection.lng]}
-                radius={100}
-                pathOptions={{
-                  fillColor: detection.severity === 'critical' ? '#7f1d1d' : 
-                            detection.severity === 'high' ? '#dc2626' : 
-                            detection.severity === 'medium' ? '#f97316' : 
-                            '#eab308',
-                  fillOpacity: 0.7,
-                  color: detection.severity === 'critical' ? '#7f1d1d' : 
-                         detection.severity === 'high' ? '#dc2626' : 
-                         detection.severity === 'medium' ? '#f97316' : 
-                         '#eab308',
-                  weight: 2
-                }}
-              >
-                <Popup>
-                  <div className="p-2">
-                    <h3 className="font-bold text-gray-800">{getPestName(detection)}</h3>
-                    <p className="text-xs text-gray-500">Reported by: {detection.user_name || 'Unknown'}</p>
-                    <p className="text-sm text-gray-600">
-                      Severity: <span className={`font-medium ${
-                        detection.severity === 'critical' ? 'text-red-900' : 
-                        detection.severity === 'high' ? 'text-red-500' : 
-                        detection.severity === 'medium' ? 'text-yellow-500' : 
-                        'text-green-500'
-                      }`}>{detection.severity}</span>
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Confidence: {(detection.confidence * 100).toFixed(1)}%
-                    </p>
-                    {detection.damage_notes && (
-                      <p className="text-xs text-gray-600 mt-2">
-                        Notes: {detection.damage_notes}
-                      </p>
-                    )}
-                  </div>
-                </Popup>
-              </Circle>
-            ))}
-          </MapContainer>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })
+                .filter(marker => marker !== null)
+              }
+
+              {/* Detection Circles */}
+              {activeDetections
+                .filter(detection => {
+                  // API returns 'lat' and 'lng' - check these first
+                  const lat = detection.lat || detection.latitude;
+                  const lng = detection.lng || detection.longitude;
+                  
+                  const hasValidLat = lat !== null && 
+                                     lat !== undefined && 
+                                     lat !== '' && 
+                                     !isNaN(parseFloat(lat)) &&
+                                     isFinite(parseFloat(lat));
+                  const hasValidLng = lng !== null && 
+                                     lng !== undefined && 
+                                     lng !== '' && 
+                                     !isNaN(parseFloat(lng)) &&
+                                     isFinite(parseFloat(lng));
+                  
+                  if (!hasValidLat || !hasValidLng) {
+                    console.error('❌ Filtering out invalid detection before render:', {
+                      id: detection.id,
+                      pest: detection.pest,
+                      lat,
+                      lng,
+                      hasValidLat,
+                      hasValidLng
+                    });
+                    return false;
+                  }
+                  return true;
+                })
+                .map((detection) => {
+                  // API returns 'lat' and 'lng'
+                  const lat = parseFloat(detection.lat || detection.latitude);
+                  const lng = parseFloat(detection.lng || detection.longitude);
+                  
+                  // Double safety check
+                  if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+                    console.error('❌ Skipping detection with invalid coords in map:', detection);
+                    return null;
+                  }
+                  
+                  const radius = detection.severity === 'critical' ? 300 :
+                              detection.severity === 'high' ? 200 :
+                              detection.severity === 'medium' ? 150 : 100;
+                
+                  const color = detection.severity === 'critical' ? '#7f1d1d' :
+                             detection.severity === 'high' ? '#ef4444' :
+                             detection.severity === 'medium' ? '#f97316' : '#fbbf24';
+
+                  return (
+                    <Circle
+                      key={detection.id}
+                      center={[lat, lng]}
+                      radius={radius}
+                      pathOptions={{
+                        fillColor: color,
+                        fillOpacity: 0.3,
+                        color: color,
+                        weight: 2
+                      }}
+                    >
+                      <Popup>
+                        <div className="p-2">
+                          <h3 className="font-bold">{detection.pest}</h3>
+                          <p className="text-sm">Severity: {detection.severity}</p>
+                          <p className="text-xs text-gray-600">
+                            {new Date(detection.detected_at || detection.reported_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </Popup>
+                    </Circle>
+                  );
+                })
+                .filter(circle => circle !== null)
+              }
+            </MapContainer>
+          )}
         </div>
 
         {/* Farm Modal */}
         {showFarmModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Add New Farm</h2>
-              <form onSubmit={handleFarmSubmit} className="space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">Request New Farm</h2>
+                <button onClick={resetFarmForm} className="text-gray-500 hover:text-gray-700">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Farm Name *
+                  </label>
                   <input
                     type="text"
-                    required
                     value={farmForm.name}
-                    onChange={(e) => setFarmForm({ ...farmForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="e.g., Green Valley Farm"
+                    onChange={(e) => setFarmForm({...farmForm, name: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="e.g., Northern Rice Field"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Size (hectares)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Size (hectares)
+                  </label>
                   <input
                     type="number"
-                    required
-                    step="0.1"
                     value={farmForm.size}
-                    onChange={(e) => setFarmForm({ ...farmForm, size: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="e.g., 5.5"
+                    onChange={(e) => setFarmForm({...farmForm, size: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="5"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Crop Type</label>
-                  <input
-                    type="text"
-                    required
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Crop Type
+                  </label>
+                  <select
                     value={farmForm.crop_type}
-                    onChange={(e) => setFarmForm({ ...farmForm, crop_type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="e.g., Rice, Corn, Vegetables"
-                  />
+                    onChange={(e) => setFarmForm({...farmForm, crop_type: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="Rice">Rice</option>
+                    <option value="Corn">Corn</option>
+                    <option value="Vegetables">Vegetables</option>
+                    <option value="Mixed">Mixed Crops</option>
+                  </select>
                 </div>
+
+                <div className="bg-gray-50 p-3 rounded">
+                  <p className="text-sm text-gray-600">
+                    📍 Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Your farm request will be reviewed by an administrator before approval.
+                  </p>
+                </div>
+
                 <div className="flex space-x-3 pt-4">
                   <button
-                    type="button"
-                    onClick={() => {
-                      setShowFarmModal(false);
-                      setSelectedLocation(null);
-                      setFarmForm({ name: '', size: '', crop_type: '' });
-                    }}
+                    onClick={saveFarm}
+                    className="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-green-600 font-medium flex items-center justify-center"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Submit Request
+                  </button>
+                  <button
+                    onClick={resetFarmForm}
                     className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
                   >
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-medium"
-                  >
-                    Add Farm
-                  </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Report Infestation Modal */}
-        {showReviewModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* Infestation Modal */}
+        {showInfestationModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Report Pest Infestation</h2>
-                <button
-                  onClick={resetReportWorkflow}
-                  className="text-gray-400 hover:text-gray-600"
-                >
+                <h2 className="text-2xl font-bold text-gray-800">Report Infestation</h2>
+                <button onClick={resetInfestationForm} className="text-gray-500 hover:text-gray-700">
                   <X className="w-6 h-6" />
                 </button>
               </div>
-
-              {/* Step 1: Select Farm */}
-              {detectionStep === 'select_farm' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Select the farm where you detected the pest:</p>
-                  <div className="space-y-2">
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Farm *
+                  </label>
+                  <select
+                    value={infestationForm.farm_id}
+                    onChange={(e) => setInfestationForm({...infestationForm, farm_id: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  >
+                    <option value="">Select a farm</option>
                     {farms.map(farm => (
-                      <button
-                        key={farm.id}
-                        onClick={() => handleFarmSelection(farm)}
-                        className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-left"
-                      >
-                        <p className="font-semibold text-gray-800">{farm.name}</p>
-                        <p className="text-sm text-gray-600">{farm.crop_type} - {farm.size} hectares</p>
-                      </button>
+                      <option key={farm.id} value={farm.id}>{farm.name}</option>
                     ))}
-                  </div>
+                  </select>
                 </div>
-              )}
 
-              {/* Step 2: Upload Image */}
-              {detectionStep === 'upload_image' && (
-                <div className="space-y-4">
-                  <div className="bg-green-50 p-3 rounded-lg">
-                    <p className="text-sm text-green-800">
-                      <strong>Selected Farm:</strong> {selectedFarm?.name}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Upload Pest Image
-                    </label>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full p-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors flex flex-col items-center"
-                    >
-                      <Upload className="w-12 h-12 text-gray-400 mb-2" />
-                      <span className="text-gray-600">Click to upload image</span>
-                    </button>
-                  </div>
-
-                  {imagePreview && (
-                    <div className="space-y-4">
-                      <div className="border rounded-lg overflow-hidden">
-                        <img src={imagePreview} alt="Uploaded" className="w-full h-64 object-contain bg-gray-50" />
-                      </div>
-                      
-                      {detectionError && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                          <p className="text-red-800 text-sm">{detectionError}</p>
-                        </div>
-                      )}
-
-                      <div className="flex space-x-3">
-                        <button
-                          onClick={retryDetection}
-                          className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
-                        >
-                          Change Image
-                        </button>
-                        <button
-                          onClick={performDetection}
-                          disabled={isDetecting}
-                          className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 font-medium flex items-center justify-center disabled:opacity-50"
-                        >
-                          {isDetecting ? (
-                            <>
-                              <Activity className="w-4 h-4 mr-2 animate-spin" />
-                              Detecting...
-                            </>
-                          ) : (
-                            <>
-                              <Camera className="w-4 h-4 mr-2" />
-                              Detect Pest
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Pest Type *
+                  </label>
+                  <input
+                    type="text"
+                    value={infestationForm.pest_type}
+                    onChange={(e) => setInfestationForm({...infestationForm, pest_type: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="e.g., Aphids, Whiteflies"
+                  />
                 </div>
-              )}
 
-              {/* Step 3: Detecting */}
-              {detectionStep === 'detecting' && (
-                <div className="text-center py-12">
-                  <Activity className="w-16 h-16 text-red-600 animate-spin mx-auto mb-4" />
-                  <p className="text-gray-600 text-lg">Analyzing image for pests...</p>
-                  <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Severity Level *
+                  </label>
+                  <select
+                    value={infestationForm.severity}
+                    onChange={(e) => setInfestationForm({...infestationForm, severity: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  >
+                    <option value="low">Low - Minor presence</option>
+                    <option value="medium">Medium - Noticeable damage</option>
+                    <option value="high">High - Significant damage</option>
+                    <option value="critical">Critical - Severe infestation</option>
+                  </select>
                 </div>
-              )}
 
-              {/* Step 4: Review and Submit */}
-              {detectionStep === 'review' && detectionResult && (
-                <div className="space-y-6">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-green-800 mb-2">Detection Results</h3>
-                    <p className="text-sm text-green-700">
-                      <strong>Pest Type:</strong> {detectionResult.pest_type}
-                    </p>
-                    <p className="text-sm text-green-700">
-                      <strong>Confidence:</strong> {(detectionResult.confidence * 100).toFixed(1)}%
-                    </p>
-                  </div>
-
-                  {imagePreview && (
-                    <div className="border rounded-lg overflow-hidden">
-                      <img src={imagePreview} alt="Detection" className="w-full h-48 object-contain bg-gray-50" />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Severity Level <span className="text-red-500">*</span>
-                    </label>
-                    <div className="space-y-2">
-                      {SEVERITY_SCALE.map(scale => (
-                        <button
-                          key={scale.value}
-                          onClick={() => setSeverityLevel(scale.value)}
-                          className={`w-full p-3 border-2 rounded-lg transition-all ${
-                            severityLevel === scale.value
-                              ? 'border-red-500 bg-red-50'
-                              : 'border-gray-200 hover:border-red-300'
-                          }`}
-                        >
-                          <div className="flex items-center">
-                            <div className={`w-12 h-12 rounded-lg ${scale.color} flex items-center justify-center text-white font-bold mr-3`}>
-                              {scale.value}
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-800">{scale.label}</p>
-                              <p className="text-xs text-gray-600">{scale.description}</p>
-                            </div>
-                            {severityLevel === scale.value && (
-                              <CheckCircle className="w-6 h-6 text-red-600" />
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Additional Notes (Optional)
-                    </label>
-                    <textarea
-                      value={damageNotes}
-                      onChange={(e) => setDamageNotes(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      rows="3"
-                      placeholder="Describe damage extent, affected area, or other observations..."
-                    />
-                  </div>
-
-                  <div className="flex space-x-3 pt-4">
-                    <button
-                      onClick={retryDetection}
-                      className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium flex items-center justify-center"
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Retry Detection
-                    </button>
-                    <button
-                      onClick={submitReport}
-                      className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 font-medium flex items-center justify-center"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Confirm & Submit
-                    </button>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={infestationForm.description}
+                    onChange={(e) => setInfestationForm({...infestationForm, description: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    rows="3"
+                    placeholder="Describe the infestation..."
+                  />
                 </div>
-              )}
+
+                <div className="bg-gray-50 p-3 rounded">
+                  <p className="text-sm text-gray-600">
+                    The infestation will be centered at the selected farm location
+                  </p>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={saveInfestation}
+                    className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 font-medium flex items-center justify-center"
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    Submit Report
+                  </button>
+                  <button
+                    onClick={resetInfestationForm}
+                    className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Resolve Confirmation Modal */}
         {showResolveConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Confirm Resolution</h2>
               <p className="text-gray-600 mb-6">
@@ -1030,10 +923,7 @@ const HeatMap = ({ user, onLogout }) => {
               ) : (
                 farms.map(farm => {
                   const status = getFarmStatus(farm.id);
-                  // FIXED: Updated to use the new active detection filtering
-                  const infestationCount = detections.filter(d => 
-                    d.farm_id === farm.id && (d.active === true || d.active === undefined || d.active === null)
-                  ).length;
+                  const infestationCount = detections.filter(d => d.farm_id === farm.id && d.active !== false).length;
                   return (
                     <div key={farm.id} className="border border-gray-200 rounded-lg p-3">
                       <div className="flex justify-between items-start">
@@ -1042,6 +932,7 @@ const HeatMap = ({ user, onLogout }) => {
                           <p className="text-xs text-gray-400">Owner: {farm.user_name}</p>
                           <p className="text-sm text-gray-600">{farm.crop_type} - {farm.size} hectares</p>
                           
+                          {/* Only show status if threshold is reached */}
                           {status.showStatus && (
                             <p className={`text-sm font-medium mt-1 ${status.color}`}>
                               {status.text}
@@ -1081,7 +972,7 @@ const HeatMap = ({ user, onLogout }) => {
                     <div key={detection.id} className="border border-gray-200 rounded-lg p-3">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-800">{getPestName(detection)}</p>
+                          <p className="font-semibold text-gray-800">{detection.pest}</p>
                           {farm && (
                             <p className="text-xs text-gray-500">Farm: {farm.name}</p>
                           )}
@@ -1102,7 +993,7 @@ const HeatMap = ({ user, onLogout }) => {
                             detection.severity === 'medium' ? 'bg-yellow-500' : 
                             'bg-green-500'
                           }`}></div>
-                          {(detection.user_name === user?.username || user?.role === 'admin') && (
+                          {(detection.user_name === user.username || user.role === 'admin') && (
                             <button
                               onClick={() => confirmResolveInfestation(detection.id)}
                               className="text-green-600 hover:text-green-800 p-1"
