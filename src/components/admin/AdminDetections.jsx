@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, XCircle, Eye, MessageSquare } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, MessageSquare, Trash2 } from 'lucide-react';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 
@@ -12,8 +12,10 @@ const AdminDetections = ({ user, onLogout }) => {
   const [selectedDetection, setSelectedDetection] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [actionType, setActionType] = useState(''); // 'verify' or 'reject'
+  const [isClearing, setIsClearing] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -106,6 +108,46 @@ const AdminDetections = ({ user, onLogout }) => {
     }
   };
 
+  const handleClearDetections = async () => {
+    if (filteredDetections.length === 0) {
+      alert('No detections to clear');
+      return;
+    }
+
+    setIsClearing(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      // Delete detections one by one
+      for (const detection of filteredDetections) {
+        try {
+          await api.delete(`/admin/detections/${detection.id}/`);
+          successCount++;
+        } catch (error) {
+          console.error(`Error deleting detection ${detection.id}:`, error);
+          failCount++;
+        }
+      }
+
+      // Show result
+      if (failCount === 0) {
+        alert(`Successfully deleted all ${successCount} detection(s)`);
+      } else {
+        alert(`Deleted ${successCount} detection(s). Failed to delete ${failCount} detection(s).`);
+      }
+
+      // Close modal and refresh
+      setShowClearModal(false);
+      fetchDetections();
+    } catch (error) {
+      console.error('Error clearing detections:', error);
+      alert('An error occurred while clearing detections');
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const openVerifyModal = (detection, action) => {
     setSelectedDetection(detection);
     setActionType(action);
@@ -186,6 +228,15 @@ const AdminDetections = ({ user, onLogout }) => {
                 }`}
               >
                 Rejected
+              </button>
+              <button
+                onClick={() => setShowClearModal(true)}
+                disabled={filteredDetections.length === 0}
+                className="px-6 py-3 rounded-lg font-semibold transition-colors bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
+                title="Clear all filtered detections"
+              >
+                <Trash2 className="w-5 h-5" />
+                <span>Clear All</span>
               </button>
             </div>
           </div>
