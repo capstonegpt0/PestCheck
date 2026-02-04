@@ -961,3 +961,5 @@ const HeatMap = ({ user, onLogout }) => {
     </div>
   );
 };
+
+export default HeatMap;
