@@ -163,7 +163,9 @@ const HeatMap = ({ user, onLogout }) => {
     try {
       setLoading(true);
       
-      const detectionsRes = await api.get(`/detections/heatmap_data/?days=${days}`);
+      // FIXED: Changed from /detections/heatmap_data/ to /detections/
+      // Try /detections/ endpoint instead
+      const detectionsRes = await api.get(`/detections/?days=${days}`);
       const farmsRes = await api.get('/farms/');
       
       const detectionsData = Array.isArray(detectionsRes.data) 
@@ -180,7 +182,7 @@ const HeatMap = ({ user, onLogout }) => {
         const isLatValid = hasLat && !isNaN(parseFloat(farm.lat));
         const isLngValid = hasLng && !isNaN(parseFloat(farm.lng));
         
-        if (!hasLat || !hasLng || !isLatValid || !isLngValid) {
+        if (!isLatValid || !isLngValid) {
           console.warn('Invalid farm coordinates:', {
             farm_id: farm.id,
             name: farm.name,
@@ -196,12 +198,23 @@ const HeatMap = ({ user, onLogout }) => {
         .map(normalizeDetection)
         .filter(d => d !== null);
       
-      setFarms(validFarms);
-      setDetections(validDetections);
+      console.log('Loaded data:', {
+        total_detections: detectionsData.length,
+        valid_detections: validDetections.length,
+        total_farms: farmsData.length,
+        valid_farms: validFarms.length,
+        // FIXED: Added debug info for active detections
+        active_detections: validDetections.filter(d => d.active === true || d.active === undefined).length,
+        inactive_detections: validDetections.filter(d => d.active === false).length
+      });
       
+      setDetections(validDetections);
+      setFarms(validFarms);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      alert('Failed to load map data: ' + (error.response?.data?.detail || error.message));
+      console.error('Error fetching initial data:', error);
+      // FIXED: Better error handling - fallback to empty arrays
+      setDetections([]);
+      setFarms([]);
     } finally {
       setLoading(false);
     }
@@ -209,14 +222,21 @@ const HeatMap = ({ user, onLogout }) => {
 
   const fetchFilteredDetections = async () => {
     try {
-      const response = await api.get(`/detections/heatmap_data/?days=${days}`);
-      const detectionsData = Array.isArray(response.data) 
-        ? response.data 
-        : (response.data.results || []);
+      // FIXED: Changed from /detections/heatmap_data/ to /detections/
+      const response = await api.get(`/detections/?days=${days}`);
+      const data = Array.isArray(response.data) ? response.data : (response.data.results || []);
       
-      const validDetections = detectionsData
+      const validDetections = data
         .map(normalizeDetection)
         .filter(d => d !== null);
+      
+      console.log('Filtered detections:', {
+        days,
+        total: data.length,
+        valid: validDetections.length,
+        // FIXED: Added debug info
+        active: validDetections.filter(d => d.active === true || d.active === undefined).length
+      });
       
       setDetections(validDetections);
     } catch (error) {
@@ -224,28 +244,137 @@ const HeatMap = ({ user, onLogout }) => {
     }
   };
 
-  // Start manual infestation report
-  const startInfestationReport = () => {
-    setIsReportingInfestation(true);
-    setDetectionStep('select_farm');
-    setSelectedFarm(null);
-    setUploadedImage(null);
-    setImagePreview(null);
-    setDetectionResult(null);
-    setSeverityLevel(2);
-    setDamageNotes('');
-    setDetectionError(null);
-    setShowInfestationModal(true);
+  // FIXED: Improved active detection filtering
+  // Changed from checking d.active !== false to d.active === true || d.active === undefined
+  // This ensures that detections without an 'active' field are treated as active by default
+  const activeDetections = detections.filter(d => {
+    // Consider a detection active if:
+    // 1. active field is explicitly true, OR
+    // 2. active field is undefined/null (default to active)
+    const isActive = d.active === true || d.active === undefined || d.active === null;
+    return isActive;
+  });
+
+  const getFarmStatus = (farmId) => {
+    const farmDetections = detections.filter(d => d.farm_id === farmId && (d.active === true || d.active === undefined || d.active === null));
+    const count = farmDetections.length;
+    
+    if (count < FARM_STATUS_CONFIG.MINIMUM_THRESHOLD) {
+      return { 
+        showStatus: false, 
+        text: 'No Status', 
+        color: 'text-gray-500',
+        count 
+      };
+    }
+    
+    if (count >= FARM_STATUS_CONFIG.CRITICAL_THRESHOLD) {
+      return { 
+        showStatus: true, 
+        text: 'Critical Infestation', 
+        color: 'text-red-900 font-bold',
+        count 
+      };
+    }
+    if (count >= FARM_STATUS_CONFIG.HIGH_THRESHOLD) {
+      return { 
+        showStatus: true, 
+        text: 'High Infestation', 
+        color: 'text-red-600 font-bold',
+        count 
+      };
+    }
+    if (count >= FARM_STATUS_CONFIG.MODERATE_THRESHOLD) {
+      return { 
+        showStatus: true, 
+        text: 'Moderate Risk', 
+        color: 'text-orange-600 font-semibold',
+        count 
+      };
+    }
+    if (count >= FARM_STATUS_CONFIG.LOW_THRESHOLD) {
+      return { 
+        showStatus: true, 
+        text: 'Low Risk', 
+        color: 'text-yellow-600',
+        count 
+      };
+    }
+    
+    return { 
+      showStatus: false, 
+      text: 'No Status', 
+      color: 'text-gray-500',
+      count 
+    };
   };
 
-  // Handle farm selection
-  const handleFarmSelection = (farmId) => {
-    const farm = farms.find(f => f.id === parseInt(farmId));
+  const getFarmHeatmapColor = (farmId) => {
+    const status = getFarmStatus(farmId);
+    
+    if (!status.showStatus) {
+      return '#10b981';
+    }
+    
+    if (status.count >= FARM_STATUS_CONFIG.CRITICAL_THRESHOLD) return '#7f1d1d';
+    if (status.count >= FARM_STATUS_CONFIG.HIGH_THRESHOLD) return '#dc2626';
+    if (status.count >= FARM_STATUS_CONFIG.MODERATE_THRESHOLD) return '#f97316';
+    if (status.count >= FARM_STATUS_CONFIG.LOW_THRESHOLD) return '#eab308';
+    
+    return '#10b981';
+  };
+
+  const handleMapClick = (latlng) => {
+    if (isAddingFarm) {
+      setSelectedLocation(latlng);
+      setShowFarmModal(true);
+    } else if (isReportingInfestation) {
+      setSelectedLocation(latlng);
+      setShowInfestationModal(true);
+    }
+  };
+
+  const handleFarmSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.post('/farms/', {
+        ...farmForm,
+        lat: selectedLocation.lat,
+        lng: selectedLocation.lng,
+      });
+      
+      const newFarm = response.data;
+      
+      if (newFarm.lat && newFarm.lng && !isNaN(parseFloat(newFarm.lat)) && !isNaN(parseFloat(newFarm.lng))) {
+        setFarms([...farms, newFarm]);
+      } else {
+        console.warn('New farm created but has invalid coordinates:', newFarm);
+      }
+      
+      setShowFarmModal(false);
+      setIsAddingFarm(false);
+      setFarmForm({ name: '', size: '', crop_type: '' });
+      setSelectedLocation(null);
+    } catch (error) {
+      console.error('Error adding farm:', error);
+      alert('Failed to add farm. Please try again.');
+    }
+  };
+
+  const startReportInfestation = () => {
+    if (farms.length === 0) {
+      alert('Please add at least one farm before reporting an infestation.');
+      return;
+    }
+    setDetectionStep('select_farm');
+    setShowReviewModal(true);
+  };
+
+  const handleFarmSelection = (farm) => {
     setSelectedFarm(farm);
     setDetectionStep('upload_image');
   };
 
-  // Handle image upload
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -258,99 +387,81 @@ const HeatMap = ({ user, onLogout }) => {
     }
   };
 
-  // Trigger detection with YOLOv5
-  const detectPest = async () => {
-    if (!uploadedImage || !selectedFarm) {
-      alert('Please select a farm and upload an image first');
-      return;
-    }
-
+  const performDetection = async () => {
+    if (!uploadedImage || !selectedFarm) return;
+    
     setIsDetecting(true);
     setDetectionError(null);
     setDetectionStep('detecting');
-
+    
     try {
       const formData = new FormData();
       formData.append('image', uploadedImage);
-      formData.append('crop_type', selectedFarm.crop_type || 'rice');
-
-      console.log('🔍 Calling detection preview API...');
       
-      const response = await api.post('/detections/preview/', formData);
+      const response = await api.post('/detections/detect/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       
-      console.log('✅ Detection result:', response.data);
       setDetectionResult(response.data);
       setDetectionStep('review');
-      
     } catch (error) {
-      console.error('❌ Detection error:', error);
-      const errorMsg = error.response?.data?.error || error.message;
-      setDetectionError(errorMsg);
+      console.error('Detection error:', error);
+      setDetectionError(error.response?.data?.error || 'Detection failed. Please try again.');
       setDetectionStep('upload_image');
-      
-      if (error.response?.data?.retry) {
-        alert(`Detection failed: ${errorMsg}\n\nPlease try again with a clearer image or wait a moment if the service is starting up.`);
-      } else {
-        alert(`Detection failed: ${errorMsg}`);
-      }
     } finally {
       setIsDetecting(false);
     }
   };
 
-  // Map severity 0-5 to backend severity levels
-  const mapSeverityToBackend = (level) => {
-    if (level === 0) return 'low';
-    if (level === 1) return 'low';
-    if (level === 2) return 'low';
-    if (level === 3) return 'medium';
-    if (level === 4) return 'high';
-    if (level === 5) return 'critical';
-    return 'medium';
+  const retryDetection = () => {
+    setUploadedImage(null);
+    setImagePreview(null);
+    setDetectionResult(null);
+    setDetectionError(null);
+    setDetectionStep('upload_image');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  // Submit confirmed report
   const submitReport = async () => {
-    if (!detectionResult || !selectedFarm || !uploadedImage) {
-      alert('Missing required data. Please start over.');
-      return;
-    }
-
+    if (!detectionResult || !selectedFarm) return;
+    
     try {
       const formData = new FormData();
       formData.append('image', uploadedImage);
-      formData.append('crop_type', selectedFarm.crop_type || 'rice');
-      formData.append('pest_name', detectionResult.pest_name);
-      formData.append('pest_type', detectionResult.pest_name);
-      formData.append('confidence', detectionResult.confidence.toString());
-      formData.append('severity', mapSeverityToBackend(severityLevel));
-      formData.append('latitude', selectedFarm.lat.toString());
-      formData.append('longitude', selectedFarm.lng.toString());
-      formData.append('farm_id', selectedFarm.id.toString());
-      formData.append('address', 'Magalang, Pampanga');
-      formData.append('description', damageNotes || `Severity level ${severityLevel}/5. ${SEVERITY_SCALE[severityLevel].description}`);
+      formData.append('farm_id', selectedFarm.id);
+      formData.append('pest_type', detectionResult.pest_type);
+      formData.append('confidence', detectionResult.confidence);
+      formData.append('severity_level', severityLevel);
+      formData.append('damage_notes', damageNotes);
+      formData.append('lat', selectedFarm.lat);
+      formData.append('lng', selectedFarm.lng);
+      // FIXED: Explicitly set active to true when creating new reports
       formData.append('active', 'true');
-
-      console.log('📤 Submitting confirmed detection...');
       
-      const response = await api.post('/detections/', formData);
+      const response = await api.post('/detections/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       
-      console.log('✅ Detection saved:', response.data);
+      const newDetection = normalizeDetection(response.data);
+      if (newDetection) {
+        setDetections([...detections, newDetection]);
+      }
       
-      alert('Pest infestation report submitted successfully!');
-      resetInfestationForm();
-      fetchInitialData();
-      
+      resetReportWorkflow();
+      alert('Infestation report submitted successfully!');
     } catch (error) {
-      console.error('❌ Submit error:', error);
-      alert('Failed to submit report: ' + (error.response?.data?.error || error.message));
+      console.error('Error submitting report:', error);
+      alert('Failed to submit report. Please try again.');
     }
   };
 
-  // Reset and close modal
-  const resetInfestationForm = () => {
-    setIsReportingInfestation(false);
-    setShowInfestationModal(false);
+  const resetReportWorkflow = () => {
     setShowReviewModal(false);
     setDetectionStep('select_farm');
     setSelectedFarm(null);
@@ -365,58 +476,8 @@ const HeatMap = ({ user, onLogout }) => {
     }
   };
 
-  // Retry detection with new image
-  const retryDetection = () => {
-    setDetectionStep('upload_image');
-    setUploadedImage(null);
-    setImagePreview(null);
-    setDetectionResult(null);
-    setDetectionError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const saveFarm = async () => {
-    if (!farmForm.name || !farmForm.size || !farmForm.crop_type || !selectedLocation) {
-      alert('Please fill in all fields and select a location on the map');
-      return;
-    }
-    
-    try {
-      const requestData = {
-        name: farmForm.name,
-        lat: selectedLocation.lat,
-        lng: selectedLocation.lng,
-        size: parseFloat(farmForm.size),
-        crop_type: farmForm.crop_type,
-        description: `Farm registered on ${new Date().toLocaleDateString()}`
-      };
-      
-      await api.post('/farm-requests/', requestData);
-      
-      alert('Farm registration request submitted! Admin will review your request.');
-      resetFarmForm();
-      fetchInitialData();
-    } catch (error) {
-      console.error('Error submitting farm request:', error);
-      alert('Failed to submit farm request: ' + (error.response?.data?.detail || error.message));
-    }
-  };
-
-  const resetFarmForm = () => {
-    setFarmForm({ name: '', size: '', crop_type: '' });
-    setSelectedLocation(null);
-    setIsAddingFarm(false);
-    setShowFarmModal(false);
-  };
-
-  const handleMapClick = (latlng) => {
-    setSelectedLocation(latlng);
-  };
-
-  const confirmResolveInfestation = (detectionId) => {
-    setSelectedInfestationToResolve(detectionId);
+  const confirmResolveInfestation = (infestationId) => {
+    setSelectedInfestationToResolve(infestationId);
     setShowResolveConfirm(true);
   };
 
@@ -425,70 +486,30 @@ const HeatMap = ({ user, onLogout }) => {
     
     try {
       await api.patch(`/detections/${selectedInfestationToResolve}/`, {
-        active: false,
-        status: 'resolved'
+        active: false
       });
       
-      alert('Infestation marked as resolved');
+      setDetections(detections.map(d => 
+        d.id === selectedInfestationToResolve 
+          ? { ...d, active: false }
+          : d
+      ));
+      
       setShowResolveConfirm(false);
       setSelectedInfestationToResolve(null);
-      fetchInitialData();
     } catch (error) {
       console.error('Error resolving infestation:', error);
-      alert('Failed to resolve infestation: ' + (error.response?.data?.detail || error.message));
+      alert('Failed to resolve infestation. Please try again.');
     }
   };
-
-  const getFarmHeatmapColor = (farmId) => {
-    const farmDetections = detections.filter(d => d.farm_id === farmId && d.active !== false);
-    const count = farmDetections.length;
-    
-    if (count === 0) return '#10b981';
-    if (count < FARM_STATUS_CONFIG.LOW_THRESHOLD) return '#fbbf24';
-    if (count < FARM_STATUS_CONFIG.MODERATE_THRESHOLD) return '#f97316';
-    if (count < FARM_STATUS_CONFIG.HIGH_THRESHOLD) return '#ef4444';
-    if (count < FARM_STATUS_CONFIG.CRITICAL_THRESHOLD) return '#dc2626';
-    return '#7f1d1d';
-  };
-
-  const getFarmStatus = (farmId) => {
-    const farmDetections = detections.filter(d => d.farm_id === farmId && d.active !== false);
-    const count = farmDetections.length;
-    
-    if (count < FARM_STATUS_CONFIG.MINIMUM_THRESHOLD) {
-      return { 
-        text: 'Monitoring', 
-        color: 'text-gray-600',
-        showStatus: false
-      };
-    }
-    
-    if (count >= FARM_STATUS_CONFIG.CRITICAL_THRESHOLD) {
-      return { text: 'Critical Risk', color: 'text-red-900', showStatus: true };
-    }
-    if (count >= FARM_STATUS_CONFIG.HIGH_THRESHOLD) {
-      return { text: 'High Risk', color: 'text-red-600', showStatus: true };
-    }
-    if (count >= FARM_STATUS_CONFIG.MODERATE_THRESHOLD) {
-      return { text: 'Moderate Risk', color: 'text-orange-500', showStatus: true };
-    }
-    if (count >= FARM_STATUS_CONFIG.LOW_THRESHOLD) {
-      return { text: 'Low Risk', color: 'text-yellow-600', showStatus: true };
-    }
-    
-    return { 
-      text: 'Monitoring', 
-      color: 'text-gray-600',
-      showStatus: false 
-    };
-  };
-
-  const activeDetections = detections.filter(d => d.active !== false);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600">Loading map data...</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Activity className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading map data...</p>
+        </div>
       </div>
     );
   }
@@ -497,40 +518,20 @@ const HeatMap = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Pest Infestation Heat Map</h1>
-          
-          <div className="flex space-x-3">
-            <button
-              onClick={startInfestationReport}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 font-medium flex items-center"
-            >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Report Infestation
-            </button>
-            
-            <button
-              onClick={() => {
-                setIsAddingFarm(true);
-                setShowFarmModal(true);
-              }}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium flex items-center"
-            >
-              <MapPin className="w-4 h-4 mr-2" />
-              Register Farm
-            </button>
+      <div className="container mx-auto px-4 py-6">
+        <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Pest Detection Heat Map</h1>
+            <p className="text-gray-600 mt-1">
+              Showing {activeDetections.length} active infestation{activeDetections.length !== 1 ? 's' : ''} across {farms.length} farm{farms.length !== 1 ? 's' : ''}
+            </p>
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow mb-6 p-4">
-          <div className="flex items-center space-x-4">
-            <Filter className="w-5 h-5 text-gray-600" />
-            <label className="text-sm font-medium text-gray-700">Filter by time period:</label>
+          
+          <div className="flex flex-wrap gap-3">
             <select
               value={days}
-              onChange={(e) => setDays(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              onChange={(e) => setDays(Number(e.target.value))}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             >
               <option value={7}>Last 7 days</option>
               <option value={14}>Last 14 days</option>
@@ -538,192 +539,226 @@ const HeatMap = ({ user, onLogout }) => {
               <option value={60}>Last 60 days</option>
               <option value={90}>Last 90 days</option>
             </select>
+
+            <button
+              onClick={() => setIsAddingFarm(!isAddingFarm)}
+              className={`px-4 py-2 rounded-lg font-medium flex items-center ${
+                isAddingFarm
+                  ? 'bg-gray-300 text-gray-700'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              {isAddingFarm ? 'Cancel' : 'Add Farm'}
+            </button>
+
+            <button
+              onClick={startReportInfestation}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center"
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              Report Infestation
+            </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden" style={{ height: '600px' }}>
-          <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
+        {isAddingFarm && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 font-medium">
+              <MapPin className="w-4 h-4 inline mr-2" />
+              Click on the map to place your farm location
+            </p>
+          </div>
+        )}
+
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ height: '600px' }}>
+          <MapContainer center={center} zoom={10} style={{ height: '100%', width: '100%' }}>
             <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
             
             <MapClickHandler onMapClick={handleMapClick} isAddingFarm={isAddingFarm} />
             
-            {farms.map(farm => (
-              <Marker
-                key={`farm-${farm.id}`}
-                position={[farm.lat, farm.lng]}
-                icon={createLabeledFarmIcon(farm.name, farm.user_name || 'Unknown')}
-              >
-                <Popup>
-                  <div className="p-2">
-                    <h3 className="font-bold text-lg">{farm.name}</h3>
-                    <p className="text-sm text-gray-600">Owner: {farm.user_name}</p>
-                    <p className="text-sm">Crop: {farm.crop_type}</p>
-                    <p className="text-sm">Size: {farm.size} hectares</p>
-                    {getFarmStatus(farm.id).showStatus && (
-                      <p className={`text-sm font-semibold mt-2 ${getFarmStatus(farm.id).color}`}>
-                        {getFarmStatus(farm.id).text}
-                      </p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+            {farms.map(farm => {
+              const farmDetectionCount = activeDetections.filter(d => d.farm_id === farm.id).length;
+              const status = getFarmStatus(farm.id);
+              
+              return (
+                <React.Fragment key={farm.id}>
+                  <Circle
+                    center={[farm.lat, farm.lng]}
+                    radius={500}
+                    pathOptions={{
+                      fillColor: getFarmHeatmapColor(farm.id),
+                      fillOpacity: 0.4,
+                      color: getFarmHeatmapColor(farm.id),
+                      weight: 2
+                    }}
+                  />
+                  <Marker 
+                    position={[farm.lat, farm.lng]} 
+                    icon={createLabeledFarmIcon(farm.name, farm.user_name)}
+                  >
+                    <Popup>
+                      <div className="p-2">
+                        <h3 className="font-bold text-gray-800">{farm.name}</h3>
+                        <p className="text-xs text-gray-500">Owner: {farm.user_name}</p>
+                        <p className="text-sm text-gray-600">{farm.crop_type}</p>
+                        <p className="text-sm text-gray-600">{farm.size} hectares</p>
+                        <p className="text-sm font-semibold mt-2">
+                          Active Infestations: {farmDetectionCount}
+                        </p>
+                        {status.showStatus && (
+                          <p className={`text-sm font-medium mt-1 ${status.color}`}>
+                            Status: {status.text}
+                          </p>
+                        )}
+                      </div>
+                    </Popup>
+                  </Marker>
+                </React.Fragment>
+              );
+            })}
             
             {activeDetections.map(detection => (
               <Circle
-                key={`detection-${detection.id}`}
-                center={[detection.latitude, detection.longitude]}
-                radius={
-                  detection.severity === 'critical' ? 200 :
-                  detection.severity === 'high' ? 150 :
-                  detection.severity === 'medium' ? 100 :
-                  75
-                }
+                key={detection.id}
+                center={[detection.lat, detection.lng]}
+                radius={100}
                 pathOptions={{
-                  fillColor: 
-                    detection.severity === 'critical' ? '#7f1d1d' :
-                    detection.severity === 'high' ? '#dc2626' :
-                    detection.severity === 'medium' ? '#f97316' :
-                    '#fbbf24',
-                  fillOpacity: 0.4,
-                  color: 
-                    detection.severity === 'critical' ? '#7f1d1d' :
-                    detection.severity === 'high' ? '#dc2626' :
-                    detection.severity === 'medium' ? '#f97316' :
-                    '#fbbf24',
+                  fillColor: detection.severity === 'critical' ? '#7f1d1d' : 
+                            detection.severity === 'high' ? '#dc2626' : 
+                            detection.severity === 'medium' ? '#f97316' : 
+                            '#eab308',
+                  fillOpacity: 0.7,
+                  color: detection.severity === 'critical' ? '#7f1d1d' : 
+                         detection.severity === 'high' ? '#dc2626' : 
+                         detection.severity === 'medium' ? '#f97316' : 
+                         '#eab308',
                   weight: 2
                 }}
               >
                 <Popup>
                   <div className="p-2">
-                    <h3 className="font-bold">{getPestName(detection)}</h3>
-                    <p className="text-sm">Severity: {detection.severity}</p>
-                    {detection.description && (
-                      <p className="text-sm mt-1">{detection.description}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      Reported by: {detection.user_name || 'Unknown'}
+                    <h3 className="font-bold text-gray-800">{getPestName(detection)}</h3>
+                    <p className="text-xs text-gray-500">Reported by: {detection.user_name || 'Unknown'}</p>
+                    <p className="text-sm text-gray-600">
+                      Severity: <span className={`font-medium ${
+                        detection.severity === 'critical' ? 'text-red-900' : 
+                        detection.severity === 'high' ? 'text-red-500' : 
+                        detection.severity === 'medium' ? 'text-yellow-500' : 
+                        'text-green-500'
+                      }`}>{detection.severity}</span>
                     </p>
+                    <p className="text-sm text-gray-600">
+                      Confidence: {(detection.confidence * 100).toFixed(1)}%
+                    </p>
+                    {detection.damage_notes && (
+                      <p className="text-xs text-gray-600 mt-2">
+                        Notes: {detection.damage_notes}
+                      </p>
+                    )}
                   </div>
                 </Popup>
               </Circle>
             ))}
-            
-            {selectedLocation && (
-              <Marker position={[selectedLocation.lat, selectedLocation.lng]} />
-            )}
           </MapContainer>
         </div>
 
-        {/* Farm Registration Modal */}
+        {/* Farm Modal */}
         {showFarmModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Register New Farm</h2>
-              <div className="space-y-4">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Add New Farm</h2>
+              <form onSubmit={handleFarmSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Farm Name</label>
                   <input
                     type="text"
+                    required
                     value={farmForm.name}
-                    onChange={(e) => setFarmForm({...farmForm, name: e.target.value})}
+                    onChange={(e) => setFarmForm({ ...farmForm, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Enter farm name"
+                    placeholder="e.g., Green Valley Farm"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Size (hectares)</label>
                   <input
                     type="number"
+                    required
                     step="0.1"
                     value={farmForm.size}
-                    onChange={(e) => setFarmForm({...farmForm, size: e.target.value})}
+                    onChange={(e) => setFarmForm({ ...farmForm, size: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Enter size"
+                    placeholder="e.g., 5.5"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Crop Type</label>
-                  <select
+                  <input
+                    type="text"
+                    required
                     value={farmForm.crop_type}
-                    onChange={(e) => setFarmForm({...farmForm, crop_type: e.target.value})}
+                    onChange={(e) => setFarmForm({ ...farmForm, crop_type: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    <option value="">Select crop type</option>
-                    <option value="rice">Rice</option>
-                    <option value="corn">Corn</option>
-                  </select>
-                </div>
-                <div className="bg-blue-50 p-3 rounded">
-                  <p className="text-sm text-blue-800">
-                    {selectedLocation 
-                      ? `Selected: ${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}` 
-                      : 'Click on the map to select farm location'}
-                  </p>
+                    placeholder="e.g., Rice, Corn, Vegetables"
+                  />
                 </div>
                 <div className="flex space-x-3 pt-4">
                   <button
-                    onClick={saveFarm}
-                    disabled={!selectedLocation}
-                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    Submit Request
-                  </button>
-                  <button
-                    onClick={resetFarmForm}
+                    type="button"
+                    onClick={() => {
+                      setShowFarmModal(false);
+                      setSelectedLocation(null);
+                      setFarmForm({ name: '', size: '', crop_type: '' });
+                    }}
                     className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
                   >
                     Cancel
                   </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-medium"
+                  >
+                    Add Farm
+                  </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         )}
 
-        {/* Infestation Report Modal - Multi-step */}
-        {showInfestationModal && (
+        {/* Report Infestation Modal */}
+        {showReviewModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Report Pest Infestation</h2>
-              
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Report Pest Infestation</h2>
+                <button
+                  onClick={resetReportWorkflow}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
               {/* Step 1: Select Farm */}
               {detectionStep === 'select_farm' && (
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      1. Select Farm Location
-                    </label>
-                    <select
-                      value={selectedFarm?.id || ''}
-                      onChange={(e) => handleFarmSelection(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    >
-                      <option value="">Choose a farm...</option>
-                      {farms.map(farm => (
-                        <option key={farm.id} value={farm.id}>
-                          {farm.name} - {farm.crop_type} ({farm.size} ha)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {farms.length === 0 && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <p className="text-sm text-yellow-800">
-                        No farms registered yet. Please register a farm first using the "Register Farm" button.
-                      </p>
-                    </div>
-                  )}
-                  <div className="flex space-x-3 pt-4">
-                    <button
-                      onClick={resetInfestationForm}
-                      className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
-                    >
-                      Cancel
-                    </button>
+                  <p className="text-gray-600">Select the farm where you detected the pest:</p>
+                  <div className="space-y-2">
+                    {farms.map(farm => (
+                      <button
+                        key={farm.id}
+                        onClick={() => handleFarmSelection(farm)}
+                        className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-left"
+                      >
+                        <p className="font-semibold text-gray-800">{farm.name}</p>
+                        <p className="text-sm text-gray-600">{farm.crop_type} - {farm.size} hectares</p>
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
@@ -731,15 +766,15 @@ const HeatMap = ({ user, onLogout }) => {
               {/* Step 2: Upload Image */}
               {detectionStep === 'upload_image' && (
                 <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <p className="text-sm text-blue-800">
-                      <strong>Selected Farm:</strong> {selectedFarm?.name} ({selectedFarm?.crop_type})
+                  <div className="bg-green-50 p-3 rounded-lg">
+                    <p className="text-sm text-green-800">
+                      <strong>Selected Farm:</strong> {selectedFarm?.name}
                     </p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      2. Upload Photo of Affected Crop
+                      Upload Pest Image
                     </label>
                     <input
                       ref={fileInputRef}
@@ -748,126 +783,102 @@ const HeatMap = ({ user, onLogout }) => {
                       onChange={handleImageUpload}
                       className="hidden"
                     />
-                    
-                    {!imagePreview ? (
-                      <div 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        <Camera className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                        <p className="text-gray-600 mb-2">Click to upload or take a photo</p>
-                        <p className="text-sm text-gray-500">Support for JPG, PNG</p>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full p-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors flex flex-col items-center"
+                    >
+                      <Upload className="w-12 h-12 text-gray-400 mb-2" />
+                      <span className="text-gray-600">Click to upload image</span>
+                    </button>
+                  </div>
+
+                  {imagePreview && (
+                    <div className="space-y-4">
+                      <div className="border rounded-lg overflow-hidden">
+                        <img src={imagePreview} alt="Uploaded" className="w-full h-64 object-contain bg-gray-50" />
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <img 
-                          src={imagePreview} 
-                          alt="Uploaded crop" 
-                          className="w-full h-64 object-contain bg-gray-100 rounded-lg"
-                        />
+                      
+                      {detectionError && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <p className="text-red-800 text-sm">{detectionError}</p>
+                        </div>
+                      )}
+
+                      <div className="flex space-x-3">
                         <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium flex items-center justify-center"
+                          onClick={retryDetection}
+                          className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
                         >
-                          <Upload className="w-4 h-4 mr-2" />
                           Change Image
                         </button>
+                        <button
+                          onClick={performDetection}
+                          disabled={isDetecting}
+                          className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 font-medium flex items-center justify-center disabled:opacity-50"
+                        >
+                          {isDetecting ? (
+                            <>
+                              <Activity className="w-4 h-4 mr-2 animate-spin" />
+                              Detecting...
+                            </>
+                          ) : (
+                            <>
+                              <Camera className="w-4 h-4 mr-2" />
+                              Detect Pest
+                            </>
+                          )}
+                        </button>
                       </div>
-                    )}
-                  </div>
-
-                  {detectionError && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <p className="text-sm text-red-800">{detectionError}</p>
                     </div>
                   )}
-
-                  <div className="flex space-x-3 pt-4">
-                    <button
-                      onClick={() => {
-                        setDetectionStep('select_farm');
-                        setUploadedImage(null);
-                        setImagePreview(null);
-                      }}
-                      className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
-                    >
-                      Back
-                    </button>
-                    <button
-                      onClick={detectPest}
-                      disabled={!uploadedImage}
-                      className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
-                    >
-                      <Activity className="w-4 h-4 mr-2" />
-                      Detect Pest
-                    </button>
-                  </div>
                 </div>
               )}
 
-              {/* Step 3: Detecting (Loading) */}
+              {/* Step 3: Detecting */}
               {detectionStep === 'detecting' && (
-                <div className="space-y-4 text-center py-12">
-                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600 mx-auto"></div>
-                  <p className="text-lg font-medium text-gray-800">Analyzing image with AI...</p>
-                  <p className="text-sm text-gray-600">This may take a few moments</p>
+                <div className="text-center py-12">
+                  <Activity className="w-16 h-16 text-red-600 animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600 text-lg">Analyzing image for pests...</p>
+                  <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
                 </div>
               )}
 
-              {/* Step 4: Review Detection */}
+              {/* Step 4: Review and Submit */}
               {detectionStep === 'review' && detectionResult && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h3 className="font-bold text-green-800 mb-2">✓ Pest Detected</h3>
+                    <h3 className="font-semibold text-green-800 mb-2">Detection Results</h3>
                     <p className="text-sm text-green-700">
-                      <strong>Pest:</strong> {detectionResult.pest_name}
+                      <strong>Pest Type:</strong> {detectionResult.pest_type}
                     </p>
                     <p className="text-sm text-green-700">
                       <strong>Confidence:</strong> {(detectionResult.confidence * 100).toFixed(1)}%
                     </p>
-                    {detectionResult.scientific_name && (
-                      <p className="text-sm text-green-700">
-                        <strong>Scientific Name:</strong> {detectionResult.scientific_name}
-                      </p>
-                    )}
                   </div>
 
-                  <div className="border-2 border-gray-200 rounded-lg p-4">
-                    <img 
-                      src={imagePreview} 
-                      alt="Detected pest" 
-                      className="w-full h-48 object-contain bg-gray-100 rounded-lg mb-3"
-                    />
-                  </div>
-
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-sm font-medium text-yellow-800 mb-2">
-                      Is this pest identification correct?
-                    </p>
-                    <p className="text-xs text-yellow-700">
-                      If incorrect, you can retry with a different photo
-                    </p>
-                  </div>
+                  {imagePreview && (
+                    <div className="border rounded-lg overflow-hidden">
+                      <img src={imagePreview} alt="Detection" className="w-full h-48 object-contain bg-gray-50" />
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
-                      3. Damage Assessment (Severity: {severityLevel}/5)
+                      Severity Level <span className="text-red-500">*</span>
                     </label>
-                    
-                    {/* Visual Severity Scale */}
-                    <div className="space-y-2 mb-4">
-                      {SEVERITY_SCALE.map((scale) => (
+                    <div className="space-y-2">
+                      {SEVERITY_SCALE.map(scale => (
                         <button
                           key={scale.value}
                           onClick={() => setSeverityLevel(scale.value)}
-                          className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                          className={`w-full p-3 border-2 rounded-lg transition-all ${
                             severityLevel === scale.value
-                              ? 'border-red-600 bg-red-50'
-                              : 'border-gray-200 hover:border-gray-300'
+                              ? 'border-red-500 bg-red-50'
+                              : 'border-gray-200 hover:border-red-300'
                           }`}
                         >
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-12 h-12 ${scale.color} rounded-lg flex items-center justify-center text-white font-bold text-xl`}>
+                          <div className="flex items-center">
+                            <div className={`w-12 h-12 rounded-lg ${scale.color} flex items-center justify-center text-white font-bold mr-3`}>
                               {scale.value}
                             </div>
                             <div className="flex-1">
@@ -957,7 +968,10 @@ const HeatMap = ({ user, onLogout }) => {
               ) : (
                 farms.map(farm => {
                   const status = getFarmStatus(farm.id);
-                  const infestationCount = detections.filter(d => d.farm_id === farm.id && d.active !== false).length;
+                  // FIXED: Updated to use the new active detection filtering
+                  const infestationCount = detections.filter(d => 
+                    d.farm_id === farm.id && (d.active === true || d.active === undefined || d.active === null)
+                  ).length;
                   return (
                     <div key={farm.id} className="border border-gray-200 rounded-lg p-3">
                       <div className="flex justify-between items-start">
