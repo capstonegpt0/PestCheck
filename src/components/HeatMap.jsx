@@ -431,10 +431,11 @@ const HeatMap = ({ user, onLogout }) => {
         address: 'Magalang, Pampanga',
         farm_id: selectedFarm.id,
         description: infestationForm.description,
-        active: true
+        crop_type: selectedFarm.crop_type || 'rice'
       };
 
-      await api.post('/detections/', infestationData);
+      // Use the manual-report endpoint instead of regular detections
+      await api.post('/detections/manual-report/', infestationData);
       
       resetInfestationForm();
       alert('Infestation reported successfully!');
