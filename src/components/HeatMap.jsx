@@ -424,18 +424,19 @@ const HeatMap = ({ user, onLogout }) => {
       }
 
       const infestationData = {
-        pest: infestationForm.pest_type,
+        pest_type: infestationForm.pest_type,  // Changed from 'pest' to 'pest_type'
         severity: infestationForm.severity,
         latitude: selectedFarm.lat,
         longitude: selectedFarm.lng,
         address: 'Magalang, Pampanga',
         farm_id: selectedFarm.id,
         description: infestationForm.description,
-        crop_type: selectedFarm.crop_type || 'rice'
+        crop_type: selectedFarm.crop_type || 'rice',
+        active: true
       };
 
-      // Use the manual-report endpoint instead of regular detections
-      await api.post('/detections/manual-report/', infestationData);
+      // Use the existing /detections/ endpoint - it handles manual reports automatically
+      await api.post('/detections/', infestationData);
       
       resetInfestationForm();
       alert('Infestation reported successfully!');
