@@ -4,21 +4,18 @@ import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity } from 'l
 import Navigation from './Navigation';
 import api from '../utils/api';
 import L from 'leaflet';
-
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
-
 const farmIcon = new L.Icon({
   iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjMTBiOTgxIj48cGF0aCBkPSJNMTIgMkw0IDhWMjBIMjBWOEwxMiAyWk0xOCAxOEg2VjlMMTIgNC41TDE4IDlWMThaTTggMTBIMTBWMTZIOFYxMFpNMTQgMTBIMTZWMTZIMTRWMTBaIi8+PC9zdmc+',
   iconSize: [32, 32],
   iconAnchor: [16, 32],
   popupAnchor: [0, -32]
 });
-
 // Function to create a labeled farm icon
 const createLabeledFarmIcon = (farmName, ownerName) => {
   return L.divIcon({
@@ -58,7 +55,6 @@ const createLabeledFarmIcon = (farmName, ownerName) => {
     popupAnchor: [0, -70]
   });
 };
-
 // Farm status thresholds configuration
 const FARM_STATUS_CONFIG = {
   MINIMUM_THRESHOLD: 3,    // Minimum detections before showing any status
@@ -67,7 +63,6 @@ const FARM_STATUS_CONFIG = {
   HIGH_THRESHOLD: 7,       // High risk: 7-9 detections
   CRITICAL_THRESHOLD: 10   // Critical: 10+ detections
 };
-
 const MapClickHandler = ({ onMapClick, isAddingFarm }) => {
   useMapEvents({
     click: (e) => {
@@ -78,7 +73,12 @@ const MapClickHandler = ({ onMapClick, isAddingFarm }) => {
   });
   return null;
 };
-
+/**
+ * Helper to get pest name from detection - handles both 'pest' and 'pest_type' fields
+ */
+const getPestName = (detection) => {
+  return detection.pest || detection.pest_type || 'Unknown Pest';
+};
 const HeatMap = ({ user, onLogout }) => {
   const [detections, setDetections] = useState([]);
   const [farms, setFarms] = useState([]);
@@ -93,19 +93,47 @@ const HeatMap = ({ user, onLogout }) => {
   const [selectedInfestationToResolve, setSelectedInfestationToResolve] = useState(null);
   const [farmForm, setFarmForm] = useState({ name: '', size: '', crop_type: '' });
   const [infestationForm, setInfestationForm] = useState({ pest_type: '', severity: 'low', description: '', farm_id: '' });
-
   const center = [15.2047, 120.5947];
-
   useEffect(() => {
     fetchInitialData();
   }, []);
-
   useEffect(() => {
     if (!loading) {
       fetchFilteredDetections();
     }
   }, [days]);
-
+  /**
+   * Normalize detection data to ensure consistent property names
+   */
+  const normalizeDetection = (detection) => {
+    const lat = detection.lat || detection.latitude;
+    const lng = detection.lng || detection.longitude;
+    
+    const isLatValid = lat !== null && lat !== undefined && lat !== '' && !isNaN(parseFloat(lat));
+    const isLngValid = lng !== null && lng !== undefined && lng !== '' && !isNaN(parseFloat(lng));
+    
+    if (!isLatValid || !isLngValid) {
+      console.warn('Invalid detection coordinates:', {
+        detection_id: detection.id,
+        pest: detection.pest || detection.pest_type,
+        lat,
+        lng
+      });
+      return null;
+    }
+    
+    // Normalize all property names for compatibility
+    return {
+      ...detection,
+      latitude: parseFloat(lat),
+      longitude: parseFloat(lng),
+      lat: parseFloat(lat),
+      lng: parseFloat(lng),
+      // Normalize pest name - use pest_type if pest is missing
+      pest: detection.pest || detection.pest_type || 'Unknown Pest',
+      pest_type: detection.pest_type || detection.pest || 'Unknown Pest'
+    };
+  };
   const fetchInitialData = async () => {
     try {
       setLoading(true);
@@ -150,41 +178,13 @@ const HeatMap = ({ user, onLogout }) => {
         return true;
       });
       
-      const validDetections = detectionsData.filter(detection => {
-        // The API returns 'lat' and 'lng', NOT 'latitude' and 'longitude'
-        const lat = detection.lat || detection.latitude;
-        const lng = detection.lng || detection.longitude;
-        
-        const isLatValid = lat !== null && lat !== undefined && lat !== '' && !isNaN(parseFloat(lat));
-        const isLngValid = lng !== null && lng !== undefined && lng !== '' && !isNaN(parseFloat(lng));
-        
-        if (!isLatValid || !isLngValid) {
-          console.warn('Invalid detection coordinates:', {
-            detection_id: detection.id,
-            pest: detection.pest || detection.pest_name,
-            lat: lat,
-            lng: lng,
-            original_lat: detection.lat,
-            original_lng: detection.lng,
-            original_latitude: detection.latitude,
-            original_longitude: detection.longitude,
-            isLatValid,
-            isLngValid
-          });
-          return false;
-        }
-        
-        // Normalize to both property names for compatibility
-        detection.latitude = parseFloat(lat);
-        detection.longitude = parseFloat(lng);
-        detection.lat = parseFloat(lat);
-        detection.lng = parseFloat(lng);
-        
-        return true;
-      });
+      // Normalize and validate detections
+      const validDetections = detectionsData
+        .map(normalizeDetection)
+        .filter(detection => detection !== null);
       
-      console.log(`âœ… Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
-      console.log(`âœ… Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
+      console.log(`✅ Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
+      console.log(`✅ Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
       
       setDetections(validDetections);
       setFarms(validFarms);
@@ -197,7 +197,6 @@ const HeatMap = ({ user, onLogout }) => {
       setLoading(false);
     }
   };
-
   const fetchFilteredDetections = async () => {
     try {
       const detectionsRes = await api.get(`/detections/heatmap_data/?days=${days}`);
@@ -205,31 +204,10 @@ const HeatMap = ({ user, onLogout }) => {
         ? detectionsRes.data 
         : (detectionsRes.data.results || []);
       
-      // Validate and filter - API returns 'lat' and 'lng'
-      const validDetections = detectionsData.filter(detection => {
-        const lat = detection.lat || detection.latitude;
-        const lng = detection.lng || detection.longitude;
-        
-        const isLatValid = lat !== null && lat !== undefined && lat !== '' && !isNaN(parseFloat(lat));
-        const isLngValid = lng !== null && lng !== undefined && lng !== '' && !isNaN(parseFloat(lng));
-        
-        if (!isLatValid || !isLngValid) {
-          console.warn('Invalid detection coordinates during filter:', {
-            detection_id: detection.id,
-            lat,
-            lng
-          });
-          return false;
-        }
-        
-        // Normalize to both property names
-        detection.latitude = parseFloat(lat);
-        detection.longitude = parseFloat(lng);
-        detection.lat = parseFloat(lat);
-        detection.lng = parseFloat(lng);
-        
-        return true;
-      });
+      // Normalize and validate detections
+      const validDetections = detectionsData
+        .map(normalizeDetection)
+        .filter(detection => detection !== null);
       
       setDetections(validDetections);
     } catch (error) {
@@ -237,7 +215,6 @@ const HeatMap = ({ user, onLogout }) => {
       setDetections([]);
     }
   };
-
   const handleMapClick = (latlng) => {
     setSelectedLocation(latlng);
     if (isAddingFarm) {
@@ -245,7 +222,6 @@ const HeatMap = ({ user, onLogout }) => {
       setIsAddingFarm(false);
     }
   };
-
   const saveFarm = async () => {
     if (!selectedLocation || !farmForm.name) {
       alert('Please fill in all required fields');
@@ -273,7 +249,6 @@ const HeatMap = ({ user, onLogout }) => {
       alert('Failed to submit farm request: ' + (error.response?.data?.error || error.message));
     }
   };
-
   /**
    * Calculate farm status based on active detection count
    * Returns null/empty status until threshold is reached
@@ -336,11 +311,9 @@ const HeatMap = ({ user, onLogout }) => {
       showStatus: false
     };
   };
-
   const getFarmHeatmapColor = (farmId) => {
     const activeInfestations = detections.filter(d => d.farm_id === farmId && d.active !== false);
     const count = activeInfestations.length;
-
     if (count === 0) return '#d1d5db'; // Gray - No status/No infestations
     if (count < 3) return '#3b82f6'; // Blue - Monitoring
     if (count < 5) return '#fbbf24'; // Yellow - Low risk
@@ -348,18 +321,15 @@ const HeatMap = ({ user, onLogout }) => {
     if (count < 10) return '#ef4444'; // Red - High
     return '#7f1d1d'; // Dark red - Critical
   };
-
   const confirmResolveInfestation = (detectionId) => {
     setSelectedInfestationToResolve(detectionId);
     setShowResolveConfirm(true);
   };
-
   const resolveInfestation = async () => {
     if (!selectedInfestationToResolve) {
       alert('No infestation selected');
       return;
     }
-
     try {
       console.log(`Attempting to resolve infestation ID: ${selectedInfestationToResolve}`);
       
@@ -408,13 +378,11 @@ const HeatMap = ({ user, onLogout }) => {
       alert('Failed to resolve infestation. Please try again.');
     }
   };
-
   const saveInfestation = async () => {
     if (!infestationForm.farm_id || !infestationForm.pest_type) {
       alert('Please fill in all required fields');
       return;
     }
-
     try {
       const selectedFarm = farms.find(f => f.id === parseInt(infestationForm.farm_id));
       
@@ -422,21 +390,24 @@ const HeatMap = ({ user, onLogout }) => {
         alert('Selected farm not found');
         return;
       }
-
       const infestationData = {
-        pest_type: infestationForm.pest_type,  // Changed from 'pest' to 'pest_type'
+        pest: infestationForm.pest_type,           // Send as 'pest' for API compatibility
+        pest_type: infestationForm.pest_type,      // Also send as 'pest_type' for redundancy
         severity: infestationForm.severity,
         latitude: selectedFarm.lat,
         longitude: selectedFarm.lng,
+        lat: selectedFarm.lat,                     // Also send normalized coords
+        lng: selectedFarm.lng,
         address: 'Magalang, Pampanga',
         farm_id: selectedFarm.id,
         description: infestationForm.description,
         crop_type: selectedFarm.crop_type || 'rice',
         active: true
       };
-
+      console.log('Submitting infestation data:', infestationData);
       // Use the existing /detections/ endpoint - it handles manual reports automatically
-      await api.post('/detections/', infestationData);
+      const response = await api.post('/detections/', infestationData);
+      console.log('Infestation created:', response.data);
       
       resetInfestationForm();
       alert('Infestation reported successfully!');
@@ -444,23 +415,20 @@ const HeatMap = ({ user, onLogout }) => {
       fetchInitialData();
     } catch (error) {
       console.error('Error reporting infestation:', error);
-      alert('Failed to report infestation: ' + (error.response?.data?.error || error.message));
+      console.error('Error response:', error.response?.data);
+      alert('Failed to report infestation: ' + (error.response?.data?.error || error.response?.data?.detail || error.message));
     }
   };
-
   const resetFarmForm = () => {
     setFarmForm({ name: '', size: '', crop_type: '' });
     setSelectedLocation(null);
     setShowFarmModal(false);
   };
-
   const resetInfestationForm = () => {
     setInfestationForm({ pest_type: '', severity: 'low', description: '', farm_id: '' });
     setShowInfestationModal(false);
   };
-
   const activeDetections = detections.filter(d => d.active !== false);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
@@ -470,7 +438,6 @@ const HeatMap = ({ user, onLogout }) => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Infestation Heat Map</h1>
           <p className="text-gray-600">Track and manage pest infestations across farms</p>
         </div>
-
         {/* Map Controls */}
         <div className="bg-white rounded-lg shadow p-4 mb-6 flex flex-wrap gap-4 items-center">
           <div className="flex items-center space-x-2">
@@ -488,7 +455,6 @@ const HeatMap = ({ user, onLogout }) => {
               <option value={90}>Last 90 days</option>
             </select>
           </div>
-
           <button
             onClick={fetchInitialData}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -497,9 +463,7 @@ const HeatMap = ({ user, onLogout }) => {
             <Activity className="w-5 h-5 mr-2" />
             Refresh
           </button>
-
           <div className="flex-1"></div>
-
           <button
             onClick={() => setShowInfestationModal(true)}
             className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -507,7 +471,6 @@ const HeatMap = ({ user, onLogout }) => {
             <AlertTriangle className="w-5 h-5 mr-2" />
             Report Infestation
           </button>
-
           <button
             onClick={() => setIsAddingFarm(true)}
             className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
@@ -521,7 +484,6 @@ const HeatMap = ({ user, onLogout }) => {
             {isAddingFarm ? 'Click on map to place farm...' : 'Request Farm'}
           </button>
         </div>
-
         {/* Legend */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <h3 className="font-semibold text-gray-800 mb-3">Map Legend</h3>
@@ -552,7 +514,6 @@ const HeatMap = ({ user, onLogout }) => {
             </div>
           </div>
         </div>
-
         {/* Map */}
         <div className="bg-white rounded-lg shadow overflow-hidden mb-6" style={{ height: '500px', position: 'relative', zIndex: 1 }}>
           {loading ? (
@@ -566,7 +527,6 @@ const HeatMap = ({ user, onLogout }) => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <MapClickHandler onMapClick={handleMapClick} isAddingFarm={isAddingFarm} />
-
               {/* Farm Markers */}
               {farms
                 .filter(farm => {
@@ -583,7 +543,7 @@ const HeatMap = ({ user, onLogout }) => {
                                      isFinite(parseFloat(farm.lng));
                   
                   if (!hasValidLat || !hasValidLng) {
-                    console.error('âŒ Filtering out invalid farm before render:', {
+                    console.error('❌ Filtering out invalid farm before render:', {
                       id: farm.id,
                       name: farm.name,
                       lat: farm.lat,
@@ -601,7 +561,7 @@ const HeatMap = ({ user, onLogout }) => {
                   const lng = parseFloat(farm.lng);
                   
                   if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-                    console.error('âŒ Skipping farm with invalid coords in map:', farm);
+                    console.error('❌ Skipping farm with invalid coords in map:', farm);
                     return null;
                   }
                   
@@ -626,11 +586,10 @@ const HeatMap = ({ user, onLogout }) => {
                 })
                 .filter(marker => marker !== null)
               }
-
               {/* Detection Circles */}
               {activeDetections
                 .filter(detection => {
-                  // API returns 'lat' and 'lng' - check these first
+                  // Already normalized, but double check
                   const lat = detection.lat || detection.latitude;
                   const lng = detection.lng || detection.longitude;
                   
@@ -646,9 +605,9 @@ const HeatMap = ({ user, onLogout }) => {
                                      isFinite(parseFloat(lng));
                   
                   if (!hasValidLat || !hasValidLng) {
-                    console.error('âŒ Filtering out invalid detection before render:', {
+                    console.error('❌ Filtering out invalid detection before render:', {
                       id: detection.id,
-                      pest: detection.pest,
+                      pest: getPestName(detection),
                       lat,
                       lng,
                       hasValidLat,
@@ -659,13 +618,12 @@ const HeatMap = ({ user, onLogout }) => {
                   return true;
                 })
                 .map((detection) => {
-                  // API returns 'lat' and 'lng'
                   const lat = parseFloat(detection.lat || detection.latitude);
                   const lng = parseFloat(detection.lng || detection.longitude);
                   
                   // Double safety check
                   if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-                    console.error('âŒ Skipping detection with invalid coords in map:', detection);
+                    console.error('❌ Skipping detection with invalid coords in map:', detection);
                     return null;
                   }
                   
@@ -676,7 +634,6 @@ const HeatMap = ({ user, onLogout }) => {
                   const color = detection.severity === 'critical' ? '#7f1d1d' :
                              detection.severity === 'high' ? '#ef4444' :
                              detection.severity === 'medium' ? '#f97316' : '#fbbf24';
-
                   return (
                     <Circle
                       key={detection.id}
@@ -691,10 +648,10 @@ const HeatMap = ({ user, onLogout }) => {
                     >
                       <Popup>
                         <div className="p-2">
-                          <h3 className="font-bold">{detection.pest}</h3>
+                          <h3 className="font-bold">{getPestName(detection)}</h3>
                           <p className="text-sm">Severity: {detection.severity}</p>
                           <p className="text-xs text-gray-600">
-                            {new Date(detection.detected_at || detection.reported_at).toLocaleDateString()}
+                            {new Date(detection.detected_at || detection.reported_at || detection.created_at).toLocaleDateString()}
                           </p>
                         </div>
                       </Popup>
@@ -706,7 +663,6 @@ const HeatMap = ({ user, onLogout }) => {
             </MapContainer>
           )}
         </div>
-
         {/* Farm Modal */}
         {showFarmModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
@@ -731,7 +687,6 @@ const HeatMap = ({ user, onLogout }) => {
                     placeholder="e.g., Northern Rice Field"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Size (hectares)
@@ -744,7 +699,6 @@ const HeatMap = ({ user, onLogout }) => {
                     placeholder="5"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Crop Type
@@ -760,7 +714,6 @@ const HeatMap = ({ user, onLogout }) => {
                     <option value="Mixed">Mixed Crops</option>
                   </select>
                 </div>
-
                 <div className="bg-gray-50 p-3 rounded">
                   <div className="flex items-center text-sm text-gray-600 mb-2">
                     <MapPin className="w-4 h-4 mr-2 text-green-600 flex-shrink-0" />
@@ -770,7 +723,6 @@ const HeatMap = ({ user, onLogout }) => {
                     Your farm request will be reviewed by an administrator before approval.
                   </p>
                 </div>
-
                 <div className="flex space-x-3 pt-4">
                   <button
                     onClick={saveFarm}
@@ -790,7 +742,6 @@ const HeatMap = ({ user, onLogout }) => {
             </div>
           </div>
         )}
-
         {/* Infestation Modal */}
         {showInfestationModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
@@ -818,7 +769,6 @@ const HeatMap = ({ user, onLogout }) => {
                     ))}
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Pest Type *
@@ -831,7 +781,6 @@ const HeatMap = ({ user, onLogout }) => {
                     placeholder="e.g., Aphids, Whiteflies"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Severity Level *
@@ -847,7 +796,6 @@ const HeatMap = ({ user, onLogout }) => {
                     <option value="critical">Critical - Severe infestation</option>
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Description
@@ -860,13 +808,11 @@ const HeatMap = ({ user, onLogout }) => {
                     placeholder="Describe the infestation..."
                   />
                 </div>
-
                 <div className="bg-gray-50 p-3 rounded">
                   <p className="text-sm text-gray-600">
                     The infestation will be centered at the selected farm location
                   </p>
                 </div>
-
                 <div className="flex space-x-3 pt-4">
                   <button
                     onClick={saveInfestation}
@@ -886,7 +832,6 @@ const HeatMap = ({ user, onLogout }) => {
             </div>
           </div>
         )}
-
         {/* Resolve Confirmation Modal */}
         {showResolveConfirm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
@@ -915,7 +860,6 @@ const HeatMap = ({ user, onLogout }) => {
             </div>
           </div>
         )}
-
         {/* Farm and Infestation Lists */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           <div className="bg-white rounded-lg shadow p-6">
@@ -962,7 +906,6 @@ const HeatMap = ({ user, onLogout }) => {
               )}
             </div>
           </div>
-
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Active Infestations</h2>
             <div className="space-y-3">
@@ -975,7 +918,7 @@ const HeatMap = ({ user, onLogout }) => {
                     <div key={detection.id} className="border border-gray-200 rounded-lg p-3">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-800">{detection.pest}</p>
+                          <p className="font-semibold text-gray-800">{getPestName(detection)}</p>
                           {farm && (
                             <p className="text-xs text-gray-500">Farm: {farm.name}</p>
                           )}
@@ -996,7 +939,7 @@ const HeatMap = ({ user, onLogout }) => {
                             detection.severity === 'medium' ? 'bg-yellow-500' : 
                             'bg-green-500'
                           }`}></div>
-                          {(detection.user_name === user.username || user.role === 'admin') && (
+                          {(detection.user_name === user?.username || user?.role === 'admin') && (
                             <button
                               onClick={() => confirmResolveInfestation(detection.id)}
                               className="text-green-600 hover:text-green-800 p-1"
@@ -1018,5 +961,3 @@ const HeatMap = ({ user, onLogout }) => {
     </div>
   );
 };
-
-export default HeatMap;
