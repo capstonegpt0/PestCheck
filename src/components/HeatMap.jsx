@@ -633,10 +633,20 @@ const HeatMap = ({ user, onLogout }) => {
     }
   };
 
-  const confirmDetection = (isCorrect) => {
+  const confirmDetection = async (isCorrect) => {
     if (isCorrect) {
       setDetectionStep('assessment');
     } else {
+      // User rejected the detection - delete it from database
+      if (detectionResult && detectionResult.id) {
+        try {
+          await api.delete(`/detections/${detectionResult.id}/`);
+          console.log(`Deleted incorrect detection ID: ${detectionResult.id}`);
+        } catch (error) {
+          console.error('Error deleting rejected detection:', error);
+          // Continue even if delete fails - user can try again
+        }
+      }
       setDetectionError('Please try another image with a clearer view of the pest.');
       setDetectionStep('upload');
       setDetectionResult(null);
@@ -683,7 +693,17 @@ const HeatMap = ({ user, onLogout }) => {
     }
   };
 
-  const closeDetectionModal = () => {
+  const closeDetectionModal = async () => {
+    // If there's an unconfirmed detection (still in 'confirm' step), delete it
+    if (detectionStep === 'confirm' && detectionResult && detectionResult.id) {
+      try {
+        await api.delete(`/detections/${detectionResult.id}/`);
+        console.log(`Deleted unconfirmed detection on modal close ID: ${detectionResult.id}`);
+      } catch (error) {
+        console.error('Error deleting unconfirmed detection on close:', error);
+      }
+    }
+    
     setShowDetectionModal(false);
     setDetectionStep('upload');
     setSelectedImage(null);
