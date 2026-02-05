@@ -789,100 +789,271 @@ const HeatMap = ({ user, onLogout }) => {
         )}
 
         {/* Infestation Modal */}
-        {showInfestationModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" style={{ zIndex: 10000 }}>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">Report Infestation</h2>
-                <button onClick={resetInfestationForm} className="text-gray-500 hover:text-gray-700">
-                  <X className="w-6 h-6" />
+        {showDetectionModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">Pest Detection</h2>
+          <button onClick={closeDetectionModal} className="text-gray-500 hover:text-gray-700">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Upload Step */}
+        {detectionStep === 'upload' && (
+          <div className="space-y-6">
+            {/* Crop Type Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Crop Type
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setCropType('rice')}
+                  className={`p-4 rounded-lg font-semibold transition-all ${
+                    cropType === 'rice'
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Rice
+                </button>
+                <button
+                  onClick={() => setCropType('corn')}
+                  className={`p-4 rounded-lg font-semibold transition-all ${
+                    cropType === 'corn'
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Corn
                 </button>
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Farm *
-                  </label>
-                  <select
-                    value={infestationForm.farm_id}
-                    onChange={(e) => setInfestationForm({...infestationForm, farm_id: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  >
-                    <option value="">Select a farm</option>
-                    {farms.map(farm => (
-                      <option key={farm.id} value={farm.id}>{farm.name}</option>
-                    ))}
-                  </select>
-                </div>
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Pest Type *
-                  </label>
-                  <input
-                    type="text"
-                    value={infestationForm.pest_type}
-                    onChange={(e) => setInfestationForm({...infestationForm, pest_type: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    placeholder="e.g., Aphids, Whiteflies"
-                  />
-                </div>
+            {/* Upload Options */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload or Capture Image
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={handleUploadClick}
+                  className="flex flex-col items-center justify-center p-6 bg-blue-50 border-2 border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <Upload className="w-8 h-8 text-blue-600 mb-2" />
+                  <span className="font-semibold text-blue-800">Upload</span>
+                </button>
+                <button
+                  onClick={handleCameraClick}
+                  className="flex flex-col items-center justify-center p-6 bg-green-50 border-2 border-green-300 rounded-lg hover:bg-green-100 transition-colors"
+                >
+                  <Camera className="w-8 h-8 text-green-600 mb-2" />
+                  <span className="font-semibold text-green-800">Camera</span>
+                </button>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Severity Level *
-                  </label>
-                  <select
-                    value={infestationForm.severity}
-                    onChange={(e) => setInfestationForm({...infestationForm, severity: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  >
-                    <option value="low">Low - Minor presence</option>
-                    <option value="medium">Medium - Noticeable damage</option>
-                    <option value="high">High - Significant damage</option>
-                    <option value="critical">Critical - Severe infestation</option>
-                  </select>
-                </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={infestationForm.description}
-                    onChange={(e) => setInfestationForm({...infestationForm, description: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    rows="3"
-                    placeholder="Describe the infestation..."
-                  />
-                </div>
+            {/* Image Preview */}
+            {imagePreview && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Image Preview
+                </label>
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-auto rounded-lg shadow-md border-2 border-gray-200"
+                />
+              </div>
+            )}
 
-                <div className="bg-gray-50 p-3 rounded">
-                  <p className="text-sm text-gray-600">
-                    The infestation will be centered at the selected farm location
-                  </p>
+            {/* Error Message */}
+            {detectionError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <p className="text-sm text-red-800">{detectionError}</p>
                 </div>
+              </div>
+            )}
 
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    onClick={saveInfestation}
-                    className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 font-medium flex items-center justify-center"
-                  >
-                    <AlertTriangle className="w-4 h-4 mr-2" />
-                    Submit Report
-                  </button>
-                  <button
-                    onClick={resetInfestationForm}
-                    className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
-                  >
-                    Cancel
-                  </button>
-                </div>
+            {/* Actions */}
+            {imagePreview && (
+              <div className="flex space-x-3">
+                <button
+                  onClick={runDetection}
+                  disabled={detectionLoading || locationLoading}
+                  className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center disabled:bg-gray-400"
+                >
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Detect Pest
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedImage(null);
+                    setImagePreview(null);
+                    setDetectionError(null);
+                  }}
+                  className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-semibold"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Detecting Step */}
+        {detectionStep === 'detecting' && (
+          <div className="py-12 text-center">
+            <Loader className="w-16 h-16 text-green-600 animate-spin mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">Analyzing Image...</h3>
+            <p className="text-gray-600">Our AI is identifying the pest</p>
+          </div>
+        )}
+
+        {/* Confirmation Step */}
+        {detectionStep === 'confirm' && detectionResult && (
+          <div className="space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">Detection Result</h3>
+              <p className="text-2xl font-bold text-gray-800 mb-1">
+                {detectionResult.pest_name || detectionResult.pest}
+              </p>
+              {detectionResult.scientific_name && (
+                <p className="text-sm italic text-gray-600 mb-2">{detectionResult.scientific_name}</p>
+              )}
+              <p className="text-sm text-gray-700">
+                Confidence: <span className="font-semibold">{(detectionResult.confidence * 100).toFixed(1)}%</span>
+              </p>
+            </div>
+
+            <div className="text-center">
+              <p className="text-lg font-medium text-gray-800 mb-4">Is this detection correct?</p>
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => confirmDetection(true)}
+                  className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center"
+                >
+                  <ThumbsUp className="w-5 h-5 mr-2" />
+                  Yes, Correct
+                </button>
+                <button
+                  onClick={() => confirmDetection(false)}
+                  className="flex-1 bg-red-600 text-white py-4 rounded-lg hover:bg-red-700 font-semibold flex items-center justify-center"
+                >
+                  <ThumbsDown className="w-5 h-5 mr-2" />
+                  No, Try Again
+                </button>
               </div>
             </div>
           </div>
         )}
+
+        {/* Assessment Step */}
+        {detectionStep === 'assessment' && detectionResult && (
+          <div className="space-y-6">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-green-900">
+                Detected: {detectionResult.pest_name || detectionResult.pest}
+              </h3>
+            </div>
+
+            <div>
+              <label className="block text-lg font-medium text-gray-800 mb-4">
+                How severe is the damage?
+              </label>
+              
+              <div className="mb-6">
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  value={damageLevel}
+                  onChange={(e) => setDamageLevel(parseInt(e.target.value))}
+                  className="w-full h-3 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #10b981 0%, #10b981 ${damageLevel * 20}%, #e5e7eb ${damageLevel * 20}%, #e5e7eb 100%)`
+                  }}
+                />
+                <div className="flex justify-between text-xs text-gray-600 mt-2">
+                  <span>0</span>
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                </div>
+              </div>
+
+              <div className={`text-center p-4 rounded-lg border-2 ${getDamageLevelColor(damageLevel)} bg-opacity-20`}>
+                <p className="text-xl font-bold text-gray-800">
+                  Level {damageLevel}: {getDamageLevelText(damageLevel)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={saveDetection}
+                disabled={detectionLoading}
+                className="flex-1 bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center justify-center disabled:bg-gray-400"
+              >
+                {detectionLoading ? (
+                  <>
+                    <Loader className="animate-spin w-5 h-5 mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5 mr-2" />
+                    Save Detection
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setDetectionStep('confirm')}
+                className="px-6 bg-gray-200 text-gray-700 py-4 rounded-lg hover:bg-gray-300 font-semibold"
+              >
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Success Step */}
+        {detectionStep === 'success' && (
+          <div className="py-12 text-center">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-12 h-12 text-green-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">Detection Saved!</h3>
+            <p className="text-gray-600">The infestation has been recorded and will appear on the map.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Resolve Confirmation Modal */}
         {showResolveConfirm && (
