@@ -109,52 +109,97 @@ const HeatMap = ({ user, onLogout }) => {
 
   const center = [15.2047, 120.5947];
 
-  // Function to calculate offset position for overlapping detections
-  const getOffsetPosition = (detection, allDetections, index) => {
-    if (!detection.farm_id) {
-      // No farm assigned, use original position
-      return {
-        lat: parseFloat(detection.lat || detection.latitude),
-        lng: parseFloat(detection.lng || detection.longitude)
-      };
-    }
+  // Group detections by farm AND pest type - same pest merges, different pests offset
+  const getGroupedAndOffsetDetections = (detections) => {
+    const farmPestGroups = {};
+    const standalone = [];
 
-    // Get all detections for the same farm
-    const farmDetections = allDetections.filter(d => 
-      d.farm_id === detection.farm_id && 
-      d.id !== detection.id &&
-      d.lat !== null && d.lng !== null
-    );
+    // First, group by farm_id and pest type
+    detections.forEach(detection => {
+      if (detection.farm_id) {
+        const farmId = detection.farm_id;
+        const pestType = detection.pest || detection.pest_name || 'unknown';
+        const groupKey = `${farmId}_${pestType}`;
 
-    if (farmDetections.length === 0) {
-      // Only detection on this farm, use original position
-      return {
-        lat: parseFloat(detection.lat || detection.latitude),
-        lng: parseFloat(detection.lng || detection.longitude)
-      };
-    }
+        if (!farmPestGroups[groupKey]) {
+          farmPestGroups[groupKey] = {
+            farm_id: farmId,
+            pest: pestType,
+            detections: [],
+            displayDetection: detection // Use first detection for display
+          };
+        }
+        farmPestGroups[groupKey].detections.push(detection);
+      } else {
+        // No farm - show individual
+        standalone.push({
+          isGroup: false,
+          detection: detection,
+          position: {
+            lat: parseFloat(detection.lat || detection.latitude),
+            lng: parseFloat(detection.lng || detection.longitude)
+          }
+        });
+      }
+    });
 
-    // Find the index of this detection among all farm detections
-    const allFarmDetections = allDetections
-      .filter(d => d.farm_id === detection.farm_id)
-      .sort((a, b) => a.id - b.id); // Sort by ID for consistent positioning
+    // Convert to array and calculate positions
+    const farmGroups = Object.values(farmPestGroups);
     
-    const detectionIndex = allFarmDetections.findIndex(d => d.id === detection.id);
-    const totalDetections = allFarmDetections.length;
+    // Group by farm to calculate offsets
+    const farmPestsByFarm = {};
+    farmGroups.forEach(group => {
+      if (!farmPestsByFarm[group.farm_id]) {
+        farmPestsByFarm[group.farm_id] = [];
+      }
+      farmPestsByFarm[group.farm_id].push(group);
+    });
 
-    // Calculate offset in meters (about 50-100 meters apart)
-    const baseOffsetMeters = 80;
-    const offsetDistance = baseOffsetMeters / 111320; // Convert meters to degrees (approximately)
+    // Calculate offset positions for each pest type on the same farm
+    const result = [];
     
-    // Arrange in a circle around the farm center
-    const angle = (detectionIndex / totalDetections) * 2 * Math.PI;
-    const offsetLat = Math.cos(angle) * offsetDistance;
-    const offsetLng = Math.sin(angle) * offsetDistance;
+    Object.keys(farmPestsByFarm).forEach(farmId => {
+      const pestGroups = farmPestsByFarm[farmId];
+      const totalPests = pestGroups.length;
 
-    return {
-      lat: parseFloat(detection.lat || detection.latitude) + offsetLat,
-      lng: parseFloat(detection.lng || detection.longitude) + offsetLng
-    };
+      pestGroups.forEach((group, index) => {
+        const baseDetection = group.displayDetection;
+        let position;
+
+        if (totalPests === 1) {
+          // Only one pest type on this farm - no offset
+          position = {
+            lat: parseFloat(baseDetection.lat || baseDetection.latitude),
+            lng: parseFloat(baseDetection.lng || baseDetection.longitude)
+          };
+        } else {
+          // Multiple pest types - offset in circle pattern
+          const baseOffsetMeters = 80;
+          const offsetDistance = baseOffsetMeters / 111320; // Convert to degrees
+          
+          const angle = (index / totalPests) * 2 * Math.PI;
+          const offsetLat = Math.cos(angle) * offsetDistance;
+          const offsetLng = Math.sin(angle) * offsetDistance;
+
+          position = {
+            lat: parseFloat(baseDetection.lat || baseDetection.latitude) + offsetLat,
+            lng: parseFloat(baseDetection.lng || baseDetection.longitude) + offsetLng
+          };
+        }
+
+        result.push({
+          isGroup: group.detections.length > 1,
+          detection: baseDetection,
+          allDetections: group.detections,
+          count: group.detections.length,
+          position: position,
+          farm_id: group.farm_id,
+          pest: group.pest
+        });
+      });
+    });
+
+    return [...result, ...standalone];
   };
 
   useEffect(() => {
@@ -860,10 +905,10 @@ const HeatMap = ({ user, onLogout }) => {
                 .filter(marker => marker !== null)
               }
 
-              {/* Detection Circles */}
-              {activeDetections
-                .filter(detection => {
-                  // API returns 'lat' and 'lng' - check these first
+              {/* Detection Circles - Grouped by Farm and Pest Type */}
+              {(() => {
+                // Get grouped detections
+                const validDetections = activeDetections.filter(detection => {
                   const lat = detection.lat || detection.latitude;
                   const lng = detection.lng || detection.longitude;
                   
@@ -883,17 +928,17 @@ const HeatMap = ({ user, onLogout }) => {
                       id: detection.id,
                       pest: detection.pest,
                       lat,
-                      lng,
-                      hasValidLat,
-                      hasValidLng
+                      lng
                     });
                     return false;
                   }
                   return true;
-                })
-                .map((detection, index, allDetections) => {
-                  // Calculate offset position to prevent overlapping
-                  const position = getOffsetPosition(detection, allDetections, index);
+                });
+
+                const groupedDetections = getGroupedAndOffsetDetections(validDetections);
+
+                return groupedDetections.map((item, index) => {
+                  const { position, detection, isGroup, count, allDetections } = item;
                   
                   // Double safety check
                   if (isNaN(position.lat) || isNaN(position.lng) || !isFinite(position.lat) || !isFinite(position.lng)) {
@@ -901,17 +946,29 @@ const HeatMap = ({ user, onLogout }) => {
                     return null;
                   }
                   
-                  const radius = detection.severity === 'critical' ? 300 :
-                              detection.severity === 'high' ? 200 :
-                              detection.severity === 'medium' ? 150 : 100;
+                  // Determine severity for display
+                  let displaySeverity = detection.severity;
+                  if (isGroup && allDetections && allDetections.length > 0) {
+                    // Use highest severity from all grouped detections
+                    const severityOrder = { low: 1, medium: 2, high: 3, critical: 4 };
+                    displaySeverity = allDetections.reduce((highest, d) => {
+                      const currentLevel = severityOrder[d.severity] || 0;
+                      const highestLevel = severityOrder[highest] || 0;
+                      return currentLevel > highestLevel ? d.severity : highest;
+                    }, 'low');
+                  }
+                  
+                  const radius = displaySeverity === 'critical' ? 300 :
+                              displaySeverity === 'high' ? 200 :
+                              displaySeverity === 'medium' ? 150 : 100;
                 
-                  const color = detection.severity === 'critical' ? '#7f1d1d' :
-                             detection.severity === 'high' ? '#ef4444' :
-                             detection.severity === 'medium' ? '#f97316' : '#fbbf24';
+                  const color = displaySeverity === 'critical' ? '#7f1d1d' :
+                             displaySeverity === 'high' ? '#ef4444' :
+                             displaySeverity === 'medium' ? '#f97316' : '#fbbf24';
 
                   return (
                     <Circle
-                      key={detection.id}
+                      key={`detection-group-${index}-${detection.id}`}
                       center={[position.lat, position.lng]}
                       radius={radius}
                       pathOptions={{
@@ -923,23 +980,59 @@ const HeatMap = ({ user, onLogout }) => {
                     >
                       <Popup>
                         <div className="p-2">
-                          <h3 className="font-bold">{detection.pest}</h3>
-                          <p className="text-sm">Severity: {detection.severity}</p>
-                          <p className="text-xs text-gray-600">
-                            {new Date(detection.detected_at || detection.reported_at).toLocaleDateString()}
-                          </p>
+                          <h3 className="font-bold text-lg">{detection.pest}</h3>
+                          
+                          {isGroup && count > 1 ? (
+                            <>
+                              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold inline-block mb-2">
+                                {count} Reports Merged
+                              </div>
+                              <p className="text-sm font-medium">Highest Severity: {displaySeverity}</p>
+                              
+                              <div className="mt-2 border-t pt-2">
+                                <p className="text-xs font-semibold text-gray-700 mb-1">All Reports:</p>
+                                <div className="space-y-1 max-h-32 overflow-y-auto">
+                                  {allDetections.map((det, idx) => (
+                                    <div key={det.id} className="text-xs bg-gray-50 p-1 rounded">
+                                      <span className="font-medium">#{idx + 1}</span> - 
+                                      Severity: <span className={`font-medium ${
+                                        det.severity === 'critical' ? 'text-red-900' : 
+                                        det.severity === 'high' ? 'text-red-500' : 
+                                        det.severity === 'medium' ? 'text-yellow-600' : 
+                                        'text-green-600'
+                                      }`}>{det.severity}</span>
+                                      <br/>
+                                      <span className="text-gray-500">
+                                        {new Date(det.detected_at || det.reported_at).toLocaleDateString()} - {det.user_name || 'Unknown'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm">Severity: {displaySeverity}</p>
+                              <p className="text-xs text-gray-600">
+                                {new Date(detection.detected_at || detection.reported_at).toLocaleDateString()}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Reported by: {detection.user_name || 'Unknown'}
+                              </p>
+                            </>
+                          )}
+                          
                           {detection.farm_id && (
-                            <p className="text-xs text-blue-600 mt-1">
-                              📍 Farm detection (may be offset for visibility)
+                            <p className="text-xs text-blue-600 mt-2 italic">
+                              📍 {isGroup && count === 1 ? 'Farm detection' : `Merged ${count} same-pest reports`}
                             </p>
                           )}
                         </div>
                       </Popup>
                     </Circle>
                   );
-                })
-                .filter(circle => circle !== null)
-              }
+                }).filter(circle => circle !== null);
+              })()}
             </MapContainer>
           )}
         </div>
