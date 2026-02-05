@@ -1,24 +1,81 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Book } from 'lucide-react';
+import { Search, Book, Image as ImageIcon, Info, Bug } from 'lucide-react';
 import Navigation from './Navigation';
 import api from '../utils/api';
+import { PEST_REFERENCE_DATA, getPestsByCrop, searchPests } from '../utils/pestReferenceData';
 
 const PestDetailModal = ({ pest, onClose }) => {
   if (!pest) return null;
 
+  // Get reference data if available
+  const referenceData = PEST_REFERENCE_DATA[pest.id] || PEST_REFERENCE_DATA[pest.name?.toLowerCase().replace(/\s+/g, '-')];
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
               <h2 className="text-3xl font-bold text-gray-800 mb-2">{pest.name}</h2>
               <p className="text-lg text-gray-600 italic">{pest.scientific_name}</p>
+              <span className="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
+                {pest.crop_affected}
+              </span>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-3xl font-bold leading-none">
               ×
             </button>
           </div>
+
+          {/* Reference Images Section */}
+          {referenceData?.referenceImages && referenceData.referenceImages.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center mb-3">
+                <ImageIcon className="w-5 h-5 text-blue-600 mr-2" />
+                <h3 className="text-xl font-semibold text-gray-800">Reference Images</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {referenceData.referenceImages.map((img, idx) => (
+                  <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                    <div className="aspect-video bg-gray-200 flex items-center justify-center">
+                      <img 
+                        src={img.url} 
+                        alt={`${pest.name} - ${img.stage}`}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="hidden flex-col items-center justify-center p-4 text-gray-500">
+                        <Bug className="w-16 h-16 mb-2" />
+                        <p className="text-sm">Image not available</p>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-white">
+                      <p className="text-sm font-semibold text-gray-700 capitalize">{img.stage}</p>
+                      <p className="text-xs text-gray-600">{img.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Identification Tips */}
+          {referenceData?.identificationTips && (
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <Info className="w-5 h-5 text-blue-600 mr-2" />
+                <h3 className="text-lg font-semibold text-blue-800">Identification Tips</h3>
+              </div>
+              <ul className="list-disc list-inside space-y-1 text-gray-700">
+                {referenceData.identificationTips.map((tip, idx) => (
+                  <li key={idx} className="text-sm">{tip}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="space-y-6">
             <div>
@@ -28,17 +85,17 @@ const PestDetailModal = ({ pest, onClose }) => {
 
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">Symptoms</h3>
-              <p className="text-gray-700">{pest.symptoms}</p>
+              <p className="text-gray-700">{pest.symptoms || referenceData?.symptoms}</p>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-xl font-semibold text-blue-800 mb-2">Control Methods</h3>
-              <p className="text-gray-700">{pest.control_methods}</p>
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h3 className="text-xl font-semibold text-orange-800 mb-2">Control Methods</h3>
+              <p className="text-gray-700">{pest.control_methods || referenceData?.controlMethods}</p>
             </div>
 
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <h3 className="text-xl font-semibold text-green-800 mb-2">Prevention</h3>
-              <p className="text-gray-700">{pest.prevention}</p>
+              <p className="text-gray-700">{pest.prevention || referenceData?.prevention}</p>
             </div>
           </div>
 
@@ -216,26 +273,54 @@ const PestLibrary = ({ user, onLogout }) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayPests.map((pest) => (
-              <div
-                key={pest.id}
-                onClick={() => setSelectedPest(pest)}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer p-6"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <Book className="w-8 h-8 text-primary" />
-                  <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-                    {pest.crop_affected}
-                  </span>
+            {displayPests.map((pest) => {
+              const referenceData = PEST_REFERENCE_DATA[pest.id] || PEST_REFERENCE_DATA[pest.name?.toLowerCase().replace(/\s+/g, '-')];
+              const thumbnailUrl = referenceData?.referenceImages?.[0]?.url;
+              
+              return (
+                <div
+                  key={pest.id}
+                  onClick={() => setSelectedPest(pest)}
+                  className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
+                >
+                  {/* Pest Image */}
+                  {thumbnailUrl && (
+                    <div className="h-48 bg-gray-100 overflow-hidden">
+                      <img 
+                        src={thumbnailUrl} 
+                        alt={pest.name}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="hidden w-full h-full items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
+                        <Bug className="w-16 h-16 text-green-300" />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      {!thumbnailUrl && <Book className="w-8 h-8 text-primary flex-shrink-0" />}
+                      <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full ml-auto">
+                        {pest.crop_affected}
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-semibold text-gray-800 mb-2">{pest.name}</h3>
+                    <p className="text-sm text-gray-600 italic mb-3">{pest.scientific_name}</p>
+                    <p className="text-gray-700 line-clamp-3">{pest.description}</p>
+
+                    <button className="mt-4 text-primary font-semibold hover:underline flex items-center">
+                      Learn More 
+                      <span className="ml-1">→</span>
+                    </button>
+                  </div>
                 </div>
-
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">{pest.name}</h3>
-                <p className="text-sm text-gray-600 italic mb-3">{pest.scientific_name}</p>
-                <p className="text-gray-700 line-clamp-3">{pest.description}</p>
-
-                <button className="mt-4 text-primary font-semibold hover:underline">Learn More →</button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
