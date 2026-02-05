@@ -590,7 +590,7 @@ const HeatMap = ({ user, onLogout }) => {
 
     const formData = new FormData();
     formData.append('image', selectedImage);
-    formData.append('crop_type', 'auto'); // Let ML determine crop type from pest
+    formData.append('crop_type', 'rice'); // Backend will determine actual crop from detected pest
     formData.append('severity', 'low');
     formData.append('latitude', location.latitude);
     formData.append('longitude', location.longitude);
