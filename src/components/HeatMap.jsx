@@ -716,7 +716,7 @@ const HeatMap = ({ user, onLogout }) => {
         </div>
 
         {/* Map */}
-        <div className="bg-white rounded-lg shadow overflow-hidden mb-6" style={{ height: '500px' }}>
+        <div className="bg-white rounded-lg shadow overflow-hidden mb-6" style={{ height: '500px', position: 'relative', zIndex: 1 }}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Activity className="w-8 h-8 text-primary animate-spin mr-2" />
@@ -954,7 +954,7 @@ const HeatMap = ({ user, onLogout }) => {
 
         {/* Detection Modal */}
         {showDetectionModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 10000 }}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 {/* Header */}
