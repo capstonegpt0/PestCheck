@@ -4,6 +4,7 @@ import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity, Camera, 
 import Navigation from './Navigation';
 import api from '../utils/api';
 import L from 'leaflet';
+import { PEST_REFERENCE_DATA, getPestById } from '../utils/pestReferenceData';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -1231,114 +1232,182 @@ const HeatMap = ({ user, onLogout }) => {
                 )}
 
                 {/* Confirmation Step */}
-                {detectionStep === 'confirm' && detectionResult && (
-                  <div className="space-y-6">
-                    {/* Detection Info */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-blue-900 mb-2">Detection Result</h3>
-                      <p className="text-2xl font-bold text-gray-800 mb-1">
-                        {detectionResult.pest_name || detectionResult.pest}
-                      </p>
-                      {detectionResult.scientific_name && (
-                        <p className="text-sm italic text-gray-600 mb-2">{detectionResult.scientific_name}</p>
-                      )}
-                      {detectionResult.crop_type && (
-                        <p className="text-sm text-gray-700 mb-1">
-                          Crop: <span className="font-semibold capitalize">{detectionResult.crop_type}</span>
+                {detectionStep === 'confirm' && detectionResult && (() => {
+                  // Get pest reference data
+                  const pestName = detectionResult.pest_name || detectionResult.pest || '';
+                  const pestData = getPestById(pestName) || getPestById(pestName.toLowerCase().replace(/\s+/g, '-'));
+                  const referenceImages = pestData?.referenceImages || [];
+                  const identificationTips = pestData?.identificationTips || [];
+
+                  return (
+                    <div className="space-y-6">
+                      {/* Detection Info */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-blue-900 mb-2">Detection Result</h3>
+                        <p className="text-2xl font-bold text-gray-800 mb-1">
+                          {detectionResult.pest_name || detectionResult.pest}
                         </p>
-                      )}
-                      <p className="text-sm text-gray-700">
-                        Confidence: <span className="font-semibold">{(detectionResult.confidence * 100).toFixed(1)}%</span>
-                      </p>
-                    </div>
+                        {(detectionResult.scientific_name || pestData?.scientificName) && (
+                          <p className="text-sm italic text-gray-600 mb-2">
+                            {detectionResult.scientific_name || pestData.scientificName}
+                          </p>
+                        )}
+                        {detectionResult.crop_type && (
+                          <p className="text-sm text-gray-700 mb-1">
+                            Crop: <span className="font-semibold capitalize">{detectionResult.crop_type}</span>
+                          </p>
+                        )}
+                        <p className="text-sm text-gray-700">
+                          Confidence: <span className="font-semibold">{(detectionResult.confidence * 100).toFixed(1)}%</span>
+                        </p>
+                      </div>
 
-                    {/* Image Comparison Section */}
-                    <div>
-                      <h4 className="text-base font-semibold text-gray-800 mb-3 text-center">
-                        Visual Comparison
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* User's Captured Image */}
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-center text-gray-700">Your Captured Image</p>
-                          <div className="border-2 border-blue-400 rounded-lg overflow-hidden shadow-md">
-                            {imagePreview ? (
-                              <img 
-                                src={imagePreview} 
-                                alt="Your captured pest" 
-                                className="w-full h-56 object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-56 flex items-center justify-center bg-gray-100">
-                                <p className="text-gray-400 text-sm">Image not available</p>
+                      {/* Image Comparison Section */}
+                      <div>
+                        <h4 className="text-base font-semibold text-gray-800 mb-3 text-center">
+                          📸 Visual Comparison
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* User's Captured Image */}
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-center text-blue-700">Your Captured Image</p>
+                            <div className="border-2 border-blue-400 rounded-lg overflow-hidden shadow-md bg-white">
+                              {imagePreview ? (
+                                <img 
+                                  src={imagePreview} 
+                                  alt="Your captured pest" 
+                                  className="w-full h-48 object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-48 flex items-center justify-center bg-gray-100">
+                                  <p className="text-gray-400 text-sm">Image not available</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Reference Image from Pest Database */}
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-center text-green-700">Reference Image</p>
+                            <div className="border-2 border-green-400 rounded-lg overflow-hidden shadow-md bg-white">
+                              {referenceImages.length > 0 ? (
+                                <div className="relative">
+                                  <img 
+                                    src={referenceImages[0].url} 
+                                    alt={`Reference: ${pestName}`}
+                                    className="w-full h-48 object-cover"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                  />
+                                  <div className="hidden w-full h-48 flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                                    <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
+                                    <p className="text-gray-500 text-xs text-center px-4">
+                                      Reference image<br/>not available
+                                    </p>
+                                  </div>
+                                  {referenceImages[0].stage && (
+                                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                                      {referenceImages[0].stage}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="w-full h-48 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                                  <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
+                                  <p className="text-gray-500 text-xs text-center px-4">
+                                    Reference image<br/>not available
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Additional Reference Images (if available) */}
+                        {referenceImages.length > 1 && (
+                          <div className="mt-3">
+                            <p className="text-xs font-medium text-gray-600 mb-2 text-center">
+                              Additional References:
+                            </p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {referenceImages.slice(1, 4).map((img, idx) => (
+                                <div key={idx} className="relative border border-gray-300 rounded overflow-hidden">
+                                  <img 
+                                    src={img.url} 
+                                    alt={`${pestName} - ${img.stage}`}
+                                    className="w-full h-20 object-cover"
+                                    onError={(e) => e.target.style.display = 'none'}
+                                  />
+                                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 text-center">
+                                    {img.stage}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Identification Tips */}
+                        {identificationTips.length > 0 && (
+                          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-start">
+                              <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                              <div className="text-sm text-blue-900">
+                                <p className="font-semibold mb-1">🔍 Identification Tips:</p>
+                                <ul className="list-disc list-inside space-y-0.5 text-xs">
+                                  {identificationTips.slice(0, 5).map((tip, idx) => (
+                                    <li key={idx}>{tip}</li>
+                                  ))}
+                                </ul>
                               </div>
-                            )}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
-                        {/* Reference Image from Database */}
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-center text-gray-700">Reference Image</p>
-                          <div className="border-2 border-green-400 rounded-lg overflow-hidden shadow-md">
-                            {detectionResult.reference_image || detectionResult.image_url ? (
-                              <img 
-                                src={detectionResult.reference_image || detectionResult.image_url} 
-                                alt={`Reference: ${detectionResult.pest_name}`}
-                                className="w-full h-56 object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-56 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                                <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
-                                <p className="text-gray-500 text-xs text-center px-4">
-                                  Reference image<br/>not available
-                                </p>
-                              </div>
-                            )}
+                        {/* Comparison Tips */}
+                        <div className="mt-3 bg-yellow-50 border border-yellow-300 rounded-lg p-3">
+                          <div className="flex items-start">
+                            <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                            <div className="text-sm text-yellow-800">
+                              <p className="font-semibold mb-1">💡 Comparison Tips:</p>
+                              <ul className="list-disc list-inside space-y-0.5 text-xs">
+                                <li>Compare body color and patterns</li>
+                                <li>Check body shape and size</li>
+                                <li>Look for distinctive markings</li>
+                                <li>Verify antenna and leg structure</li>
+                              </ul>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Comparison Tips */}
-                      <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-3">
-                        <div className="flex items-start">
-                          <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
-                          <div className="text-sm text-yellow-800">
-                            <p className="font-semibold mb-1">💡 Comparison Tips:</p>
-                            <ul className="list-disc list-inside space-y-0.5 text-xs">
-                              <li>Compare body color and patterns</li>
-                              <li>Check body shape and size</li>
-                              <li>Look for distinctive markings</li>
-                              <li>Verify antenna and leg structure</li>
-                            </ul>
-                          </div>
+                      {/* Confirmation Question and Buttons */}
+                      <div className="text-center">
+                        <p className="text-lg font-medium text-gray-800 mb-4">
+                          Does your image match the reference pest?
+                        </p>
+                        <div className="flex space-x-4">
+                          <button
+                            onClick={() => confirmDetection(true)}
+                            className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center transition-colors"
+                          >
+                            <ThumbsUp className="w-5 h-5 mr-2" />
+                            Yes, Matches
+                          </button>
+                          <button
+                            onClick={() => confirmDetection(false)}
+                            className="flex-1 bg-red-600 text-white py-4 rounded-lg hover:bg-red-700 font-semibold flex items-center justify-center transition-colors"
+                          >
+                            <ThumbsDown className="w-5 h-5 mr-2" />
+                            No, Different
+                          </button>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Confirmation Question and Buttons */}
-                    <div className="text-center">
-                      <p className="text-lg font-medium text-gray-800 mb-4">
-                        Does your image match the reference pest?
-                      </p>
-                      <div className="flex space-x-4">
-                        <button
-                          onClick={() => confirmDetection(true)}
-                          className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center transition-colors"
-                        >
-                          <ThumbsUp className="w-5 h-5 mr-2" />
-                          Yes, Matches
-                        </button>
-                        <button
-                          onClick={() => confirmDetection(false)}
-                          className="flex-1 bg-red-600 text-white py-4 rounded-lg hover:bg-red-700 font-semibold flex items-center justify-center transition-colors"
-                        >
-                          <ThumbsDown className="w-5 h-5 mr-2" />
-                          No, Different
-                        </button>
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Assessment Step */}
                 {detectionStep === 'assessment' && detectionResult && (
