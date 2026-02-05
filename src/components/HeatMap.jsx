@@ -100,6 +100,7 @@ const HeatMap = ({ user, onLogout }) => {
   const [detectionLoading, setDetectionLoading] = useState(false);
   const [detectionError, setDetectionError] = useState(null);
   const [damageLevel, setDamageLevel] = useState(2);
+  const [selectedFarm, setSelectedFarm] = useState(null);
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
 
@@ -459,6 +460,7 @@ const HeatMap = ({ user, onLogout }) => {
     setDetectionResult(null);
     setDetectionError(null);
     setDamageLevel(2);
+    setSelectedFarm(null);
   };
 
   const handleFileSelect = (e) => {
@@ -548,7 +550,10 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const saveDetection = async () => {
-    if (!detectionResult) return;
+    if (!detectionResult || !selectedFarm) {
+      alert('Please select a farm before saving the detection.');
+      return;
+    }
 
     try {
       setDetectionLoading(true);
@@ -566,7 +571,8 @@ const HeatMap = ({ user, onLogout }) => {
 
       await api.patch(`/detections/${detectionResult.id}/`, {
         severity: severity,
-        active: true
+        active: true,
+        farm_id: selectedFarm
       });
 
       setDetectionStep('success');
@@ -591,6 +597,7 @@ const HeatMap = ({ user, onLogout }) => {
     setDetectionResult(null);
     setDetectionError(null);
     setDamageLevel(2);
+    setSelectedFarm(null);
   };
 
   const getDamageLevelText = (level) => {
@@ -684,37 +691,6 @@ const HeatMap = ({ user, onLogout }) => {
           </button>
         </div>
 
-        {/* Legend */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <h3 className="font-semibold text-gray-800 mb-3">Map Legend</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full bg-gray-300"></div>
-              <span>No Infestations</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-              <span>Monitoring (1-2)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
-              <span>Low Risk (3-4)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full bg-orange-500"></div>
-              <span>Moderate (5-6)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full bg-red-500"></div>
-              <span>High (7-9)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#7f1d1d' }}></div>
-              <span>Critical (10+)</span>
-            </div>
-          </div>
-        </div>
-
         {/* Map */}
         <div className="bg-white rounded-lg shadow overflow-hidden mb-6" style={{ height: '500px', position: 'relative', zIndex: 1 }}>
           {loading ? (
@@ -773,14 +749,61 @@ const HeatMap = ({ user, onLogout }) => {
                       position={[lat, lng]}
                       icon={createLabeledFarmIcon(farm.name || 'Unknown Farm', farm.user_name || 'Unknown')}
                     >
-                      <Popup>
+                      <Popup maxWidth={350} maxHeight={400}>
                         <div className="p-2">
-                          <h3 className="font-bold text-lg">{farm.name}</h3>
+                          <h3 className="font-bold text-lg border-b pb-2 mb-2">{farm.name}</h3>
                           <p className="text-sm text-gray-600">Owner: {farm.user_name}</p>
                           <p className="text-sm">{farm.crop_type} - {farm.size} hectares</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Active Infestations: {detections.filter(d => d.farm_id === farm.id && d.active !== false).length}
-                          </p>
+                          
+                          {(() => {
+                            const farmInfestations = detections.filter(d => d.farm_id === farm.id && d.active !== false);
+                            return (
+                              <div className="mt-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="font-semibold text-sm">
+                                    Active Infestations: {farmInfestations.length}
+                                  </p>
+                                </div>
+                                {farmInfestations.length > 0 ? (
+                                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                                    {farmInfestations.map((infestation, idx) => (
+                                      <div key={infestation.id} className="bg-gray-50 border border-gray-200 rounded p-2">
+                                        <div className="flex items-start justify-between">
+                                          <div className="flex-1">
+                                            <p className="font-medium text-sm">{idx + 1}. {infestation.pest}</p>
+                                            <p className="text-xs text-gray-600">
+                                              Severity: <span className={`font-medium ${
+                                                infestation.severity === 'critical' ? 'text-red-900' : 
+                                                infestation.severity === 'high' ? 'text-red-500' : 
+                                                infestation.severity === 'medium' ? 'text-yellow-500' : 
+                                                'text-green-500'
+                                              }`}>{infestation.severity}</span>
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                              Reported: {new Date(infestation.detected_at || infestation.reported_at).toLocaleDateString()}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                              By: {infestation.user_name || 'Unknown'}
+                                            </p>
+                                          </div>
+                                          <div 
+                                            className="w-3 h-3 rounded-full ml-2 mt-1 flex-shrink-0"
+                                            style={{
+                                              backgroundColor: infestation.severity === 'critical' ? '#7f1d1d' :
+                                                             infestation.severity === 'high' ? '#ef4444' :
+                                                             infestation.severity === 'medium' ? '#f97316' : '#fbbf24'
+                                            }}
+                                          ></div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-gray-500 italic">No active infestations</p>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </Popup>
                     </Marker>
@@ -1181,6 +1204,29 @@ const HeatMap = ({ user, onLogout }) => {
                       </h3>
                     </div>
 
+                    {/* Farm Selection */}
+                    <div>
+                      <label className="block text-lg font-medium text-gray-800 mb-2">
+                        Select Farm <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedFarm || ''}
+                        onChange={(e) => setSelectedFarm(e.target.value ? parseInt(e.target.value) : null)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                      >
+                        <option value="">Choose a farm...</option>
+                        {farms.map(farm => (
+                          <option key={farm.id} value={farm.id}>
+                            {farm.name} - {farm.crop_type} ({farm.size} hectares) - Owner: {farm.user_name}
+                          </option>
+                        ))}
+                      </select>
+                      {!selectedFarm && (
+                        <p className="text-sm text-red-600 mt-1">Please select a farm to save the detection</p>
+                      )}
+                    </div>
+
                     <div>
                       <label className="block text-lg font-medium text-gray-800 mb-4">
                         How severe is the damage?
@@ -1218,8 +1264,8 @@ const HeatMap = ({ user, onLogout }) => {
                     <div className="flex space-x-3">
                       <button
                         onClick={saveDetection}
-                        disabled={detectionLoading}
-                        className="flex-1 bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center justify-center disabled:bg-gray-400"
+                        disabled={detectionLoading || !selectedFarm}
+                        className="flex-1 bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         {detectionLoading ? (
                           <>
@@ -1336,52 +1382,106 @@ const HeatMap = ({ user, onLogout }) => {
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Active Infestations</h2>
-            <div className="space-y-3">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Active Infestations by Farm</h2>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
               {activeDetections.length === 0 ? (
                 <p className="text-gray-500">No active infestations reported.</p>
               ) : (
-                activeDetections.slice(-5).reverse().map(detection => {
-                  const farm = farms.find(f => f.id === detection.farm_id);
-                  return (
-                    <div key={detection.id} className="border border-gray-200 rounded-lg p-3">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-800">{detection.pest}</p>
-                          {farm && (
-                            <p className="text-xs text-gray-500">Farm: {farm.name}</p>
-                          )}
-                          <p className="text-xs text-gray-400">Reported by: {detection.user_name || 'Unknown'}</p>
-                          <p className="text-sm text-gray-600">
-                            Severity: <span className={`font-medium ${
-                              detection.severity === 'critical' ? 'text-red-900' : 
-                              detection.severity === 'high' ? 'text-red-500' : 
-                              detection.severity === 'medium' ? 'text-yellow-500' : 
-                              'text-green-500'
-                            }`}>{detection.severity}</span>
-                          </p>
+                (() => {
+                  // Group detections by farm
+                  const detectionsByFarm = {};
+                  activeDetections.forEach(detection => {
+                    const farmId = detection.farm_id;
+                    if (!detectionsByFarm[farmId]) {
+                      detectionsByFarm[farmId] = [];
+                    }
+                    detectionsByFarm[farmId].push(detection);
+                  });
+
+                  // Sort farms by number of infestations (descending)
+                  const sortedFarmIds = Object.keys(detectionsByFarm).sort((a, b) => 
+                    detectionsByFarm[b].length - detectionsByFarm[a].length
+                  );
+
+                  return sortedFarmIds.map(farmId => {
+                    const farm = farms.find(f => f.id === parseInt(farmId));
+                    const farmDetections = detectionsByFarm[farmId];
+                    
+                    return (
+                      <div key={farmId} className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h3 className="font-bold text-gray-800">
+                              {farm ? farm.name : `Farm ID: ${farmId}`}
+                            </h3>
+                            {farm && (
+                              <p className="text-xs text-gray-500">
+                                {farm.crop_type} - {farm.size} ha - Owner: {farm.user_name}
+                              </p>
+                            )}
+                          </div>
+                          <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            {farmDetections.length} {farmDetections.length === 1 ? 'Infestation' : 'Infestations'}
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-3 h-3 rounded-full ${
-                            detection.severity === 'critical' ? 'bg-red-900' : 
-                            detection.severity === 'high' ? 'bg-red-500' : 
-                            detection.severity === 'medium' ? 'bg-yellow-500' : 
-                            'bg-green-500'
-                          }`}></div>
-                          {(detection.user_name === user.username || user.role === 'admin') && (
-                            <button
-                              onClick={() => confirmResolveInfestation(detection.id)}
-                              className="text-green-600 hover:text-green-800 p-1"
-                              title="Mark as resolved"
-                            >
-                              <CheckCircle className="w-5 h-5" />
-                            </button>
-                          )}
+
+                        <div className="space-y-2">
+                          {farmDetections.map((detection, idx) => (
+                            <div key={detection.id} className="bg-white border border-gray-200 rounded-lg p-3">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs font-medium">
+                                      #{idx + 1}
+                                    </span>
+                                    <p className="font-semibold text-gray-800">{detection.pest}</p>
+                                  </div>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    Reported by: {detection.user_name || 'Unknown'}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    Date: {new Date(detection.detected_at || detection.reported_at).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </p>
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    Severity: <span className={`font-bold ${
+                                      detection.severity === 'critical' ? 'text-red-900' : 
+                                      detection.severity === 'high' ? 'text-red-500' : 
+                                      detection.severity === 'medium' ? 'text-yellow-600' : 
+                                      'text-green-600'
+                                    }`}>{detection.severity.toUpperCase()}</span>
+                                  </p>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <div className={`w-4 h-4 rounded-full ${
+                                    detection.severity === 'critical' ? 'bg-red-900' : 
+                                    detection.severity === 'high' ? 'bg-red-500' : 
+                                    detection.severity === 'medium' ? 'bg-yellow-500' : 
+                                    'bg-green-500'
+                                  }`}></div>
+                                  {(detection.user_name === user.username || user.role === 'admin') && (
+                                    <button
+                                      onClick={() => confirmResolveInfestation(detection.id)}
+                                      className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded transition-colors"
+                                      title="Mark as resolved"
+                                    >
+                                      <CheckCircle className="w-5 h-5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  });
+                })()
               )}
             </div>
           </div>
