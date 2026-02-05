@@ -1065,6 +1065,7 @@ const HeatMap = ({ user, onLogout }) => {
                 {/* Confirmation Step */}
                 {detectionStep === 'confirm' && detectionResult && (
                   <div className="space-y-6">
+                    {/* Detection Info */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <h3 className="text-lg font-semibold text-blue-900 mb-2">Detection Result</h3>
                       <p className="text-2xl font-bold text-gray-800 mb-1">
@@ -1083,22 +1084,88 @@ const HeatMap = ({ user, onLogout }) => {
                       </p>
                     </div>
 
+                    {/* Image Comparison Section */}
+                    <div>
+                      <h4 className="text-base font-semibold text-gray-800 mb-3 text-center">
+                        Visual Comparison
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* User's Captured Image */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-center text-gray-700">Your Captured Image</p>
+                          <div className="border-2 border-blue-400 rounded-lg overflow-hidden shadow-md">
+                            {imagePreview ? (
+                              <img 
+                                src={imagePreview} 
+                                alt="Your captured pest" 
+                                className="w-full h-56 object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-56 flex items-center justify-center bg-gray-100">
+                                <p className="text-gray-400 text-sm">Image not available</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Reference Image from Database */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-center text-gray-700">Reference Image</p>
+                          <div className="border-2 border-green-400 rounded-lg overflow-hidden shadow-md">
+                            {detectionResult.reference_image || detectionResult.image_url ? (
+                              <img 
+                                src={detectionResult.reference_image || detectionResult.image_url} 
+                                alt={`Reference: ${detectionResult.pest_name}`}
+                                className="w-full h-56 object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-56 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                                <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
+                                <p className="text-gray-500 text-xs text-center px-4">
+                                  Reference image<br/>not available
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Comparison Tips */}
+                      <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-3">
+                        <div className="flex items-start">
+                          <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                          <div className="text-sm text-yellow-800">
+                            <p className="font-semibold mb-1">💡 Comparison Tips:</p>
+                            <ul className="list-disc list-inside space-y-0.5 text-xs">
+                              <li>Compare body color and patterns</li>
+                              <li>Check body shape and size</li>
+                              <li>Look for distinctive markings</li>
+                              <li>Verify antenna and leg structure</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Confirmation Question and Buttons */}
                     <div className="text-center">
-                      <p className="text-lg font-medium text-gray-800 mb-4">Is this detection correct?</p>
+                      <p className="text-lg font-medium text-gray-800 mb-4">
+                        Does your image match the reference pest?
+                      </p>
                       <div className="flex space-x-4">
                         <button
                           onClick={() => confirmDetection(true)}
-                          className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center"
+                          className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center transition-colors"
                         >
                           <ThumbsUp className="w-5 h-5 mr-2" />
-                          Yes, Correct
+                          Yes, Matches
                         </button>
                         <button
                           onClick={() => confirmDetection(false)}
-                          className="flex-1 bg-red-600 text-white py-4 rounded-lg hover:bg-red-700 font-semibold flex items-center justify-center"
+                          className="flex-1 bg-red-600 text-white py-4 rounded-lg hover:bg-red-700 font-semibold flex items-center justify-center transition-colors"
                         >
                           <ThumbsDown className="w-5 h-5 mr-2" />
-                          No, Try Again
+                          No, Different
                         </button>
                       </div>
                     </div>
