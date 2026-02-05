@@ -5,7 +5,6 @@ import Register from './components/Register';
 
 // User Components
 import Dashboard from './components/Dashboard';
-import Detection from './components/Detection';
 import HeatMap from './components/HeatMap';
 import PestLibrary from './components/PestLibrary';
 import Profile from './components/Profile';
@@ -123,14 +122,6 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard user={user} onLogout={handleLogout} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/detect"
-          element={
-            <ProtectedRoute>
-              <Detection user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
         />
