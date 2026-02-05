@@ -595,25 +595,22 @@ const HeatMap = ({ user, onLogout }) => {
     formData.append('latitude', location.latitude);
     formData.append('longitude', location.longitude);
     formData.append('address', 'Detected Location');
-    // Add flag to tell backend this is preview-only, don't save yet
-    formData.append('preview_only', 'true');
+    formData.append('confirmed', 'false'); // Mark as unconfirmed initially
+    formData.append('active', 'false'); // Don't count as active until confirmed
 
     try {
-      const response = await api.post('/detections/preview/', formData, {
+      const response = await api.post('/detections/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      if (response.status === 200 && response.data) {
+      if (response.status === 201 && response.data) {
         const pestName = response.data.pest_name || response.data.pest;
         
         if (pestName && pestName !== 'Unknown Pest' && pestName !== '') {
-          // Store the ML result without saving to database
-          setDetectionResult({
-            ...response.data,
-            isPreview: true // Mark as preview to avoid confusion
-          });
+          // Store the result with ID so we can update or delete it
+          setDetectionResult(response.data);
           setDetectionStep('confirm');
         } else {
           setDetectionError('No pest detected in the image. Please try another image with clearer pest visibility.');
@@ -643,7 +640,15 @@ const HeatMap = ({ user, onLogout }) => {
     if (isCorrect) {
       setDetectionStep('assessment');
     } else {
-      // User rejected the detection - it was never saved, so just reset
+      // User rejected the detection - delete the unconfirmed record
+      if (detectionResult && detectionResult.id) {
+        try {
+          await api.delete(`/detections/${detectionResult.id}/`);
+          console.log(`Deleted rejected detection ID: ${detectionResult.id}`);
+        } catch (error) {
+          console.error('Error deleting rejected detection:', error);
+        }
+      }
       setDetectionError('Please try another image with a clearer view of the pest.');
       setDetectionStep('upload');
       setDetectionResult(null);
@@ -670,23 +675,12 @@ const HeatMap = ({ user, onLogout }) => {
 
       const severity = severityMap[damageLevel] || 'medium';
 
-      // Create the detection for the first time (not patching)
-      const formData = new FormData();
-      formData.append('image', selectedImage);
-      formData.append('crop_type', detectionResult.crop_type || 'auto');
-      formData.append('pest_name', detectionResult.pest_name || detectionResult.pest);
-      formData.append('confidence', detectionResult.confidence || 0);
-      formData.append('severity', severity);
-      formData.append('active', 'true');
-      formData.append('farm_id', selectedFarm);
-      formData.append('latitude', location.latitude);
-      formData.append('longitude', location.longitude);
-      formData.append('address', 'Detected Location');
-
-      await api.post('/detections/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      // Update the existing detection record to confirm it
+      await api.patch(`/detections/${detectionResult.id}/`, {
+        severity: severity,
+        active: true,
+        confirmed: true,
+        farm_id: selectedFarm
       });
 
       setDetectionStep('success');
@@ -704,7 +698,16 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const closeDetectionModal = async () => {
-    // No need to delete anything - detections are only saved after user confirmation
+    // If there's an unconfirmed detection, delete it
+    if (detectionResult && detectionResult.id && detectionStep !== 'success') {
+      try {
+        await api.delete(`/detections/${detectionResult.id}/`);
+        console.log(`Deleted unconfirmed detection on modal close ID: ${detectionResult.id}`);
+      } catch (error) {
+        console.error('Error deleting unconfirmed detection on close:', error);
+      }
+    }
+    
     setShowDetectionModal(false);
     setDetectionStep('upload');
     setSelectedImage(null);
