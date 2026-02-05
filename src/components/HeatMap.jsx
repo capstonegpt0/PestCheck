@@ -99,7 +99,6 @@ const HeatMap = ({ user, onLogout }) => {
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionLoading, setDetectionLoading] = useState(false);
   const [detectionError, setDetectionError] = useState(null);
-  const [cropType, setCropType] = useState('rice');
   const [damageLevel, setDamageLevel] = useState(2);
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
@@ -495,7 +494,7 @@ const HeatMap = ({ user, onLogout }) => {
 
     const formData = new FormData();
     formData.append('image', selectedImage);
-    formData.append('crop_type', cropType);
+    formData.append('crop_type', 'auto'); // Let ML determine crop type from pest
     formData.append('severity', 'low');
     formData.append('latitude', location.latitude);
     formData.append('longitude', location.longitude);
@@ -542,7 +541,7 @@ const HeatMap = ({ user, onLogout }) => {
     if (isCorrect) {
       setDetectionStep('assessment');
     } else {
-      setDetectionError('Please try another image or adjust the crop type.');
+      setDetectionError('Please try another image with a clearer view of the pest.');
       setDetectionStep('upload');
       setDetectionResult(null);
     }
@@ -971,34 +970,6 @@ const HeatMap = ({ user, onLogout }) => {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Crop Type
-                      </label>
-                      <div className="grid grid-cols-2 gap-4">
-                        <button
-                          onClick={() => setCropType('rice')}
-                          className={`p-4 rounded-lg font-semibold transition-all ${
-                            cropType === 'rice'
-                              ? 'bg-green-600 text-white shadow-md'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          Rice
-                        </button>
-                        <button
-                          onClick={() => setCropType('corn')}
-                          className={`p-4 rounded-lg font-semibold transition-all ${
-                            cropType === 'corn'
-                              ? 'bg-green-600 text-white shadow-md'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          Corn
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Upload or Capture Image
                       </label>
                       <div className="grid grid-cols-2 gap-4">
@@ -1101,6 +1072,11 @@ const HeatMap = ({ user, onLogout }) => {
                       </p>
                       {detectionResult.scientific_name && (
                         <p className="text-sm italic text-gray-600 mb-2">{detectionResult.scientific_name}</p>
+                      )}
+                      {detectionResult.crop_type && (
+                        <p className="text-sm text-gray-700 mb-1">
+                          Crop: <span className="font-semibold capitalize">{detectionResult.crop_type}</span>
+                        </p>
                       )}
                       <p className="text-sm text-gray-700">
                         Confidence: <span className="font-semibold">{(detectionResult.confidence * 100).toFixed(1)}%</span>
