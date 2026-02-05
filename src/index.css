@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==================== BASE STYLES ==================== */
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -9,59 +11,105 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
-/* Mobile-First Responsive Design */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ==================== PERFORMANCE OPTIMIZATIONS ==================== */
+
+/* GPU acceleration for transforms */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Reduce animations on mobile for better performance */
 @media (max-width: 768px) {
+  * {
+    animation-duration: 0.15s !important;
+    transition-duration: 0.15s !important;
+  }
+  
+  /* Disable hover effects on touch devices */
+  @media (hover: none) {
+    .hover\:shadow-lg:hover,
+    .hover\:bg-gray-100:hover,
+    .hover\:scale-105:hover {
+      box-shadow: none !important;
+      background-color: inherit !important;
+      transform: none !important;
+    }
+  }
+}
+
+/* Prevent layout shifts */
+.no-layout-shift {
+  contain: layout;
+}
+
+/* ==================== MOBILE-FIRST RESPONSIVE DESIGN ==================== */
+
+@media (max-width: 768px) {
+  /* Body padding for bottom navigation */
   body {
-    padding-bottom: 5rem;
+    padding-bottom: max(5rem, env(safe-area-inset-bottom, 5rem));
   }
 
+  /* Container width adjustments */
   .max-w-7xl,
   .max-w-6xl,
   .max-w-5xl,
-  .max-w-4xl {
+  .max-w-4xl,
+  .max-w-3xl,
+  .max-w-2xl {
     max-width: 100% !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
 
-  .px-8 {
-    padding-left: 1rem;
-    padding-right: 1rem;
+  /* Padding adjustments */
+  .px-8, .px-6 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
 
-  .py-8 {
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
+  .py-8, .py-6 {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
   }
 
-  .leaflet-container {
-    height: 400px !important;
-    width: 100% !important;
+  .p-8, .p-6 {
+    padding: 1rem !important;
   }
 
-  .modal-container {
-    max-height: 90vh;
-    overflow-y: auto;
+  /* Margin adjustments */
+  .mx-8, .mx-6 {
+    margin-left: 1rem !important;
+    margin-right: 1rem !important;
   }
 
-  .fixed.inset-0 > div {
-    max-height: 90vh;
-    overflow-y: auto;
+  .my-8, .my-6 {
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
   }
 
-  button {
-    min-height: 44px;
-    padding: 0.625rem 1rem;
-  }
+  /* Text size adjustments for readability */
+  .text-5xl { font-size: 2rem !important; }
+  .text-4xl { font-size: 1.75rem !important; }
+  .text-3xl { font-size: 1.5rem !important; }
+  .text-2xl { font-size: 1.25rem !important; }
+  .text-xl { font-size: 1.125rem !important; }
 
-  body {
-    overflow-x: hidden;
-  }
-
+  /* Flex wrapping */
   .flex {
     flex-wrap: wrap;
   }
 
+  /* Text truncation */
   .truncate {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -69,17 +117,423 @@ body {
   }
 }
 
+/* ==================== LEAFLET MAP RESPONSIVE ==================== */
+
+/* Mobile - Smaller map for performance */
+@media (max-width: 768px) {
+  .leaflet-container {
+    height: 350px !important;
+    width: 100% !important;
+  }
+
+  /* Disable map animations on mobile */
+  .leaflet-marker-icon,
+  .leaflet-popup {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* Larger touch targets for map controls */
+  .leaflet-control-zoom a,
+  .leaflet-bar a {
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    font-size: 20px !important;
+  }
+
+  /* Responsive popup */
+  .leaflet-popup-content-wrapper {
+    max-width: 280px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .leaflet-popup-content {
+    font-size: 14px;
+    margin: 10px;
+    max-height: 350px;
+    overflow-y: auto;
+  }
+
+  /* Hide attribution on mobile for cleaner view */
+  .leaflet-control-attribution {
+    font-size: 9px !important;
+    max-width: 50%;
+  }
+}
+
 /* Tablet adjustments */
 @media (min-width: 769px) and (max-width: 1024px) {
   .leaflet-container {
-    height: 500px !important;
+    height: 450px !important;
   }
 }
 
 /* Desktop - Full map height */
 @media (min-width: 1025px) {
   .leaflet-container {
-    height: 600px !important;
+    height: 500px !important;
+  }
+}
+
+/* Landscape mode on mobile - shorter map */
+@media (max-width: 768px) and (orientation: landscape) {
+  .leaflet-container {
+    height: 280px !important;
+  }
+}
+
+/* ==================== MODAL RESPONSIVENESS ==================== */
+
+@media (max-width: 768px) {
+  .modal-container,
+  .fixed.inset-0 > div {
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 1rem;
+    width: calc(100% - 2rem) !important;
+    max-width: calc(100% - 2rem) !important;
+  }
+
+  /* Modal backdrop blur - reduced for performance */
+  .modal-backdrop {
+    backdrop-filter: blur(2px);
+  }
+
+  /* Modal close button - larger touch target */
+  .modal-close,
+  button[aria-label*="close"],
+  button[aria-label*="Close"] {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .modal-backdrop {
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* ==================== BUTTONS & TOUCH TARGETS ==================== */
+
+@media (max-width: 768px) {
+  /* Minimum touch target size (Apple HIG & Material Design) */
+  button,
+  a,
+  .clickable,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem 1rem;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  /* Full-width buttons on mobile */
+  button[type="submit"],
+  .btn-primary,
+  .btn-submit {
+    width: 100%;
+  }
+
+  /* Button groups - stack vertically */
+  .flex.space-x-2 > button,
+  .flex.space-x-3 > button,
+  .flex.space-x-4 > button {
+    width: 100%;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Prevent text selection on buttons */
+button {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ==================== FORMS ==================== */
+
+/* Prevent zoom on input focus (iOS) */
+input,
+select,
+textarea,
+button {
+  font-size: 16px !important;
+}
+
+@media (max-width: 768px) {
+  form input,
+  form select,
+  form textarea {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+  }
+
+  /* Stack form elements vertically */
+  form .flex,
+  form .grid {
+    flex-direction: column;
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Form labels - better spacing */
+  label {
+    margin-bottom: 0.5rem;
+    display: block;
+    font-weight: 500;
+  }
+
+  /* Range sliders - larger touch area */
+  input[type="range"] {
+    height: 44px;
+    padding: 1rem 0;
+  }
+}
+
+/* ==================== GRID SYSTEM ==================== */
+
+@media (max-width: 640px) {
+  .grid {
+    gap: 0.75rem !important;
+  }
+
+  .grid-cols-1,
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4,
+  .grid-cols-5,
+  .grid-cols-6 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+
+  /* Allow 2 columns for specific cases */
+  .grid-cols-2.allow-mobile-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Small tablets */
+@media (min-width: 641px) and (max-width: 768px) {
+  .grid-cols-3,
+  .grid-cols-4,
+  .grid-cols-5,
+  .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .grid-cols-4,
+  .grid-cols-5,
+  .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* ==================== CARDS ==================== */
+
+@media (max-width: 768px) {
+  .card,
+  .bg-white.rounded-lg,
+  .bg-white.shadow {
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Remove hover effects on mobile */
+  .card-hover {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* Desktop hover effects */
+@media (min-width: 769px) and (hover: hover) {
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* ==================== TABLES ==================== */
+
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Responsive table - card view */
+  table.responsive-table thead {
+    display: none;
+  }
+
+  table.responsive-table tbody,
+  table.responsive-table tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  table.responsive-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  table.responsive-table td:last-child {
+    border-bottom: none;
+  }
+
+  table.responsive-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    margin-right: 1rem;
+    min-width: 100px;
+  }
+}
+
+/* ==================== NAVIGATION ==================== */
+
+@media (max-width: 768px) {
+  /* Bottom navigation safe area */
+  .bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Top navigation */
+  nav {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Navigation items - stack vertically */
+  nav .flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  nav a,
+  nav button {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* ==================== IMAGES & MEDIA ==================== */
+
+/* Responsive images */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Video and canvas for camera */
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  /* Image optimization for mobile */
+  img[loading="lazy"] {
+    background: #f3f4f6;
+    min-height: 100px;
+  }
+
+  /* Camera preview */
+  video,
+  canvas {
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+
+/* Hide/Show based on screen size */
+@media (max-width: 768px) {
+  .desktop-only,
+  .hidden-mobile {
+    display: none !important;
+  }
+
+  .mobile-only,
+  .visible-mobile {
+    display: block !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only,
+  .hidden-desktop {
+    display: none !important;
+  }
+
+  .desktop-only,
+  .visible-desktop {
+    display: block !important;
+  }
+}
+
+/* ==================== OVERFLOW FIXES ==================== */
+
+@media (max-width: 768px) {
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .container,
+  .max-w-7xl,
+  .max-w-6xl {
+    overflow-x: hidden;
+  }
+
+  /* Prevent horizontal scroll */
+  body,
+  html {
+    overflow-x: hidden;
+    width: 100%;
+  }
+}
+
+/* ==================== SAFE AREA INSETS (iPhone X+) ==================== */
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .fixed.bottom-0 {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
@@ -94,81 +548,32 @@ body {
   }
 }
 
-/* Prevent zoom on input focus (iOS) */
-input,
-select,
-textarea {
-  font-size: 16px !important;
-}
+/* ==================== ACCESSIBILITY ==================== */
 
-/* Better touch targets on mobile */
-@media (max-width: 768px) {
-  a,
-  button,
-  .clickable {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  .leaflet-control-zoom a {
-    width: 44px !important;
-    height: 44px !important;
-    line-height: 44px !important;
-  }
-
-  .leaflet-popup-content-wrapper {
-    max-width: 280px;
-  }
-
-  .leaflet-popup-content {
-    font-size: 14px;
-    margin: 12px;
-  }
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Prevent text selection on buttons */
-button {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-
-/* Loading states */
-.loading {
-  pointer-events: none;
-  opacity: 0.6;
-}
-
-/* Card hover effects - disabled on mobile for better performance */
-@media (min-width: 769px) {
-  .card-hover {
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-
-  .card-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  }
-}
-
-/* Map marker clustering on mobile for performance */
-@media (max-width: 768px) {
-  .leaflet-marker-icon {
-    transition: none !important;
-  }
-}
-
-/* Accessibility improvements */
+/* Focus states */
 :focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
+  border-radius: 0.25rem;
 }
+
+/* Skip to content link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: #fff;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* ==================== SCROLLBARS ==================== */
 
 /* Better scrollbars on desktop */
 @media (min-width: 769px) {
@@ -182,165 +587,180 @@ button {
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #888;
+    background: #cbd5e1;
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: #94a3b8;
   }
 }
 
-/* Modal backdrop blur effect */
-.modal-backdrop {
-  backdrop-filter: blur(4px);
-}
-
-/* Safe area insets for notched devices */
-@supports (padding: env(safe-area-inset-bottom)) {
-  body {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
-  }
-
-  .bottom-nav {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
-/* Fix for landscape mode on mobile */
-@media (max-width: 768px) and (orientation: landscape) {
-  .leaflet-container {
-    height: 300px !important;
-  }
-
-  .modal-container {
-    max-height: 80vh;
-  }
-}
-
-/* Prevent layout shift */
-.no-layout-shift {
-  contain: layout;
-}
-
-/* Performance optimization for animations on mobile */
+/* Hide scrollbar on mobile for cleaner look */
 @media (max-width: 768px) {
-  * {
-    animation-duration: 0.2s !important;
-    transition-duration: 0.2s !important;
-  }
-}
-
-/* Grid system fixes for mobile */
-@media (max-width: 768px) {
-  .grid {
-    gap: 0.75rem !important;
-  }
-
-  .grid-cols-2 {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-  }
-
-  .grid-cols-3 {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-  }
-
-  .grid-cols-4 {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-  }
-}
-
-/* Tablet grid adjustments */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .grid-cols-3,
-  .grid-cols-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-
-/* Form improvements for mobile */
-@media (max-width: 768px) {
-  form input,
-  form select,
-  form textarea {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  form button[type="submit"] {
-    width: 100%;
-  }
-}
-
-/* Hide desktop-only elements on mobile */
-@media (max-width: 768px) {
-  .desktop-only {
-    display: none !important;
-  }
-}
-
-/* Show mobile-only elements */
-@media (min-width: 769px) {
-  .mobile-only {
-    display: none !important;
-  }
-}
-
-/* Fix for overflow issues on mobile */
-@media (max-width: 768px) {
-  .overflow-x-auto {
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .container,
-  .max-w-7xl,
-  .max-w-6xl {
-    overflow-x: hidden;
-  }
-}
-
-/* Better video/canvas display for camera */
-video,
-canvas {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-
-/* Responsive images */
-img {
-  max-width: 100%;
-  height: auto;
-}
-
-/* Better table display on mobile */
-@media (max-width: 768px) {
-  table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
-  }
-
-  thead {
+  .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
 
-  tbody,
-  tr {
-    display: block;
-  }
-
-  td {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.5rem;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    margin-right: 1rem;
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
+
+/* ==================== LOADING STATES ==================== */
+
+.loading,
+[aria-busy="true"] {
+  pointer-events: none;
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ==================== SPACING UTILITIES ==================== */
+
+@media (max-width: 768px) {
+  /* Compact spacing */
+  .space-y-6 > * + * { margin-top: 1rem !important; }
+  .space-y-8 > * + * { margin-top: 1.5rem !important; }
+  .space-y-12 > * + * { margin-top: 2rem !important; }
+  
+  .space-x-6 > * + * { margin-left: 1rem !important; }
+  .space-x-8 > * + * { margin-left: 1.5rem !important; }
+  
+  .gap-6 { gap: 1rem !important; }
+  .gap-8 { gap: 1.5rem !important; }
+}
+
+/* ==================== PRINT STYLES ==================== */
+
+@media print {
+  .no-print,
+  nav,
+  button,
+  .bottom-nav,
+  .modal-backdrop {
+    display: none !important;
+  }
+
+  body {
+    padding: 0 !important;
+  }
+
+  .leaflet-container {
+    height: 400px !important;
+  }
+}
+
+/* ==================== DARK MODE SUPPORT (Optional) ==================== */
+
+@media (prefers-color-scheme: dark) {
+  /* Add dark mode styles if needed */
+  /* body {
+    background-color: #1a1a1a;
+    color: #ffffff;
+  } */
+}
+
+/* ==================== CUSTOM ANIMATIONS ==================== */
+
+/* Fade in */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* Slide up */
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Disable animations on mobile for performance */
+@media (max-width: 768px) {
+  .fade-in,
+  .slide-up {
+    animation: none !important;
+  }
+}
+
+/* ==================== PESTCHECK-SPECIFIC STYLES ==================== */
+
+/* Detection cards */
+@media (max-width: 768px) {
+  .detection-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.75rem;
+  }
+
+  .detection-card img {
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Farm markers - responsive sizing */
+@media (max-width: 768px) {
+  .custom-farm-marker {
+    font-size: 10px !important;
+  }
+
+  .custom-farm-marker > div:first-child {
+    max-width: 120px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* Active infestations panel */
+@media (max-width: 768px) {
+  .infestations-panel {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+}
+
+/* ==================== PERFORMANCE HINTS ==================== */
+
+/* Will-change hints for animated elements */
+.will-animate {
+  will-change: transform, opacity;
+}
+
+/* Remove will-change after animation */
+.animated {
+  will-change: auto;
+}
+
+/* Contain paint for better performance */
+.contain-paint {
+  contain: paint;
+}
+
+/* ==================== END ==================== */
