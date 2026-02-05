@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMapEvents } from 'react-leaflet';
 import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity, Camera, Upload, Loader, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react';
 import Navigation from './Navigation';
+import AlertNotifications from './AlertNotifications';
 import api from '../utils/api';
 import L from 'leaflet';
 import { PEST_REFERENCE_DATA, getPestById } from '../utils/pestReferenceData';
@@ -751,6 +752,9 @@ const HeatMap = ({ user, onLogout }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
+      
+      {/* ✅ NEW: Proximity Alert Notifications */}
+      <AlertNotifications user={user} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
