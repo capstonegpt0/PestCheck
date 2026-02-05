@@ -16,6 +16,7 @@ export const PEST_REFERENCE_DATA = {
         description: 'Adult moth - yellowish-white with brown markings'
       }
     ],
+    damageImage: '/assets/damage/stemborerdamage.jpg',
     identificationTips: [
       'Yellowish-white moth with triangular shape',
       'Dark spots and streaks on forewings',
@@ -40,6 +41,7 @@ export const PEST_REFERENCE_DATA = {
         description: 'Small fly with shiny metallic appearance'
       }
     ],
+    damageImage: '/assets/damage/whorlmaggotdamage.jpg',
     identificationTips: [
       'Very small fly (2-3mm)',
       'Shiny black or metallic green/blue color',
@@ -64,6 +66,7 @@ export const PEST_REFERENCE_DATA = {
         description: 'Moth with brown wings and wavy white/cream patterns'
       }
     ],
+    damageImage: '/assets/damage/leaffolderdamage.jpg',
     identificationTips: [
       'Brown moth with distinctive wavy patterns',
       'White or cream colored lines across wings',
@@ -88,6 +91,7 @@ export const PEST_REFERENCE_DATA = {
         description: 'Long slender bug, brown to reddish-brown'
       }
     ],
+    damageImage: '/assets/damage/ricebugdamage.jpg',
     identificationTips: [
       'Long slender body (15-20mm)',
       'Brown to reddish-brown color',
@@ -112,6 +116,7 @@ export const PEST_REFERENCE_DATA = {
         description: 'Bright green body with distinctive black markings'
       }
     ],
+    damageImage: '/assets/damage/greenleafhopperdamage.jpg',
     identificationTips: [
       'Bright green color',
       'Black markings on head and thorax',
@@ -136,6 +141,7 @@ export const PEST_REFERENCE_DATA = {
         description: 'Small brown insect with transparent wings'
       }
     ],
+    damageImage: '/assets/damage/planthopperdamage.jpg',
     identificationTips: [
       'Small brown insect (3-4mm)',
       'Transparent wings held roof-like over body',
@@ -150,9 +156,9 @@ export const PEST_REFERENCE_DATA = {
 
   // ==================== CORN PESTS ====================
 
-  'Armyworm': {
-    id: 'Armyworm',
-    name: 'Fall Armyworm',
+  'armyworm': {
+    id: 'armyworm',
+    name: 'Armyworm',
     scientificName: 'Spodoptera frugiperda',
     crop: 'Corn',
     referenceImages: [
@@ -167,6 +173,7 @@ export const PEST_REFERENCE_DATA = {
         description: 'Larva/caterpillar - green to brown with stripes'
       }
     ],
+    damageImage: '/assets/damage/armywormdamage.jpg',
     identificationTips: [
       'Larvae have distinctive inverted "Y" on head',
       'Four dark spots forming square on last segment',
@@ -179,8 +186,8 @@ export const PEST_REFERENCE_DATA = {
     prevention: 'Early planting, crop rotation, remove crop residues, use pheromone traps, intercropping'
   },
 
-  'Asian-Corn-Borer': {
-    id: 'Asian-Corn-Borer',
+  'asian-corn-borer': {
+    id: 'asian-corn-borer',
     name: 'Asian Corn Borer',
     scientificName: 'Ostrinia furnacalis',
     crop: 'Corn',
@@ -196,6 +203,7 @@ export const PEST_REFERENCE_DATA = {
         description: 'Larva inside corn stalk - pinkish-white with brown head'
       }
     ],
+    damageImage: '/assets/damage/cornborerlarvaedamage.jpg',
     identificationTips: [
       'Larvae are pinkish-white with brown head',
       'Multiple small black spots on body segments',

@@ -1238,6 +1238,7 @@ const HeatMap = ({ user, onLogout }) => {
                   const pestData = getPestById(pestName) || getPestById(pestName.toLowerCase().replace(/\s+/g, '-'));
                   const referenceImages = pestData?.referenceImages || [];
                   const identificationTips = pestData?.identificationTips || [];
+                  const referenceDamageImage = pestData?.damageImage || null;
 
                   return (
                     <div className="space-y-6">
@@ -1288,7 +1289,7 @@ const HeatMap = ({ user, onLogout }) => {
 
                           {/* Reference Image from Pest Database */}
                           <div className="space-y-2">
-                            <p className="text-sm font-medium text-center text-green-700">Reference Image</p>
+                            <p className="text-sm font-medium text-center text-green-700">Reference Pest</p>
                             <div className="border-2 border-green-400 rounded-lg overflow-hidden shadow-md bg-white">
                               {referenceImages.length > 0 ? (
                                 <div className="relative">
@@ -1325,29 +1326,43 @@ const HeatMap = ({ user, onLogout }) => {
                           </div>
                         </div>
 
-                        {/* Additional Reference Images (if available) */}
-                        {referenceImages.length > 1 && (
-                          <div className="mt-3">
-                            <p className="text-xs font-medium text-gray-600 mb-2 text-center">
-                              Additional References:
-                            </p>
-                            <div className="grid grid-cols-3 gap-2">
-                              {referenceImages.slice(1, 4).map((img, idx) => (
-                                <div key={idx} className="relative border border-gray-300 rounded overflow-hidden">
-                                  <img 
-                                    src={img.url} 
-                                    alt={`${pestName} - ${img.stage}`}
-                                    className="w-full h-20 object-cover"
-                                    onError={(e) => e.target.style.display = 'none'}
-                                  />
-                                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 text-center">
-                                    {img.stage}
-                                  </div>
+                        {/* Reference Damage Section */}
+                        <div className="mt-4">
+                          <h4 className="text-sm font-semibold text-gray-800 mb-2 text-center">
+                            🌾 Reference Damage Pattern
+                          </h4>
+                          <div className="border-2 border-red-400 rounded-lg overflow-hidden shadow-md bg-white">
+                            {referenceDamageImage ? (
+                              <div className="relative">
+                                <img 
+                                  src={referenceDamageImage} 
+                                  alt={`Typical damage from ${pestName}`}
+                                  className="w-full h-64 object-cover"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                                <div className="hidden w-full h-64 flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                                  <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
+                                  <p className="text-gray-500 text-xs text-center px-4">
+                                    Reference damage image<br/>not available
+                                  </p>
                                 </div>
-                              ))}
-                            </div>
+                                <div className="absolute bottom-2 left-2 bg-red-900 bg-opacity-80 text-white text-xs px-2 py-1 rounded">
+                                  Typical {pestName} Damage
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="w-full h-64 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                                <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
+                                <p className="text-gray-500 text-xs text-center px-4">
+                                  Reference damage image<br/>not available
+                                </p>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
 
                         {/* Identification Tips */}
                         {identificationTips.length > 0 && (
@@ -1373,10 +1388,11 @@ const HeatMap = ({ user, onLogout }) => {
                             <div className="text-sm text-yellow-800">
                               <p className="font-semibold mb-1">💡 Comparison Tips:</p>
                               <ul className="list-disc list-inside space-y-0.5 text-xs">
-                                <li>Compare body color and patterns</li>
-                                <li>Check body shape and size</li>
-                                <li>Look for distinctive markings</li>
-                                <li>Verify antenna and leg structure</li>
+                                <li>Compare body color and patterns with reference pest</li>
+                                <li>Check body shape and size against reference</li>
+                                <li>Look for distinctive markings on the pest</li>
+                                <li>Compare damage patterns with reference damage</li>
+                                <li>Verify feeding marks and damage symptoms</li>
                               </ul>
                             </div>
                           </div>
@@ -1386,7 +1402,7 @@ const HeatMap = ({ user, onLogout }) => {
                       {/* Confirmation Question and Buttons */}
                       <div className="text-center">
                         <p className="text-lg font-medium text-gray-800 mb-4">
-                          Does your image match the reference pest?
+                          Does your image match the reference pest and damage pattern?
                         </p>
                         <div className="flex space-x-4">
                           <button
