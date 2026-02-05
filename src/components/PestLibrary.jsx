@@ -62,6 +62,37 @@ const PestDetailModal = ({ pest, onClose }) => {
             </div>
           )}
 
+          {/* Damage Image Section */}
+          {referenceData?.damageImage && (
+            <div className="mb-6">
+              <div className="flex items-center mb-3">
+                <ImageIcon className="w-5 h-5 text-red-600 mr-2" />
+                <h3 className="text-xl font-semibold text-gray-800">Typical Damage Pattern</h3>
+              </div>
+              <div className="border-2 border-red-400 rounded-lg overflow-hidden bg-gray-50">
+                <div className="aspect-video bg-gray-200 flex items-center justify-center">
+                  <img 
+                    src={referenceData.damageImage} 
+                    alt={`Damage caused by ${pest.name}`}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                  <div className="hidden flex-col items-center justify-center p-4 text-gray-500">
+                    <Bug className="w-16 h-16 mb-2" />
+                    <p className="text-sm">Damage image not available</p>
+                  </div>
+                </div>
+                <div className="p-3 bg-white">
+                  <p className="text-sm font-semibold text-red-700">Typical damage symptoms caused by {pest.name}</p>
+                  <p className="text-xs text-gray-600">Use this reference to identify pest damage in the field</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Identification Tips */}
           {referenceData?.identificationTips && (
             <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -150,9 +181,10 @@ const PestLibrary = ({ user, onLogout }) => {
 
     if (cropFilter && cropFilter !== 'all') {
       const cf = cropFilter.toLowerCase();
-      filtered = filtered.filter((pest) =>
-        (pest.crop_affected || '').toLowerCase().includes(cf)
-      );
+      filtered = filtered.filter((pest) => {
+        const cropAffected = (pest.crop_affected || '').toLowerCase();
+        return cropAffected.includes(cf) || cropAffected === cf;
+      });
     }
 
     if (searchQuery && searchQuery.trim() !== '') {
@@ -167,56 +199,102 @@ const PestLibrary = ({ user, onLogout }) => {
     setFilteredPests(filtered);
   };
 
-  // Sample pest data fallback
+  // Sample pest data fallback - Extended to match PEST_REFERENCE_DATA
   const samplePests = [
+    // Rice Pests
     {
-      id: 1,
+      id: 'stem-borer',
+      name: 'Stem Borer',
+      scientific_name: 'Scirpophaga incertulas',
+      crop_affected: 'Rice',
+      description: 'A major rice pest that bores into rice stems causing deadhearts and whiteheads.',
+      symptoms: 'Deadhearts in vegetative stage, whiteheads in reproductive stage, hollow stems with boring holes',
+      control_methods: 'Apply granular insecticides (cartap, fipronil), use light traps, remove affected plants, biological control with Trichogramma',
+      prevention: 'Use resistant varieties, proper planting timing, remove stubbles after harvest, maintain field sanitation'
+    },
+    {
+      id: 'whorl-maggot',
+      name: 'Whorl Maggot',
+      scientific_name: 'Hydrellia philippina',
+      crop_affected: 'Rice',
+      description: 'A small fly pest whose larvae create transparent patches on young rice leaves.',
+      symptoms: 'Transparent patches on young leaves, stunted growth, yellowing of central whorl leaves',
+      control_methods: 'Use resistant varieties, apply carbofuran granules, spray contact insecticides early morning',
+      prevention: 'Avoid over-fertilization with nitrogen, maintain proper water management, use certified seeds'
+    },
+    {
+      id: 'leaf-folder',
+      name: 'Leaf Folder',
+      scientific_name: 'Cnaphalocrocis medinalis',
+      crop_affected: 'Rice',
+      description: 'A moth whose larvae fold rice leaves longitudinally, creating tube-like structures.',
+      symptoms: 'Longitudinally folded leaves, white longitudinal streaks on leaves, reduced photosynthesis',
+      control_methods: 'Manual removal of folded leaves, spray with chlorantraniliprole or flubendiamide, use light traps',
+      prevention: 'Avoid excessive nitrogen, balanced fertilization, use resistant varieties, maintain field sanitation'
+    },
+    {
+      id: 'rice-bug',
+      name: 'Rice Bug',
+      scientific_name: 'Leptocorisa oratorius',
+      crop_affected: 'Rice',
+      description: 'A long slender bug that feeds on developing rice grains causing discoloration.',
+      symptoms: 'Discolored or empty grains, "buggy" grains with dark spots, reduced grain weight, unfilled grains',
+      control_methods: 'Spray with malathion or fenitrothion during milk to dough stage, hand collection in small fields',
+      prevention: 'Synchronous planting in area, remove weedy grasses around fields, use pheromone traps'
+    },
+    {
+      id: 'green-leafhopper',
+      name: 'Green Leafhopper',
+      scientific_name: 'Nephotettix virescens',
+      crop_affected: 'Rice',
+      description: 'A small bright green insect that transmits tungro virus to rice plants.',
+      symptoms: 'Yellowing and stunting (tungro disease), hopper burn, reduced tillering, orange-yellow discoloration',
+      control_methods: 'Use resistant varieties, apply imidacloprid or thiamethoxam, spray neem-based products',
+      prevention: 'Remove weeds and volunteer rice plants, use virus-free seeds, avoid excessive nitrogen'
+    },
+    {
+      id: 'brown-planthopper',
       name: 'Brown Planthopper',
       scientific_name: 'Nilaparvata lugens',
-      crop_affected: 'rice',
-      description:
-        'A serious rice pest that feeds on plant sap, causing hopper burn and transmitting viruses.',
-      symptoms:
-        'Yellowing and wilting of leaves, stunted growth, hopper burn appearance on leaves.',
-      control_methods:
-        'Use resistant varieties, apply insecticides (imidacloprid, buprofezin), maintain proper water management, introduce natural predators.',
-      prevention:
-        'Monitor fields regularly, avoid excessive nitrogen fertilizer, maintain balanced ecosystem with natural predators.',
+      crop_affected: 'Rice',
+      description: 'A serious rice pest that feeds on plant sap, causing hopper burn and transmitting viruses.',
+      symptoms: 'Yellowing and drying of plants (hopper burn), stunted growth, reduced tillering, plant death in severe cases',
+      control_methods: 'Use resistant varieties, apply buprofezin or pymetrozine, reduce nitrogen, encourage natural enemies',
+      prevention: 'Balanced fertilization, alternate wetting and drying, use resistant varieties, field sanitation'
     },
+    // Corn Pests
     {
-      id: 2,
-      name: 'Fall Armyworm',
+      id: 'armyworm',
+      name: 'Armyworm',
       scientific_name: 'Spodoptera frugiperda',
-      crop_affected: 'corn',
+      crop_affected: 'Corn',
       description: 'A destructive moth larva that feeds on corn leaves, stalks, and ears.',
-      symptoms: 'Irregular holes in leaves, sawdust-like frass near whorl, damaged tassels and ears.',
-      control_methods:
-        'Early morning hand-picking, apply Bt-based biopesticides, use chemical insecticides (chlorantraniliprole, emamectin benzoate).',
-      prevention: 'Crop rotation, remove crop residues, use pheromone traps, plant early maturing varieties.',
+      symptoms: 'Ragged holes in leaves, sawdust-like frass in whorl, damaged tassels and ears, skeletonized leaves',
+      control_methods: 'Early detection and hand-picking, Bt-based biopesticides, chlorantraniliprole, emamectin benzoate',
+      prevention: 'Early planting, crop rotation, remove crop residues, use pheromone traps, intercropping'
     },
     {
-      id: 3,
-      name: 'Rice Stem Borer',
-      scientific_name: 'Scirpophaga incertulas',
-      crop_affected: 'rice',
-      description: 'A major rice pest that bores into rice stems causing deadhearts and whiteheads.',
-      symptoms: 'Deadhearts in vegetative stage, whiteheads in reproductive stage, hollow stems.',
-      control_methods: 'Apply granular insecticides (cartap, fipronil), use light traps, remove affected plants.',
-      prevention: 'Use resistant varieties, proper timing of planting, remove stubbles after harvest, maintain field sanitation.',
-    },
-    {
-      id: 4,
-      name: 'Corn Borer',
+      id: 'asian-corn-borer',
+      name: 'Asian Corn Borer',
       scientific_name: 'Ostrinia furnacalis',
-      crop_affected: 'corn',
+      crop_affected: 'Corn',
       description: 'A lepidopteran pest that tunnels into corn stalks and ears.',
-      symptoms: 'Shot-hole appearance on leaves, entry holes on stalks, broken tassels, damaged kernels.',
-      control_methods: 'Apply Bt corn varieties, use granular insecticides in whorl, spray chemical insecticides.',
-      prevention: 'Plant Bt corn, destroy crop residues, proper crop rotation, early planting.',
-    },
+      symptoms: 'Shot-hole appearance on leaves, entry holes in stalks, broken tassels, damaged kernels, lodging',
+      control_methods: 'Bt corn varieties, apply granular insecticides in whorl (carbofuran), trichogramma wasps',
+      prevention: 'Plant Bt corn, destroy crop residues, proper crop rotation, remove volunteer corn, early planting'
+    }
   ];
 
-  const displayPests = filteredPests.length > 0 ? filteredPests : samplePests;
+  const displayPests = filteredPests.length > 0 ? filteredPests : 
+    (cropFilter === 'all' ? samplePests : 
+      samplePests.filter(p => p.crop_affected.toLowerCase() === cropFilter.toLowerCase()))
+    .filter(p => {
+      if (!searchQuery || searchQuery.trim() === '') return true;
+      const q = searchQuery.toLowerCase();
+      const name = (p.name || '').toLowerCase();
+      const sci = (p.scientific_name || '').toLowerCase();
+      return name.includes(q) || sci.includes(q);
+    });
 
   return (
     <div className="min-h-screen bg-gray-50">
