@@ -595,19 +595,25 @@ const HeatMap = ({ user, onLogout }) => {
     formData.append('latitude', location.latitude);
     formData.append('longitude', location.longitude);
     formData.append('address', 'Detected Location');
+    // Add flag to tell backend this is preview-only, don't save yet
+    formData.append('preview_only', 'true');
 
     try {
-      const response = await api.post('/detections/', formData, {
+      const response = await api.post('/detections/preview/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      if (response.status === 201 && response.data) {
+      if (response.status === 200 && response.data) {
         const pestName = response.data.pest_name || response.data.pest;
         
         if (pestName && pestName !== 'Unknown Pest' && pestName !== '') {
-          setDetectionResult(response.data);
+          // Store the ML result without saving to database
+          setDetectionResult({
+            ...response.data,
+            isPreview: true // Mark as preview to avoid confusion
+          });
           setDetectionStep('confirm');
         } else {
           setDetectionError('No pest detected in the image. Please try another image with clearer pest visibility.');
@@ -637,16 +643,7 @@ const HeatMap = ({ user, onLogout }) => {
     if (isCorrect) {
       setDetectionStep('assessment');
     } else {
-      // User rejected the detection - delete it from database
-      if (detectionResult && detectionResult.id) {
-        try {
-          await api.delete(`/detections/${detectionResult.id}/`);
-          console.log(`Deleted incorrect detection ID: ${detectionResult.id}`);
-        } catch (error) {
-          console.error('Error deleting rejected detection:', error);
-          // Continue even if delete fails - user can try again
-        }
-      }
+      // User rejected the detection - it was never saved, so just reset
       setDetectionError('Please try another image with a clearer view of the pest.');
       setDetectionStep('upload');
       setDetectionResult(null);
@@ -673,10 +670,23 @@ const HeatMap = ({ user, onLogout }) => {
 
       const severity = severityMap[damageLevel] || 'medium';
 
-      await api.patch(`/detections/${detectionResult.id}/`, {
-        severity: severity,
-        active: true,
-        farm_id: selectedFarm
+      // Create the detection for the first time (not patching)
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+      formData.append('crop_type', detectionResult.crop_type || 'auto');
+      formData.append('pest_name', detectionResult.pest_name || detectionResult.pest);
+      formData.append('confidence', detectionResult.confidence || 0);
+      formData.append('severity', severity);
+      formData.append('active', 'true');
+      formData.append('farm_id', selectedFarm);
+      formData.append('latitude', location.latitude);
+      formData.append('longitude', location.longitude);
+      formData.append('address', 'Detected Location');
+
+      await api.post('/detections/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       setDetectionStep('success');
@@ -694,16 +704,7 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const closeDetectionModal = async () => {
-    // If there's an unconfirmed detection (still in 'confirm' step), delete it
-    if (detectionStep === 'confirm' && detectionResult && detectionResult.id) {
-      try {
-        await api.delete(`/detections/${detectionResult.id}/`);
-        console.log(`Deleted unconfirmed detection on modal close ID: ${detectionResult.id}`);
-      } catch (error) {
-        console.error('Error deleting unconfirmed detection on close:', error);
-      }
-    }
-    
+    // No need to delete anything - detections are only saved after user confirmation
     setShowDetectionModal(false);
     setDetectionStep('upload');
     setSelectedImage(null);
