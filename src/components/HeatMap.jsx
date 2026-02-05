@@ -109,6 +109,54 @@ const HeatMap = ({ user, onLogout }) => {
 
   const center = [15.2047, 120.5947];
 
+  // Function to calculate offset position for overlapping detections
+  const getOffsetPosition = (detection, allDetections, index) => {
+    if (!detection.farm_id) {
+      // No farm assigned, use original position
+      return {
+        lat: parseFloat(detection.lat || detection.latitude),
+        lng: parseFloat(detection.lng || detection.longitude)
+      };
+    }
+
+    // Get all detections for the same farm
+    const farmDetections = allDetections.filter(d => 
+      d.farm_id === detection.farm_id && 
+      d.id !== detection.id &&
+      d.lat !== null && d.lng !== null
+    );
+
+    if (farmDetections.length === 0) {
+      // Only detection on this farm, use original position
+      return {
+        lat: parseFloat(detection.lat || detection.latitude),
+        lng: parseFloat(detection.lng || detection.longitude)
+      };
+    }
+
+    // Find the index of this detection among all farm detections
+    const allFarmDetections = allDetections
+      .filter(d => d.farm_id === detection.farm_id)
+      .sort((a, b) => a.id - b.id); // Sort by ID for consistent positioning
+    
+    const detectionIndex = allFarmDetections.findIndex(d => d.id === detection.id);
+    const totalDetections = allFarmDetections.length;
+
+    // Calculate offset in meters (about 50-100 meters apart)
+    const baseOffsetMeters = 80;
+    const offsetDistance = baseOffsetMeters / 111320; // Convert meters to degrees (approximately)
+    
+    // Arrange in a circle around the farm center
+    const angle = (detectionIndex / totalDetections) * 2 * Math.PI;
+    const offsetLat = Math.cos(angle) * offsetDistance;
+    const offsetLng = Math.sin(angle) * offsetDistance;
+
+    return {
+      lat: parseFloat(detection.lat || detection.latitude) + offsetLat,
+      lng: parseFloat(detection.lng || detection.longitude) + offsetLng
+    };
+  };
+
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -843,13 +891,12 @@ const HeatMap = ({ user, onLogout }) => {
                   }
                   return true;
                 })
-                .map((detection) => {
-                  // API returns 'lat' and 'lng'
-                  const lat = parseFloat(detection.lat || detection.latitude);
-                  const lng = parseFloat(detection.lng || detection.longitude);
+                .map((detection, index, allDetections) => {
+                  // Calculate offset position to prevent overlapping
+                  const position = getOffsetPosition(detection, allDetections, index);
                   
                   // Double safety check
-                  if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+                  if (isNaN(position.lat) || isNaN(position.lng) || !isFinite(position.lat) || !isFinite(position.lng)) {
                     console.error('❌ Skipping detection with invalid coords in map:', detection);
                     return null;
                   }
@@ -865,7 +912,7 @@ const HeatMap = ({ user, onLogout }) => {
                   return (
                     <Circle
                       key={detection.id}
-                      center={[lat, lng]}
+                      center={[position.lat, position.lng]}
                       radius={radius}
                       pathOptions={{
                         fillColor: color,
@@ -881,6 +928,11 @@ const HeatMap = ({ user, onLogout }) => {
                           <p className="text-xs text-gray-600">
                             {new Date(detection.detected_at || detection.reported_at).toLocaleDateString()}
                           </p>
+                          {detection.farm_id && (
+                            <p className="text-xs text-blue-600 mt-1">
+                              📍 Farm detection (may be offset for visibility)
+                            </p>
+                          )}
                         </div>
                       </Popup>
                     </Circle>
