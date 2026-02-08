@@ -3,6 +3,25 @@ import { User, Mail, Phone, Calendar, MapPin, Camera, Settings, Lock, Bell, X, S
 import Navigation from './Navigation';
 import api from '../utils/api';
 
+
+// Helper function to get full image URL
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  
+  // If it's already a full URL, return as is
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  
+  // If it's a relative path, prepend the backend URL
+  const backendUrl = import.meta.env.VITE_API_URL || 'https://pestcheck-api.onrender.com';
+  
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+  
+  return `${backendUrl}/${cleanPath}`;
+};
+
 const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
@@ -654,8 +673,12 @@ const Profile = ({ user, onLogout }) => {
                         
                         {detection.image && (
                           <img
-                            src={detection.image}
+                            src={getImageUrl(detection.image)}
                             alt={detection.pest_name}
+                            onError={(e) => {
+                              console.error('Failed to load image:', detection.image);
+                              e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjZTVlN2ViIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
+                            }}
                             className="w-24 h-24 object-cover rounded-lg ml-4"
                           />
                         )}
