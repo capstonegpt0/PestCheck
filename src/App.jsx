@@ -19,6 +19,10 @@ import AdminAlerts from './components/admin/AdminAlerts';
 import AdminActivities from './components/admin/AdminActivities';
 import AdminFarmRequests from './components/admin/AdminFarmrequests';
 
+// PWA Components
+import PWAInstallPrompt from './components/PWAInstallPrompt'
+import OfflineIndicator from './components/OfflineIndicator'
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -93,6 +97,10 @@ function App() {
 
   return (
     <Router>
+      {/* PWA Components - Add these at the top level */}
+      <OfflineIndicator />
+      <PWAInstallPrompt />
+      
       <Routes>
         {/* Public Routes */}
         <Route
