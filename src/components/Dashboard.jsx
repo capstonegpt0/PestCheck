@@ -9,14 +9,14 @@ const Dashboard = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
       
-      {/* ✅ NEW: Proximity Alert Notifications */}
+      {/*  NEW: Proximity Alert Notifications */}
       <AlertNotifications user={user} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow-lg p-8 mb-8 text-white">
           <h1 className="text-4xl font-bold mb-2">
-            Welcome back, {user.first_name || user.username}! ðŸ‘‹
+            Welcome back, {user.first_name || user.username}! 
           </h1>
           <p className="text-lg text-green-100">
             Ready to protect your crops? Choose an option below to get started.
@@ -80,7 +80,7 @@ const Dashboard = ({ user, onLogout }) => {
         {/* Info Section */}
         <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-blue-900 mb-3">
-            ðŸ’¡ How to use PestCheck
+             How to use PestCheck
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
             <div>
@@ -97,15 +97,15 @@ const Dashboard = ({ user, onLogout }) => {
 
         {/* Feature Highlight */}
         <div className="mt-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
-          <h3 className="text-xl font-semibold mb-2">ðŸŽ¯ New Feature: Integrated Detection</h3>
+          <h3 className="text-xl font-semibold mb-2"> New Feature: Integrated Detection</h3>
           <p className="text-blue-100">
             Detection is now integrated into the Heat Map! Click the "Detect Pest" button on the Heat Map page to:
           </p>
           <ul className="mt-3 space-y-1 text-blue-100">
-            <li>â€¢ Upload or capture pest images directly</li>
-            <li>â€¢ Confirm AI detections before saving</li>
-            <li>â€¢ Assess damage levels from 0 (healthy) to 5 (critical)</li>
-            <li>â€¢ Instantly see detections on the map</li>
+            <li> Upload or capture pest images directly</li>
+            <li> Confirm AI detections before saving</li>
+            <li> Assess damage levels from 0 (healthy) to 5 (critical)</li>
+            <li> Instantly see detections on the map</li>
           </ul>
         </div>
       </div>
