@@ -1,7 +1,6 @@
-// src/components/OfflineIndicator.jsx
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
-export default function OfflineIndicator() {
+const OfflineIndicator = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -29,4 +28,6 @@ export default function OfflineIndicator() {
       </div>
     </div>
   );
-}
+};
+
+export default OfflineIndicator;

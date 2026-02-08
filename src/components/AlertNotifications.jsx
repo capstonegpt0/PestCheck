@@ -23,9 +23,31 @@ const AlertNotifications = ({ user }) => {
   const fetchAlerts = async () => {
     try {
       const response = await api.get('/alerts/my_alerts/');
-      setAlerts(response.data || []);
+      console.log('✅ API Response:', response.data);
+      
+      // Handle both array and object responses
+      let alertsData = [];
+      if (Array.isArray(response.data)) {
+        alertsData = response.data;
+      } else if (response.data && typeof response.data === 'object') {
+        // If it's an object, try to extract alerts from common keys
+        if (response.data.alerts) {
+          alertsData = Array.isArray(response.data.alerts) ? response.data.alerts : [];
+        } else if (response.data.results) {
+          alertsData = Array.isArray(response.data.results) ? response.data.results : [];
+        } else if (response.data.data) {
+          alertsData = Array.isArray(response.data.data) ? response.data.data : [];
+        } else {
+          // If it's a single alert object, wrap it in array
+          alertsData = [response.data];
+        }
+      }
+      
+      setAlerts(alertsData);
     } catch (error) {
       console.error('Error fetching alerts:', error);
+      // Don't show error to user - just fail silently for alerts
+      setAlerts([]);
     } finally {
       setLoading(false);
     }
@@ -79,8 +101,10 @@ const AlertNotifications = ({ user }) => {
     }
   };
 
-  // Filter out dismissed alerts
-  const activeAlerts = alerts.filter(alert => !dismissedAlerts.includes(alert.id));
+  // Filter out dismissed alerts - safely handle if alerts is not an array
+  const activeAlerts = Array.isArray(alerts) 
+    ? alerts.filter(alert => !dismissedAlerts.includes(alert.id))
+    : [];
 
   if (loading) {
     return null;

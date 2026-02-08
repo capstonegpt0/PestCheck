@@ -1,7 +1,6 @@
-// src/components/PWAInstallPrompt.jsx
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
-export default function PWAInstallPrompt() {
+const PWAInstallPrompt = () => {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -63,7 +62,7 @@ export default function PWAInstallPrompt() {
 
   if (isInstalled) {
     return (
-      <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
+      <div className="fixed bottom-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg md:bottom-4">
         <p className="text-sm font-medium">✓ App Installed</p>
       </div>
     );
@@ -72,7 +71,7 @@ export default function PWAInstallPrompt() {
   if (!showPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white rounded-lg shadow-2xl border border-gray-200 p-4 z-50">
+    <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-auto md:right-4 md:w-96 bg-white rounded-lg shadow-2xl border border-gray-200 p-4 z-50">
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0">
           <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
@@ -117,4 +116,6 @@ export default function PWAInstallPrompt() {
       </div>
     </div>
   );
-}
+};
+
+export default PWAInstallPrompt;
