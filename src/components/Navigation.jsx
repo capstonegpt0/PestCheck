@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Camera, Map, Book, User, LogOut, Bug, Menu, X } from 'lucide-react';
+import { Home, Map, Book, User, LogOut, Bug, Menu, X } from 'lucide-react';
 
 const Navigation = ({ user, onLogout }) => {
   const location = useLocation();
@@ -8,7 +8,6 @@ const Navigation = ({ user, onLogout }) => {
   
   const navItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/detect', icon: Camera, label: 'Detect' },
     { path: '/heatmap', icon: Map, label: 'Heat Map' },
     { path: '/pests', icon: Book, label: 'Pest Library' },
     { path: '/profile', icon: User, label: 'Profile' },
