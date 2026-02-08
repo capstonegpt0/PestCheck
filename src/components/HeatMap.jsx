@@ -1255,7 +1255,7 @@ const HeatMap = ({ user, onLogout }) => {
                   <div className="py-12 text-center">
                     <Loader className="w-16 h-16 text-green-600 animate-spin mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-gray-800 mb-2">Analyzing Image...</h3>
-                    <p className="text-gray-600">Our AI is identifying the pest</p>
+                    <p className="text-gray-600">this will take a moment</p>
                   </div>
                 )}
 
