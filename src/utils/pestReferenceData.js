@@ -217,29 +217,68 @@ export const PEST_REFERENCE_DATA = {
   }
 };
 
-// Helper function to get pest data by ID
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Normalize pest name for matching
+ * Converts to lowercase, removes spaces/hyphens/underscores
+ */
+const normalizePestName = (name) => {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[\s\-_]+/g, ''); // Remove spaces, hyphens, underscores
+};
+
+/**
+ * Get pest data by ID with flexible matching
+ * Handles various name formats: "Stem Borer", "stem-borer", "stem borer", "stemborer"
+ */
 export const getPestById = (pestId) => {
   if (!pestId) return null;
   
-  // Normalize pest ID (handle different formats)
-  const normalizedId = pestId.toLowerCase().trim();
+  console.log('🔍 Looking for pest:', pestId);
   
-  // Direct match
-  if (PEST_REFERENCE_DATA[normalizedId]) {
-    return PEST_REFERENCE_DATA[normalizedId];
+  // Normalize the input ID
+  const normalizedInput = normalizePestName(pestId);
+  console.log('📝 Normalized input:', normalizedInput);
+  
+  // Try exact match on ID first
+  const directMatch = PEST_REFERENCE_DATA[pestId.toLowerCase().trim()];
+  if (directMatch) {
+    console.log('✅ Direct match found:', directMatch.name);
+    return directMatch;
   }
   
-  // Try to find by name match
-  const pestEntry = Object.values(PEST_REFERENCE_DATA).find(pest => 
-    pest.name.toLowerCase() === normalizedId ||
-    pest.scientificName.toLowerCase() === normalizedId ||
-    pest.id.toLowerCase() === normalizedId
-  );
+  // Try to find by normalized name matching
+  const pestEntry = Object.values(PEST_REFERENCE_DATA).find(pest => {
+    const normalizedPestName = normalizePestName(pest.name);
+    const normalizedPestId = normalizePestName(pest.id);
+    const normalizedScientificName = normalizePestName(pest.scientificName);
+    
+    const isMatch = normalizedPestName === normalizedInput ||
+                   normalizedPestId === normalizedInput ||
+                   normalizedScientificName === normalizedInput;
+    
+    if (isMatch) {
+      console.log('✅ Match found:', pest.name);
+    }
+    
+    return isMatch;
+  });
+  
+  if (!pestEntry) {
+    console.log('❌ No match found for:', pestId);
+    console.log('Available pests:', Object.keys(PEST_REFERENCE_DATA));
+  }
   
   return pestEntry || null;
 };
 
-// Helper function to get all pests for a crop
+/**
+ * Get all pests for a specific crop
+ */
 export const getPestsByCrop = (crop) => {
   if (!crop) return Object.values(PEST_REFERENCE_DATA);
   
@@ -249,7 +288,9 @@ export const getPestsByCrop = (crop) => {
   );
 };
 
-// Helper function to search pests
+/**
+ * Search pests by query string
+ */
 export const searchPests = (query) => {
   if (!query || query.trim() === '') {
     return Object.values(PEST_REFERENCE_DATA);
@@ -261,6 +302,17 @@ export const searchPests = (query) => {
     pest.scientificName.toLowerCase().includes(normalizedQuery) ||
     pest.symptoms.toLowerCase().includes(normalizedQuery)
   );
+};
+
+/**
+ * Get all pest names (useful for debugging)
+ */
+export const getAllPestNames = () => {
+  return Object.values(PEST_REFERENCE_DATA).map(pest => ({
+    id: pest.id,
+    name: pest.name,
+    scientificName: pest.scientificName
+  }));
 };
 
 export default PEST_REFERENCE_DATA;
