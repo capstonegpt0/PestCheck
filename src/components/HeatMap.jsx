@@ -1296,62 +1296,74 @@ const HeatMap = ({ user, onLogout }) => {
                         <h4 className="text-base font-semibold text-gray-800 mb-3 text-center">
                           📸 Visual Comparison
                         </h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* User's Captured Image */}
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium text-center text-blue-700">Your Captured Image</p>
-                            <div className="border-2 border-blue-400 rounded-lg overflow-hidden shadow-md bg-white">
-                              {imagePreview ? (
-                                <img 
-                                  src={imagePreview} 
-                                  alt="Your captured pest" 
-                                  className="w-full h-48 object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-48 flex items-center justify-center bg-gray-100">
-                                  <p className="text-gray-400 text-sm">Image not available</p>
-                                </div>
-                              )}
-                            </div>
+                        
+                        {/* User's Captured Image */}
+                        <div className="space-y-2 mb-4">
+                          <p className="text-sm font-medium text-center text-blue-700">Your Captured Image</p>
+                          <div className="border-2 border-blue-400 rounded-lg overflow-hidden shadow-md bg-white">
+                            {imagePreview ? (
+                              <img 
+                                src={imagePreview} 
+                                alt="Your captured pest" 
+                                className="w-full h-48 object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-48 flex items-center justify-center bg-gray-100">
+                                <p className="text-gray-400 text-sm">Image not available</p>
+                              </div>
+                            )}
                           </div>
+                        </div>
 
-                          {/* Reference Image from Pest Database */}
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium text-center text-green-700">Reference Pest</p>
-                            <div className="border-2 border-green-400 rounded-lg overflow-hidden shadow-md bg-white">
-                              {referenceImages.length > 0 ? (
-                                <div className="relative">
-                                  <img 
-                                    src={referenceImages[0].url} 
-                                    alt={`Reference: ${pestName}`}
-                                    className="w-full h-48 object-cover"
-                                    onError={(e) => {
-                                      e.target.style.display = 'none';
-                                      e.target.nextSibling.style.display = 'flex';
-                                    }}
-                                  />
-                                  <div className="hidden w-full h-48 flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                                    <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
-                                    <p className="text-gray-500 text-xs text-center px-4">
-                                      Reference image<br/>not available
-                                    </p>
-                                  </div>
-                                  {referenceImages[0].stage && (
-                                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                                      {referenceImages[0].stage}
+                        {/* Reference Images from Pest Database */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-center text-green-700">
+                            {referenceImages.length > 1 ? 'Reference Images' : 'Reference Pest'}
+                          </p>
+                          {referenceImages.length > 0 ? (
+                            <div className={`grid ${referenceImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+                              {referenceImages.map((refImg, idx) => (
+                                <div key={idx} className="border-2 border-green-400 rounded-lg overflow-hidden shadow-md bg-white">
+                                  <div className="relative">
+                                    <img 
+                                      src={refImg.url} 
+                                      alt={`Reference: ${pestName} (${refImg.stage || ''})`}
+                                      className="w-full h-40 object-cover"
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'flex';
+                                      }}
+                                    />
+                                    <div className="hidden w-full h-40 flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                                      <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
+                                      <p className="text-gray-500 text-xs text-center px-4">
+                                        Reference image<br/>not available
+                                      </p>
                                     </div>
+                                    {refImg.stage && (
+                                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded capitalize">
+                                        {refImg.stage}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {refImg.description && (
+                                    <p className="text-xs text-gray-500 text-center py-1 px-2 bg-gray-50 border-t border-gray-100">
+                                      {refImg.description}
+                                    </p>
                                   )}
                                 </div>
-                              ) : (
-                                <div className="w-full h-48 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                                  <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
-                                  <p className="text-gray-500 text-xs text-center px-4">
-                                    Reference image<br/>not available
-                                  </p>
-                                </div>
-                              )}
+                              ))}
                             </div>
-                          </div>
+                          ) : (
+                            <div className="border-2 border-green-400 rounded-lg overflow-hidden shadow-md bg-white">
+                              <div className="w-full h-40 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                                <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
+                                <p className="text-gray-500 text-xs text-center px-4">
+                                  Reference image<br/>not available
+                                </p>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Reference Damage Section */}
