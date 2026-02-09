@@ -494,7 +494,7 @@ const HeatMap = ({ user, onLogout }) => {
 
   const resolveInfestation = async () => {
     if (!selectedInfestationToResolve) {
-      alert('No infestation selected');
+      console.warn('No infestation selected');
       return;
     }
 
@@ -505,7 +505,6 @@ const HeatMap = ({ user, onLogout }) => {
       
       if (!detectionToResolve) {
         console.error('Detection not found in local state');
-        alert('Error: Detection not found. Please refresh the page.');
         setShowResolveConfirm(false);
         setSelectedInfestationToResolve(null);
         return;
@@ -539,11 +538,8 @@ const HeatMap = ({ user, onLogout }) => {
       setShowResolveConfirm(false);
       setSelectedInfestationToResolve(null);
       
-      alert('Infestation marked as resolved!');
-      
     } catch (error) {
       console.error('Error resolving infestation:', error);
-      alert('Failed to resolve infestation. Please try again.');
     }
   };
 
