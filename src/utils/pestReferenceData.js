@@ -169,14 +169,14 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Corn',
     referenceImages: [
       {
-        url: `${PEST_IMAGES_BASE}/armywormoth.jpg`,
-        stage: 'adult',
-        description: 'Adult moth - brown with mottled patterns'
-      },
-      {
         url: `${PEST_IMAGES_BASE}/armyworm.jpg`,
         stage: 'larva',
         description: 'Larva/caterpillar - green to brown with stripes'
+      },
+      {
+        url: `${PEST_IMAGES_BASE}/armywormoth.jpg`,
+        stage: 'adult',
+        description: 'Adult moth - brown with mottled patterns'
       }
     ],
     damageImage: `${DAMAGE_IMAGES_BASE}/armywormdamage.jpg`,
@@ -199,14 +199,14 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Corn',
     referenceImages: [
       {
-        url: `${PEST_IMAGES_BASE}/armywormoth.jpg`,
-        stage: 'adult',
-        description: 'Adult moth - brown with mottled patterns'
-      },
-      {
         url: `${PEST_IMAGES_BASE}/armyworm.jpg`,
         stage: 'larva',
         description: 'Caterpillar with distinctive Y marking on head'
+      },
+      {
+        url: `${PEST_IMAGES_BASE}/armywormoth.jpg`,
+        stage: 'adult',
+        description: 'Adult moth - brown with mottled patterns'
       }
     ],
     damageImage: `${DAMAGE_IMAGES_BASE}/armywormdamage.jpg`,
@@ -229,14 +229,14 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Corn',
     referenceImages: [
       {
-        url: `${PEST_IMAGES_BASE}/cornborermoth.jpg`,
-        stage: 'adult',
-        description: 'Adult moth - yellowish-brown with wavy patterns'
-      },
-      {
         url: `${PEST_IMAGES_BASE}/cornborerlarvae.jpg`,
         stage: 'larva',
         description: 'Larva inside corn stalk - pinkish-white with brown head'
+      },
+      {
+        url: `${PEST_IMAGES_BASE}/cornborermoth.jpg`,
+        stage: 'adult',
+        description: 'Adult moth - yellowish-brown with wavy patterns'
       }
     ],
     damageImage: `${DAMAGE_IMAGES_BASE}/cornborerlarvaedamage.jpg`,
