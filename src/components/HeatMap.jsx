@@ -103,6 +103,7 @@ const HeatMap = ({ user, onLogout }) => {
   const [detectionError, setDetectionError] = useState(null);
   const [damageLevel, setDamageLevel] = useState(2);
   const [selectedFarm, setSelectedFarm] = useState(null);
+  const [locationChoice, setLocationChoice] = useState('farm'); // 'farm' or 'current'
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
 
@@ -676,7 +677,7 @@ const HeatMap = ({ user, onLogout }) => {
 
       const severity = severityMap[damageLevel] || 'medium';
 
-      // Get the selected farm's coordinates so the heatmap pin lands on the farm
+      // Set coordinates based on user's location choice
       const farm = farms.find(f => f.id === selectedFarm);
       const updateData = {
         severity: severity,
@@ -685,11 +686,16 @@ const HeatMap = ({ user, onLogout }) => {
         farm_id: selectedFarm
       };
 
-      // If farm has valid coordinates, update detection location to the farm
-      if (farm && farm.lat && farm.lng) {
+      if (locationChoice === 'farm' && farm && farm.lat && farm.lng) {
+        // Pin on the farm's location
         updateData.latitude = parseFloat(farm.lat);
         updateData.longitude = parseFloat(farm.lng);
+      } else if (locationChoice === 'current' && location) {
+        // Pin on user's current GPS location
+        updateData.latitude = location.latitude;
+        updateData.longitude = location.longitude;
       }
+      // If neither condition met, the original detection coordinates (from upload) remain
 
       // Update the existing detection record to confirm it
       await api.patch(`/detections/${detectionResult.id}/`, updateData);
@@ -727,6 +733,7 @@ const HeatMap = ({ user, onLogout }) => {
     setDetectionError(null);
     setDamageLevel(2);
     setSelectedFarm(null);
+    setLocationChoice('farm');
   };
 
   const getDamageLevelText = (level) => {
@@ -1484,7 +1491,46 @@ const HeatMap = ({ user, onLogout }) => {
                       </h3>
                     </div>
 
-                    {/* Farm Selection */}
+                    {/* Location Choice */}
+                    <div>
+                      <label className="block text-lg font-medium text-gray-800 mb-3">
+                        📍 Pin Location <span className="text-red-500">*</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <button
+                          type="button"
+                          onClick={() => setLocationChoice('farm')}
+                          className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                            locationChoice === 'farm'
+                              ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <MapPin className={`w-6 h-6 mb-1 ${locationChoice === 'farm' ? 'text-green-600' : 'text-gray-400'}`} />
+                          <span className={`text-sm font-semibold ${locationChoice === 'farm' ? 'text-green-700' : 'text-gray-600'}`}>
+                            Farm Location
+                          </span>
+                          <span className="text-xs text-gray-500 mt-0.5">Pin on your farm</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLocationChoice('current')}
+                          className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                            locationChoice === 'current'
+                              ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <Activity className={`w-6 h-6 mb-1 ${locationChoice === 'current' ? 'text-blue-600' : 'text-gray-400'}`} />
+                          <span className={`text-sm font-semibold ${locationChoice === 'current' ? 'text-blue-700' : 'text-gray-600'}`}>
+                            Current Location
+                          </span>
+                          <span className="text-xs text-gray-500 mt-0.5">Use GPS coordinates</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Farm Selection - shown for both choices */}
                     <div>
                       <label className="block text-lg font-medium text-gray-800 mb-2">
                         Select Farm <span className="text-red-500">*</span>
@@ -1496,7 +1542,6 @@ const HeatMap = ({ user, onLogout }) => {
                         required
                       >
                         <option value="">Choose a farm...</option>
-                        {/* ✅ UPDATED: Only show farms owned by the current user */}
                         {farms.filter(farm => farm.user_name === user.username).map(farm => (
                           <option key={farm.id} value={farm.id}>
                             {farm.name} - {farm.crop_type} ({farm.size} hectares)
@@ -1511,6 +1556,21 @@ const HeatMap = ({ user, onLogout }) => {
                           <p className="text-sm text-yellow-800">
                             ⚠️ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
                           </p>
+                        </div>
+                      )}
+
+                      {/* Location info hint */}
+                      {selectedFarm && (
+                        <div className={`mt-2 rounded-lg p-3 text-sm ${
+                          locationChoice === 'farm' 
+                            ? 'bg-green-50 border border-green-200 text-green-800' 
+                            : 'bg-blue-50 border border-blue-200 text-blue-800'
+                        }`}>
+                          {locationChoice === 'farm' ? (
+                            <p>📍 Detection will be pinned at <span className="font-semibold">{farms.find(f => f.id === selectedFarm)?.name || 'selected farm'}</span>'s location on the map.</p>
+                          ) : (
+                            <p>📍 Detection will be pinned at your <span className="font-semibold">current GPS location</span> ({location ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` : 'loading...'}).</p>
+                          )}
                         </div>
                       )}
                     </div>
