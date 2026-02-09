@@ -1,8 +1,11 @@
-// Pest Reference Images and Data - UPDATED WITH WORKING URLS
-// File: src/utils/pestReferenceData.js
+// Pest Reference Images and Data
+// File: frontend/src/utils/pestReferenceData.js
 // 
-// IMPORTANT: These are placeholder images. Replace with actual pest images!
-// See REFERENCE_IMAGES_FIX.md for instructions on adding real images
+// IMPORTANT: Update BACKEND_URL to match your deployed backend
+// Local: http://localhost:8000
+// Production: https://pestcheck-backend.onrender.com (or your actual URL)
+
+const BACKEND_URL = 'https://pestcheck-backend.onrender.com'; // ⚠️ UPDATE THIS!
 
 export const PEST_REFERENCE_DATA = {
   // ==================== RICE PESTS ====================
@@ -14,12 +17,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: 'https://images.unsplash.com/photo-1593460375559-c9c5d9f45793?w=400&h=300&fit=crop',
+        url: `${BACKEND_URL}/static/pests/stemborer.jpg`,
         stage: 'adult',
         description: 'Adult moth - yellowish-white with brown markings'
       }
     ],
-    damageImage: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=300&fit=crop',
+    damageImage: `${BACKEND_URL}/static/damage/stemborerdamage.jpg`,
     identificationTips: [
       'Yellowish-white moth with triangular shape',
       'Dark spots and streaks on forewings',
@@ -39,12 +42,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: 'https://images.unsplash.com/photo-1503777119540-ce54b422baff?w=400&h=300&fit=crop',
+        url: `${BACKEND_URL}/static/pests/whorlmaggot.jpg`,
         stage: 'adult',
         description: 'Small fly with shiny metallic appearance'
       }
     ],
-    damageImage: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=300&fit=crop',
+    damageImage: `${BACKEND_URL}/static/damage/whorlmaggotdamage.jpg`,
     identificationTips: [
       'Very small fly (2-3mm)',
       'Shiny black or metallic green/blue color',
@@ -64,12 +67,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: 'https://images.unsplash.com/photo-1534723328310-e82dad3ee43f?w=400&h=300&fit=crop',
+        url: `${BACKEND_URL}/static/pests/leaffolder.jpg`,
         stage: 'adult',
         description: 'Moth with brown wings and wavy white/cream patterns'
       }
     ],
-    damageImage: 'https://images.unsplash.com/photo-1592921870583-25f1e2f0c40a?w=400&h=300&fit=crop',
+    damageImage: `${BACKEND_URL}/static/damage/leaffolderdamage.jpg`,
     identificationTips: [
       'Brown moth with distinctive wavy patterns',
       'White or cream colored lines across wings',
@@ -89,12 +92,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: 'https://images.unsplash.com/photo-1516486392848-8b67ef89f113?w=400&h=300&fit=crop',
+        url: `${BACKEND_URL}/static/pests/ricebug.jpg`,
         stage: 'adult',
         description: 'Long slender bug, brown to reddish-brown'
       }
     ],
-    damageImage: 'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=400&h=300&fit=crop',
+    damageImage: `${BACKEND_URL}/static/damage/ricebugdamage.jpg`,
     identificationTips: [
       'Long slender body (15-20mm)',
       'Brown to reddish-brown color',
@@ -114,12 +117,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: 'https://images.unsplash.com/photo-1535083783855-76ae62b2914e?w=400&h=300&fit=crop',
+        url: `${BACKEND_URL}/static/pests/greenleafhopper.jpg`,
         stage: 'adult',
         description: 'Bright green body with distinctive black markings'
       }
     ],
-    damageImage: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=400&h=300&fit=crop',
+    damageImage: `${BACKEND_URL}/static/damage/greenleafhopperdamage.jpg`,
     identificationTips: [
       'Bright green color',
       'Black markings on head and thorax',
@@ -139,12 +142,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: 'https://images.unsplash.com/photo-1602250988341-d0ae1368b5f2?w=400&h=300&fit=crop',
+        url: `${BACKEND_URL}/static/pests/brownplanthopper.jpg`,
         stage: 'adult',
         description: 'Small brown insect with transparent wings'
       }
     ],
-    damageImage: 'https://images.unsplash.com/photo-1516486392848-8b67ef89f113?w=400&h=300&fit=crop',
+    damageImage: `${BACKEND_URL}/static/damage/planthopperdamage.jpg`,
     identificationTips: [
       'Small brown insect (3-4mm)',
       'Transparent wings held roof-like over body',
@@ -166,17 +169,17 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Corn',
     referenceImages: [
       {
-        url: 'https://images.unsplash.com/photo-1534550055-3705ceec7f67?w=400&h=300&fit=crop',
+        url: `${BACKEND_URL}/static/pests/armywormoth.jpg`,
         stage: 'adult',
         description: 'Adult moth - brown with mottled patterns'
       },
       {
-        url: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=400&h=300&fit=crop',
+        url: `${BACKEND_URL}/static/pests/armyworm.jpg`,
         stage: 'larva',
         description: 'Larva/caterpillar - green to brown with stripes'
       }
     ],
-    damageImage: 'https://images.unsplash.com/photo-1593460375559-c9c5d9f45793?w=400&h=300&fit=crop',
+    damageImage: `${BACKEND_URL}/static/damage/armywormdamage.jpg`,
     identificationTips: [
       'Larvae have distinctive inverted "Y" on head',
       'Four dark spots forming square on last segment',
@@ -189,37 +192,6 @@ export const PEST_REFERENCE_DATA = {
     prevention: 'Early planting, crop rotation, remove crop residues, use pheromone traps, intercropping'
   },
 
-  'asian-corn-borer': {
-    id: 'asian-corn-borer',
-    name: 'Asian Corn Borer',
-    scientificName: 'Ostrinia furnacalis',
-    crop: 'Corn',
-    referenceImages: [
-      {
-        url: 'https://images.unsplash.com/photo-1534723328310-e82dad3ee43f?w=400&h=300&fit=crop',
-        stage: 'adult',
-        description: 'Adult moth - yellowish-brown with wavy patterns'
-      },
-      {
-        url: 'https://images.unsplash.com/photo-1595147389795-37094173bfd8?w=400&h=300&fit=crop',
-        stage: 'larva',
-        description: 'Larva inside corn stalk - pinkish-white with brown head'
-      }
-    ],
-    damageImage: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=300&fit=crop',
-    identificationTips: [
-      'Larvae are pinkish-white with brown head',
-      'Multiple small black spots on body segments',
-      'Creates tunnels in stalks and ears',
-      'Sawdust-like frass at entry holes',
-      'Adult moth has zigzag patterns on wings'
-    ],
-    symptoms: 'Shot-hole appearance on leaves, entry holes in stalks, broken tassels, damaged kernels, lodging',
-    controlMethods: 'Bt corn varieties, apply granular insecticides in whorl (carbofuran), trichogramma wasps',
-    prevention: 'Plant Bt corn, destroy crop residues, proper crop rotation, remove volunteer corn, early planting'
-  },
-
-  // ==================== FALL ARMYWORM (Added for testing) ====================
   'fall-armyworm': {
     id: 'fall-armyworm',
     name: 'Fall Armyworm',
@@ -227,17 +199,17 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Corn',
     referenceImages: [
       {
-        url: 'https://images.unsplash.com/photo-1534550055-3705ceec7f67?w=400&h=300&fit=crop',
+        url: `${BACKEND_URL}/static/pests/armywormoth.jpg`,
         stage: 'adult',
         description: 'Adult moth - brown with mottled patterns'
       },
       {
-        url: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=400&h=300&fit=crop',
+        url: `${BACKEND_URL}/static/pests/armyworm.jpg`,
         stage: 'larva',
-        description: 'Caterpillar with distinctive markings'
+        description: 'Caterpillar with distinctive Y marking on head'
       }
     ],
-    damageImage: 'https://images.unsplash.com/photo-1593460375559-c9c5d9f45793?w=400&h=300&fit=crop',
+    damageImage: `${BACKEND_URL}/static/damage/armywormdamage.jpg`,
     identificationTips: [
       'Larvae have distinctive inverted "Y" on head',
       'Four dark spots forming square on last segment',
@@ -248,6 +220,36 @@ export const PEST_REFERENCE_DATA = {
     symptoms: 'Ragged holes in leaves, sawdust-like frass in whorl, damaged tassels and ears, window-pane feeding on young leaves',
     controlMethods: 'Early detection crucial, Bt-based biopesticides, spinosad, chlorantraniliprole, emamectin benzoate',
     prevention: 'Monitor regularly, early planting, crop rotation, remove crop residues, use pheromone traps, intercropping with non-host crops'
+  },
+
+  'asian-corn-borer': {
+    id: 'asian-corn-borer',
+    name: 'Asian Corn Borer',
+    scientificName: 'Ostrinia furnacalis',
+    crop: 'Corn',
+    referenceImages: [
+      {
+        url: `${BACKEND_URL}/static/pests/cornborermoth.jpg`,
+        stage: 'adult',
+        description: 'Adult moth - yellowish-brown with wavy patterns'
+      },
+      {
+        url: `${BACKEND_URL}/static/pests/cornborerlarvae.jpg`,
+        stage: 'larva',
+        description: 'Larva inside corn stalk - pinkish-white with brown head'
+      }
+    ],
+    damageImage: `${BACKEND_URL}/static/damage/cornborerlarvaedamage.jpg`,
+    identificationTips: [
+      'Larvae are pinkish-white with brown head',
+      'Multiple small black spots on body segments',
+      'Creates tunnels in stalks and ears',
+      'Sawdust-like frass at entry holes',
+      'Adult moth has zigzag patterns on wings'
+    ],
+    symptoms: 'Shot-hole appearance on leaves, entry holes in stalks, broken tassels, damaged kernels, lodging',
+    controlMethods: 'Bt corn varieties, apply granular insecticides in whorl (carbofuran), trichogramma wasps',
+    prevention: 'Plant Bt corn, destroy crop residues, proper crop rotation, remove volunteer corn, early planting'
   }
 };
 
@@ -266,23 +268,31 @@ const normalizePestName = (name) => {
 };
 
 /**
- * Get pest data by ID with flexible matching
- * Handles various name formats: "Stem Borer", "stem-borer", "stem borer", "stemborer"
+ * Get pest data by ID with SUPER flexible matching
+ * Handles: "Fall Armyworm", "fall-armyworm", "fallarmyworm", "armyworm", "Armyworm"
  */
 export const getPestById = (pestId) => {
-  if (!pestId) return null;
+  if (!pestId) {
+    console.log('❌ getPestById: No pest ID provided');
+    return null;
+  }
   
-  console.log('🔍 Looking for pest:', pestId);
+  console.log('🔍 getPestById: Looking for pest:', pestId);
   
   // Normalize the input ID
   const normalizedInput = normalizePestName(pestId);
-  console.log('🔍 Normalized input:', normalizedInput);
+  console.log('🔍 getPestById: Normalized input:', normalizedInput);
   
-  // Try exact match on ID first
-  const directMatch = PEST_REFERENCE_DATA[pestId.toLowerCase().trim()];
-  if (directMatch) {
-    console.log('✅ Direct match found:', directMatch.name);
-    return directMatch;
+  // Try exact match on ID first (case-insensitive)
+  const exactKey = Object.keys(PEST_REFERENCE_DATA).find(
+    key => key.toLowerCase() === pestId.toLowerCase().trim()
+  );
+  if (exactKey) {
+    const match = PEST_REFERENCE_DATA[exactKey];
+    console.log('✅ getPestById: Exact key match found:', match.name);
+    console.log('📷 Reference images:', match.referenceImages);
+    console.log('🌾 Damage image:', match.damageImage);
+    return match;
   }
   
   // Try to find by normalized name matching
@@ -291,20 +301,34 @@ export const getPestById = (pestId) => {
     const normalizedPestId = normalizePestName(pest.id);
     const normalizedScientificName = normalizePestName(pest.scientificName);
     
+    // Also check if input contains the pest name or vice versa
+    const inputContainsPestName = normalizedInput.includes(normalizedPestName);
+    const pestNameContainsInput = normalizedPestName.includes(normalizedInput);
+    
     const isMatch = normalizedPestName === normalizedInput ||
                    normalizedPestId === normalizedInput ||
-                   normalizedScientificName === normalizedInput;
+                   normalizedScientificName === normalizedInput ||
+                   inputContainsPestName ||
+                   pestNameContainsInput;
     
     if (isMatch) {
-      console.log('✅ Match found:', pest.name);
+      console.log('✅ getPestById: Flexible match found:', pest.name, {
+        normalizedPestName,
+        normalizedInput,
+        matchType: normalizedPestName === normalizedInput ? 'exact' :
+                   inputContainsPestName ? 'contains' : 'partial'
+      });
+      console.log('📷 Reference images:', pest.referenceImages);
+      console.log('🌾 Damage image:', pest.damageImage);
     }
     
     return isMatch;
   });
   
   if (!pestEntry) {
-    console.log('❌ No match found for:', pestId);
-    console.log('Available pests:', Object.keys(PEST_REFERENCE_DATA));
+    console.log('❌ getPestById: No match found for:', pestId);
+    console.log('📋 Available pest IDs:', Object.keys(PEST_REFERENCE_DATA));
+    console.log('📋 Available pest names:', Object.values(PEST_REFERENCE_DATA).map(p => p.name));
   }
   
   return pestEntry || null;
