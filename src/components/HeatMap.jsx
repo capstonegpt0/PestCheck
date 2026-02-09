@@ -677,8 +677,22 @@ const HeatMap = ({ user, onLogout }) => {
 
       const severity = severityMap[damageLevel] || 'medium';
 
-      // Set coordinates based on user's location choice
-      const farm = farms.find(f => f.id === selectedFarm);
+      // Find the selected farm - use loose comparison for id type mismatch
+      const farm = farms.find(f => Number(f.id) === Number(selectedFarm));
+      
+      console.log('📍 saveDetection debug:', {
+        locationChoice,
+        selectedFarm,
+        selectedFarmType: typeof selectedFarm,
+        farmFound: !!farm,
+        farmName: farm?.name,
+        farmLat: farm?.lat,
+        farmLng: farm?.lng,
+        farmLatType: typeof farm?.lat,
+        currentLocation: location,
+        allFarmIds: farms.map(f => ({ id: f.id, type: typeof f.id })),
+      });
+
       const updateData = {
         severity: severity,
         active: true,
@@ -686,19 +700,31 @@ const HeatMap = ({ user, onLogout }) => {
         farm_id: selectedFarm
       };
 
-      if (locationChoice === 'farm' && farm && farm.lat && farm.lng) {
-        // Pin on the farm's location
-        updateData.latitude = parseFloat(farm.lat);
-        updateData.longitude = parseFloat(farm.lng);
+      if (locationChoice === 'farm') {
+        if (farm && farm.lat != null && farm.lng != null) {
+          updateData.latitude = parseFloat(farm.lat);
+          updateData.longitude = parseFloat(farm.lng);
+          console.log('📍 Using FARM coordinates:', updateData.latitude, updateData.longitude);
+        } else {
+          console.warn('⚠️ Farm location chosen but farm coords missing!', { farm });
+          // Fallback: try to get coords from the farm object with other field names
+          if (farm && farm.latitude != null && farm.longitude != null) {
+            updateData.latitude = parseFloat(farm.latitude);
+            updateData.longitude = parseFloat(farm.longitude);
+            console.log('📍 Using FARM coordinates (latitude/longitude fields):', updateData.latitude, updateData.longitude);
+          }
+        }
       } else if (locationChoice === 'current' && location) {
-        // Pin on user's current GPS location
         updateData.latitude = location.latitude;
         updateData.longitude = location.longitude;
+        console.log('📍 Using CURRENT coordinates:', updateData.latitude, updateData.longitude);
       }
-      // If neither condition met, the original detection coordinates (from upload) remain
+
+      console.log('📍 Final PATCH data:', JSON.stringify(updateData));
 
       // Update the existing detection record to confirm it
-      await api.patch(`/detections/${detectionResult.id}/`, updateData);
+      const response = await api.patch(`/detections/${detectionResult.id}/`, updateData);
+      console.log('📍 PATCH response:', response.data);
 
       setDetectionStep('success');
       
@@ -708,6 +734,7 @@ const HeatMap = ({ user, onLogout }) => {
       }, 1500);
     } catch (error) {
       console.error('Error saving detection:', error);
+      console.error('Error response:', error.response?.data);
       alert('Failed to save detection. Please try again.');
     } finally {
       setDetectionLoading(false);
