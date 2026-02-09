@@ -1,11 +1,11 @@
 // Pest Reference Images and Data
 // File: frontend/src/utils/pestReferenceData.js
-// 
-// IMPORTANT: Update BACKEND_URL to match your deployed backend
-// Local: http://localhost:8000
-// Production: https://pestcheck-backend.onrender.com (or your actual URL)
+// Images served from frontend/public/assets/pests and public/assets/damage
 
-const BACKEND_URL = 'https://pestcheck-backend.onrender.com'; // ⚠️ UPDATE THIS!
+// Images are served from the frontend's public/assets folder
+// In Vite, files in public/ are served at root: public/assets/pests/x.jpg → /assets/pests/x.jpg
+const PEST_IMAGES_BASE = '/assets/pests';
+const DAMAGE_IMAGES_BASE = '/assets/damage';
 
 export const PEST_REFERENCE_DATA = {
   // ==================== RICE PESTS ====================
@@ -17,12 +17,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: `${BACKEND_URL}/static/pests/stemborer.jpg`,
+        url: `${PEST_IMAGES_BASE}/stemborer.jpg`,
         stage: 'adult',
         description: 'Adult moth - yellowish-white with brown markings'
       }
     ],
-    damageImage: `${BACKEND_URL}/static/damage/stemborerdamage.jpg`,
+    damageImage: `${DAMAGE_IMAGES_BASE}/stemborerdamage.jpg`,
     identificationTips: [
       'Yellowish-white moth with triangular shape',
       'Dark spots and streaks on forewings',
@@ -42,12 +42,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: `${BACKEND_URL}/static/pests/whorlmaggot.jpg`,
+        url: `${PEST_IMAGES_BASE}/whorlmaggot.jpg`,
         stage: 'adult',
         description: 'Small fly with shiny metallic appearance'
       }
     ],
-    damageImage: `${BACKEND_URL}/static/damage/whorlmaggotdamage.jpg`,
+    damageImage: `${DAMAGE_IMAGES_BASE}/whorlmaggotdamage.jpg`,
     identificationTips: [
       'Very small fly (2-3mm)',
       'Shiny black or metallic green/blue color',
@@ -67,12 +67,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: `${BACKEND_URL}/static/pests/leaffolder.jpg`,
+        url: `${PEST_IMAGES_BASE}/leaffolder.jpg`,
         stage: 'adult',
         description: 'Moth with brown wings and wavy white/cream patterns'
       }
     ],
-    damageImage: `${BACKEND_URL}/static/damage/leaffolderdamage.jpg`,
+    damageImage: `${DAMAGE_IMAGES_BASE}/leaffolderdamage.jpg`,
     identificationTips: [
       'Brown moth with distinctive wavy patterns',
       'White or cream colored lines across wings',
@@ -92,12 +92,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: `${BACKEND_URL}/static/pests/ricebug.jpg`,
+        url: `${PEST_IMAGES_BASE}/ricebug.jpg`,
         stage: 'adult',
         description: 'Long slender bug, brown to reddish-brown'
       }
     ],
-    damageImage: `${BACKEND_URL}/static/damage/ricebugdamage.jpg`,
+    damageImage: `${DAMAGE_IMAGES_BASE}/ricebugdamage.jpg`,
     identificationTips: [
       'Long slender body (15-20mm)',
       'Brown to reddish-brown color',
@@ -117,12 +117,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: `${BACKEND_URL}/static/pests/greenleafhopper.jpg`,
+        url: `${PEST_IMAGES_BASE}/greenleafhopper.jpg`,
         stage: 'adult',
         description: 'Bright green body with distinctive black markings'
       }
     ],
-    damageImage: `${BACKEND_URL}/static/damage/greenleafhopperdamage.jpg`,
+    damageImage: `${DAMAGE_IMAGES_BASE}/greenleafhopperdamage.jpg`,
     identificationTips: [
       'Bright green color',
       'Black markings on head and thorax',
@@ -142,12 +142,12 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: `${BACKEND_URL}/static/pests/brownplanthopper.jpg`,
+        url: `${PEST_IMAGES_BASE}/brownplanthopper.jpg`,
         stage: 'adult',
         description: 'Small brown insect with transparent wings'
       }
     ],
-    damageImage: `${BACKEND_URL}/static/damage/planthopperdamage.jpg`,
+    damageImage: `${DAMAGE_IMAGES_BASE}/planthopperdamage.jpg`,
     identificationTips: [
       'Small brown insect (3-4mm)',
       'Transparent wings held roof-like over body',
@@ -169,17 +169,17 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Corn',
     referenceImages: [
       {
-        url: `${BACKEND_URL}/static/pests/armywormoth.jpg`,
+        url: `${PEST_IMAGES_BASE}/armywormoth.jpg`,
         stage: 'adult',
         description: 'Adult moth - brown with mottled patterns'
       },
       {
-        url: `${BACKEND_URL}/static/pests/armyworm.jpg`,
+        url: `${PEST_IMAGES_BASE}/armyworm.jpg`,
         stage: 'larva',
         description: 'Larva/caterpillar - green to brown with stripes'
       }
     ],
-    damageImage: `${BACKEND_URL}/static/damage/armywormdamage.jpg`,
+    damageImage: `${DAMAGE_IMAGES_BASE}/armywormdamage.jpg`,
     identificationTips: [
       'Larvae have distinctive inverted "Y" on head',
       'Four dark spots forming square on last segment',
@@ -199,17 +199,17 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Corn',
     referenceImages: [
       {
-        url: `${BACKEND_URL}/static/pests/armywormoth.jpg`,
+        url: `${PEST_IMAGES_BASE}/armywormoth.jpg`,
         stage: 'adult',
         description: 'Adult moth - brown with mottled patterns'
       },
       {
-        url: `${BACKEND_URL}/static/pests/armyworm.jpg`,
+        url: `${PEST_IMAGES_BASE}/armyworm.jpg`,
         stage: 'larva',
         description: 'Caterpillar with distinctive Y marking on head'
       }
     ],
-    damageImage: `${BACKEND_URL}/static/damage/armywormdamage.jpg`,
+    damageImage: `${DAMAGE_IMAGES_BASE}/armywormdamage.jpg`,
     identificationTips: [
       'Larvae have distinctive inverted "Y" on head',
       'Four dark spots forming square on last segment',
@@ -229,17 +229,17 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Corn',
     referenceImages: [
       {
-        url: `${BACKEND_URL}/static/pests/cornborermoth.jpg`,
+        url: `${PEST_IMAGES_BASE}/cornborermoth.jpg`,
         stage: 'adult',
         description: 'Adult moth - yellowish-brown with wavy patterns'
       },
       {
-        url: `${BACKEND_URL}/static/pests/cornborerlarvae.jpg`,
+        url: `${PEST_IMAGES_BASE}/cornborerlarvae.jpg`,
         stage: 'larva',
         description: 'Larva inside corn stalk - pinkish-white with brown head'
       }
     ],
-    damageImage: `${BACKEND_URL}/static/damage/cornborerlarvaedamage.jpg`,
+    damageImage: `${DAMAGE_IMAGES_BASE}/cornborerlarvaedamage.jpg`,
     identificationTips: [
       'Larvae are pinkish-white with brown head',
       'Multiple small black spots on body segments',
