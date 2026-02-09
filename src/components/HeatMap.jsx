@@ -1567,50 +1567,66 @@ const HeatMap = ({ user, onLogout }) => {
                       </div>
                     </div>
 
-                    {/* Farm Selection - shown for both choices */}
-                    <div>
-                      <label className="block text-lg font-medium text-gray-800 mb-2">
-                        Select Farm <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={selectedFarm || ''}
-                        onChange={(e) => setSelectedFarm(e.target.value ? parseInt(e.target.value) : null)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required
-                      >
-                        <option value="">Choose a farm...</option>
-                        {farms.filter(farm => farm.user_name === user.username).map(farm => (
-                          <option key={farm.id} value={farm.id}>
-                            {farm.name} - {farm.crop_type} ({farm.size} hectares)
-                          </option>
-                        ))}
-                      </select>
-                      {!selectedFarm && (
-                        <p className="text-sm text-red-600 mt-1">Please select a farm to save the detection</p>
-                      )}
-                      {farms.filter(farm => farm.user_name === user.username).length === 0 && (
-                        <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                          <p className="text-sm text-yellow-800">
-                            ⚠️ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
-                          </p>
-                        </div>
-                      )}
+                    {/* Farm Selection - only shown when Farm Location is selected */}
+                    {locationChoice === 'farm' && (
+                      <div>
+                        <label className="block text-lg font-medium text-gray-800 mb-2">
+                          Select Farm <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={selectedFarm || ''}
+                          onChange={(e) => setSelectedFarm(e.target.value ? parseInt(e.target.value) : null)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        >
+                          <option value="">Choose a farm...</option>
+                          {farms.filter(farm => farm.user_name === user.username).map(farm => (
+                            <option key={farm.id} value={farm.id}>
+                              {farm.name} - {farm.crop_type} ({farm.size} hectares)
+                            </option>
+                          ))}
+                        </select>
+                        {!selectedFarm && (
+                          <p className="text-sm text-red-600 mt-1">Please select a farm to save the detection</p>
+                        )}
+                        {farms.filter(farm => farm.user_name === user.username).length === 0 && (
+                          <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <p className="text-sm text-yellow-800">
+                              ⚠️ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
+                            </p>
+                          </div>
+                        )}
 
-                      {/* Location info hint */}
-                      {selectedFarm && (
-                        <div className={`mt-2 rounded-lg p-3 text-sm ${
-                          locationChoice === 'farm' 
-                            ? 'bg-green-50 border border-green-200 text-green-800' 
-                            : 'bg-blue-50 border border-blue-200 text-blue-800'
-                        }`}>
-                          {locationChoice === 'farm' ? (
+                        {/* Location info hint */}
+                        {selectedFarm && (
+                          <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">
                             <p>📍 Detection will be pinned at <span className="font-semibold">{farms.find(f => f.id === selectedFarm)?.name || 'selected farm'}</span>'s location on the map.</p>
-                          ) : (
-                            <p>📍 Detection will be pinned at your <span className="font-semibold">current GPS location</span> ({location ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` : 'loading...'}).</p>
-                          )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Current Location Info - shown when Current Location is selected */}
+                    {locationChoice === 'current' && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start space-x-3">
+                          <Activity className="w-5 h-5 text-blue-600 mt-0.5" />
+                          <div>
+                            <p className="font-medium text-blue-900 mb-1">Using Current Location</p>
+                            <p className="text-sm text-blue-800">
+                              📍 Detection will be pinned at your current GPS coordinates:
+                              {location ? (
+                                <span className="font-semibold block mt-1">
+                                  {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                                </span>
+                              ) : (
+                                <span className="block mt-1 text-blue-600">Loading GPS...</span>
+                              )}
+                            </p>
+                          </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-lg font-medium text-gray-800 mb-4">
