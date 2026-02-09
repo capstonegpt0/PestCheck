@@ -676,13 +676,23 @@ const HeatMap = ({ user, onLogout }) => {
 
       const severity = severityMap[damageLevel] || 'medium';
 
-      // Update the existing detection record to confirm it
-      await api.patch(`/detections/${detectionResult.id}/`, {
+      // Get the selected farm's coordinates so the heatmap pin lands on the farm
+      const farm = farms.find(f => f.id === selectedFarm);
+      const updateData = {
         severity: severity,
         active: true,
         confirmed: true,
         farm_id: selectedFarm
-      });
+      };
+
+      // If farm has valid coordinates, update detection location to the farm
+      if (farm && farm.lat && farm.lng) {
+        updateData.latitude = parseFloat(farm.lat);
+        updateData.longitude = parseFloat(farm.lng);
+      }
+
+      // Update the existing detection record to confirm it
+      await api.patch(`/detections/${detectionResult.id}/`, updateData);
 
       setDetectionStep('success');
       
