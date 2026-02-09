@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Plus, Edit, Trash2, AlertTriangle, Info, AlertCircle, X } from 'lucide-react';
+import { Bell, Plus, Edit, Trash2, AlertTriangle, Info, AlertCircle, X, Eye } from 'lucide-react';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 
@@ -7,6 +7,7 @@ const AdminAlerts = ({ user, onLogout }) => {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [editingAlert, setEditingAlert] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -31,7 +32,6 @@ const AdminAlerts = ({ user, onLogout }) => {
       setAlerts(alertData);
     } catch (error) {
       console.error('Error fetching alerts:', error);
-      alert('Failed to load alerts');
       setAlerts([]);
     } finally {
       setLoading(false);
@@ -44,10 +44,8 @@ const AdminAlerts = ({ user, onLogout }) => {
     try {
       if (editingAlert) {
         await api.put(`/admin/alerts/${editingAlert.id}/`, formData);
-        alert('Alert updated successfully!');
       } else {
         await api.post('/admin/alerts/', formData);
-        alert('Alert created successfully!');
       }
       
       setShowModal(false);
@@ -55,7 +53,6 @@ const AdminAlerts = ({ user, onLogout }) => {
       fetchAlerts();
     } catch (error) {
       console.error('Error saving alert:', error);
-      alert('Failed to save alert');
     }
   };
 
@@ -66,11 +63,9 @@ const AdminAlerts = ({ user, onLogout }) => {
 
     try {
       await api.delete(`/admin/alerts/${alertId}/`);
-      alert('Alert deleted successfully!');
       fetchAlerts();
     } catch (error) {
       console.error('Error deleting alert:', error);
-      alert('Failed to delete alert');
     }
   };
 
@@ -80,7 +75,6 @@ const AdminAlerts = ({ user, onLogout }) => {
       fetchAlerts();
     } catch (error) {
       console.error('Error toggling alert:', error);
-      alert('Failed to toggle alert status');
     }
   };
 
@@ -127,12 +121,26 @@ const AdminAlerts = ({ user, onLogout }) => {
     return colors[type] || 'bg-gray-50 border-gray-200 text-gray-800';
   };
 
+  const getNotificationPreviewColor = (type) => {
+    const colors = {
+      warning: 'bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800',
+      info: 'bg-blue-50 border-l-4 border-blue-400 text-blue-800',
+      critical: 'bg-red-50 border-l-4 border-red-400 text-red-800'
+    };
+    return colors[type] || 'bg-gray-50 border-l-4 border-gray-400 text-gray-800';
+  };
+
+  const handlePreview = (alert) => {
+    setEditingAlert(alert);
+    setShowPreview(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavigation user={user} onLogout={onLogout} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold text-gray-800">Alert Management</h1>
           <button
             onClick={() => {
@@ -144,6 +152,24 @@ const AdminAlerts = ({ user, onLogout }) => {
             <Plus className="w-5 h-5 mr-2" />
             Create Alert
           </button>
+        </div>
+
+        {/* Info Box */}
+        <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg p-4">
+          <div className="flex items-start">
+            <Info className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm font-semibold text-blue-900 mb-1">
+                How Alert Notifications Work
+              </h3>
+              <p className="text-sm text-blue-800">
+                Alerts you create here will appear as <strong>dismissible notifications</strong> in the top-right corner 
+                of users' screens when they log in. Users can close them by clicking the X button. Once dismissed, 
+                they won't see that alert again. Use the <strong>Preview</strong> button (eye icon) to see exactly 
+                how users will see each alert.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Alerts List */}
@@ -209,6 +235,13 @@ const AdminAlerts = ({ user, onLogout }) => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 ml-4">
+                    <button
+                      onClick={() => handlePreview(alert)}
+                      className="p-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200"
+                      title="Preview how users see this"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
                     <button
                       onClick={() => handleToggleActive(alert.id)}
                       className={`p-2 rounded-lg ${
@@ -364,6 +397,102 @@ const AdminAlerts = ({ user, onLogout }) => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal - Shows how users will see the alert */}
+      {showPreview && editingAlert && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">Alert Preview</h2>
+                <button
+                  onClick={() => {
+                    setShowPreview(false);
+                    setEditingAlert(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-sm text-gray-600 mb-4">
+                  This is how users will see this alert in the top-right corner of their screen:
+                </p>
+
+                {/* Preview notification */}
+                <div className="bg-gray-100 p-8 rounded-lg">
+                  <div className="max-w-md ml-auto">
+                    <div
+                      className={`${getNotificationPreviewColor(editingAlert.alert_type)} p-4 rounded-lg shadow-lg`}
+                      role="alert"
+                    >
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          {getAlertIcon(editingAlert.alert_type)}
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <h3 className="text-sm font-semibold mb-1">
+                            {editingAlert.title}
+                          </h3>
+                          <p className="text-sm">
+                            {editingAlert.message}
+                          </p>
+                          {editingAlert.target_area && (
+                            <p className="text-xs mt-2 opacity-75">
+                              📍 {editingAlert.target_area}
+                            </p>
+                          )}
+                          {editingAlert.expires_at && (
+                            <p className="text-xs mt-1 opacity-75">
+                              Expires: {new Date(editingAlert.expires_at).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          className="flex-shrink-0 ml-3 inline-flex text-gray-400 hover:text-gray-600"
+                          disabled
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <Info className="w-5 h-5 text-blue-600 mt-0.5 mr-3" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-semibold mb-1">How it works:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>Users see this notification when they log in</li>
+                        <li>They can dismiss it by clicking the X button</li>
+                        <li>Once dismissed, they won't see it again</li>
+                        <li>{editingAlert.is_active ? 'This alert is currently ACTIVE' : 'This alert is currently INACTIVE (users won\'t see it)'}</li>
+                        {editingAlert.expires_at && (
+                          <li>It will automatically hide after the expiration date</li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowPreview(false);
+                  setEditingAlert(null);
+                }}
+                className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                Close Preview
+              </button>
             </div>
           </div>
         </div>

@@ -9,7 +9,7 @@ const AlertNotifications = ({ user }) => {
 
   useEffect(() => {
     fetchAlerts();
-    // Refresh alerts every 5 minutes
+    // Refresh alerts every 5 minutes to catch new ones
     const interval = setInterval(fetchAlerts, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
@@ -22,8 +22,17 @@ const AlertNotifications = ({ user }) => {
 
   const fetchAlerts = async () => {
     try {
-      const response = await api.get('/alerts/my_alerts/');
-      console.log('✅ API Response:', response.data);
+      // Try the specific my_alerts endpoint first
+      let response;
+      try {
+        response = await api.get('/alerts/my_alerts/');
+      } catch (error) {
+        // Fallback to general alerts endpoint if my_alerts doesn't exist
+        console.log('Falling back to /alerts/ endpoint');
+        response = await api.get('/alerts/');
+      }
+      
+      console.log('✅ Alerts API Response:', response.data);
       
       // Handle both array and object responses
       let alertsData = [];
@@ -43,7 +52,22 @@ const AlertNotifications = ({ user }) => {
         }
       }
       
-      setAlerts(alertsData);
+      // Filter to only active, non-expired alerts
+      const now = new Date();
+      const activeAlerts = alertsData.filter(alert => {
+        // Must be active
+        if (!alert.is_active) return false;
+        
+        // Check expiration
+        if (alert.expires_at) {
+          const expiryDate = new Date(alert.expires_at);
+          if (now > expiryDate) return false;
+        }
+        
+        return true;
+      });
+      
+      setAlerts(activeAlerts);
     } catch (error) {
       console.error('Error fetching alerts:', error);
       // Don't show error to user - just fail silently for alerts
@@ -76,7 +100,7 @@ const AlertNotifications = ({ user }) => {
       case 'critical':
         return {
           bg: 'bg-red-50',
-          border: 'border-red-300',
+          border: 'border-red-400',
           text: 'text-red-800',
           icon: 'text-red-600',
           button: 'hover:bg-red-100'
@@ -84,7 +108,7 @@ const AlertNotifications = ({ user }) => {
       case 'warning':
         return {
           bg: 'bg-yellow-50',
-          border: 'border-yellow-300',
+          border: 'border-yellow-400',
           text: 'text-yellow-800',
           icon: 'text-yellow-600',
           button: 'hover:bg-yellow-100'
@@ -93,7 +117,7 @@ const AlertNotifications = ({ user }) => {
       default:
         return {
           bg: 'bg-blue-50',
-          border: 'border-blue-300',
+          border: 'border-blue-400',
           text: 'text-blue-800',
           icon: 'text-blue-600',
           button: 'hover:bg-blue-100'
@@ -102,7 +126,7 @@ const AlertNotifications = ({ user }) => {
   };
 
   // Filter out dismissed alerts - safely handle if alerts is not an array
-  const activeAlerts = Array.isArray(alerts) 
+  const visibleAlerts = Array.isArray(alerts) 
     ? alerts.filter(alert => !dismissedAlerts.includes(alert.id))
     : [];
 
@@ -110,19 +134,19 @@ const AlertNotifications = ({ user }) => {
     return null;
   }
 
-  if (activeAlerts.length === 0) {
+  if (visibleAlerts.length === 0) {
     return null;
   }
 
   return (
     <div className="fixed top-20 right-4 z-40 max-w-md space-y-3">
-      {activeAlerts.map((alert) => {
+      {visibleAlerts.map((alert) => {
         const colors = getAlertColors(alert.alert_type);
         
         return (
           <div
             key={alert.id}
-            className={`${colors.bg} ${colors.border} border-2 rounded-lg shadow-lg p-4 animate-slide-in`}
+            className={`${colors.bg} border-l-4 ${colors.border} rounded-lg shadow-lg p-4 animate-slide-in`}
           >
             <div className="flex items-start">
               <div className={`${colors.icon} flex-shrink-0 mt-0.5`}>
@@ -136,6 +160,22 @@ const AlertNotifications = ({ user }) => {
                 <p className={`text-sm ${colors.text} whitespace-pre-line`}>
                   {alert.message}
                 </p>
+                
+                {/* Target area */}
+                {alert.target_area && (
+                  <p className="text-xs opacity-75 mt-2">
+                    📍 {alert.target_area}
+                  </p>
+                )}
+                
+                {/* Expiration info */}
+                {alert.expires_at && (
+                  <p className="text-xs opacity-75 mt-1">
+                    Expires: {new Date(alert.expires_at).toLocaleDateString()}
+                  </p>
+                )}
+                
+                {/* Timestamp */}
                 {alert.created_at && (
                   <p className="text-xs text-gray-500 mt-2">
                     {new Date(alert.created_at).toLocaleString()}
