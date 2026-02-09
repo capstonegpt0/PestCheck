@@ -658,7 +658,13 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const saveDetection = async () => {
-    if (!detectionResult || !selectedFarm) {
+    if (!detectionResult) {
+      alert('Detection result is missing.');
+      return;
+    }
+
+    // Only require farm selection if using farm location
+    if (locationChoice === 'farm' && !selectedFarm) {
       alert('Please select a farm before saving the detection.');
       return;
     }
@@ -696,9 +702,13 @@ const HeatMap = ({ user, onLogout }) => {
       const updateData = {
         severity: severity,
         active: true,
-        confirmed: true,
-        farm_id: selectedFarm
+        confirmed: true
       };
+
+      // Only add farm_id if using farm location
+      if (locationChoice === 'farm' && selectedFarm) {
+        updateData.farm_id = selectedFarm;
+      }
 
       if (locationChoice === 'farm') {
         if (farm && farm.lat != null && farm.lng != null) {
