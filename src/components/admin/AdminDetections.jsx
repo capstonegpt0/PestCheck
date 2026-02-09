@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, XCircle, Eye, MessageSquare } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, MessageSquare, Trash2 } from 'lucide-react';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 
@@ -41,7 +41,6 @@ const AdminDetections = ({ user, onLogout }) => {
       setTotalItems(response.data.count || detectionData.length);
     } catch (error) {
       console.error('Error fetching detections:', error);
-      alert('Failed to load detections');
       setDetections([]);
       setFilteredDetections([]);
     } finally {
@@ -77,14 +76,12 @@ const AdminDetections = ({ user, onLogout }) => {
       await api.post(`/admin/detections/${selectedDetection.id}/verify_detection/`, {
         notes: adminNotes
       });
-      alert('Detection verified successfully!');
       setShowVerifyModal(false);
       setSelectedDetection(null);
       setAdminNotes('');
       fetchDetections();
     } catch (error) {
       console.error('Error verifying detection:', error);
-      alert('Failed to verify detection');
     }
   };
 
@@ -95,14 +92,25 @@ const AdminDetections = ({ user, onLogout }) => {
       await api.post(`/admin/detections/${selectedDetection.id}/reject_detection/`, {
         notes: adminNotes
       });
-      alert('Detection rejected');
       setShowVerifyModal(false);
       setSelectedDetection(null);
       setAdminNotes('');
       fetchDetections();
     } catch (error) {
       console.error('Error rejecting detection:', error);
-      alert('Failed to reject detection');
+    }
+  };
+
+  const handleDelete = async (detectionId) => {
+    if (!window.confirm('Are you sure you want to delete this detection? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/admin/detections/${detectionId}/`);
+      fetchDetections();
+    } catch (error) {
+      console.error('Error deleting detection:', error);
     }
   };
 
@@ -285,13 +293,20 @@ const AdminDetections = ({ user, onLogout }) => {
                             </button>
                             <button
                               onClick={() => openVerifyModal(detection, 'reject')}
-                              className="text-red-600 hover:text-red-800"
+                              className="text-orange-600 hover:text-orange-800"
                               title="Reject"
                             >
                               <XCircle className="w-5 h-5" />
                             </button>
                           </>
                         )}
+                        <button
+                          onClick={() => handleDelete(detection.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete detection"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
                       </td>
                     </tr>
                   ))}

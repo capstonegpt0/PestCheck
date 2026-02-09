@@ -32,7 +32,6 @@ const AdminUsers = ({ user, onLogout }) => {
       setFilteredUsers(userData);
     } catch (error) {
       console.error('Error fetching users:', error);
-      alert('Failed to load users');
       setUsers([]);
       setFilteredUsers([]);
     } finally {
@@ -63,11 +62,9 @@ const AdminUsers = ({ user, onLogout }) => {
   const handleVerifyUser = async (userId) => {
     try {
       await api.post(`/admin/users/${userId}/verify_user/`);
-      alert('User verified successfully!');
       fetchUsers();
     } catch (error) {
       console.error('Error verifying user:', error);
-      alert('Failed to verify user');
     }
   };
 
@@ -76,14 +73,12 @@ const AdminUsers = ({ user, onLogout }) => {
 
     try {
       await api.post(`/admin/users/${selectedUser.id}/change_role/`, { role: newRole });
-      alert('User role changed successfully!');
       setShowRoleModal(false);
       setSelectedUser(null);
       setNewRole('');
       fetchUsers();
     } catch (error) {
       console.error('Error changing role:', error);
-      alert('Failed to change user role');
     }
   };
 
@@ -94,11 +89,9 @@ const AdminUsers = ({ user, onLogout }) => {
 
     try {
       await api.delete(`/admin/users/${userId}/`);
-      alert('User deleted successfully!');
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Failed to delete user');
     }
   };
 

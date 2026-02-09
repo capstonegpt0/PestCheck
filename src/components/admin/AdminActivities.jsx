@@ -34,7 +34,6 @@ const AdminActivities = ({ user, onLogout }) => {
       setFilteredActivities(activityData);
     } catch (error) {
       console.error('Error fetching activities:', error);
-      alert('Failed to load activity logs');
       setActivities([]);
       setFilteredActivities([]);
     } finally {

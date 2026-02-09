@@ -34,7 +34,6 @@ const AdminFarmRequests = ({ user, onLogout }) => {
       setFilteredRequests(requestData);
     } catch (error) {
       console.error('Error fetching farm requests:', error);
-      alert('Failed to load farm requests');
       setRequests([]);
       setFilteredRequests([]);
     } finally {
@@ -68,20 +67,17 @@ const AdminFarmRequests = ({ user, onLogout }) => {
       await api.post(`/admin/farm-requests/${selectedRequest.id}/approve/`, {
         review_notes: reviewNotes
       });
-      alert('Farm request approved! Farm has been created.');
       setShowReviewModal(false);
       setSelectedRequest(null);
       setReviewNotes('');
       fetchRequests();
     } catch (error) {
       console.error('Error approving request:', error);
-      alert('Failed to approve request: ' + (error.response?.data?.error || error.message));
     }
   };
 
   const handleReject = async () => {
     if (!selectedRequest || !reviewNotes) {
-      alert('Please provide a reason for rejection');
       return;
     }
 
@@ -89,14 +85,12 @@ const AdminFarmRequests = ({ user, onLogout }) => {
       await api.post(`/admin/farm-requests/${selectedRequest.id}/reject/`, {
         review_notes: reviewNotes
       });
-      alert('Farm request rejected');
       setShowReviewModal(false);
       setSelectedRequest(null);
       setReviewNotes('');
       fetchRequests();
     } catch (error) {
       console.error('Error rejecting request:', error);
-      alert('Failed to reject request');
     }
   };
 

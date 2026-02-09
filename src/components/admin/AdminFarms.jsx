@@ -31,7 +31,6 @@ const AdminFarms = ({ user, onLogout }) => {
       setFilteredFarms(farmData);
     } catch (error) {
       console.error('Error fetching farms:', error);
-      alert('Failed to load farms');
       setFarms([]);
       setFilteredFarms([]);
     } finally {
@@ -63,11 +62,9 @@ const AdminFarms = ({ user, onLogout }) => {
   const handleVerifyFarm = async (farmId) => {
     try {
       await api.post(`/admin/farms/${farmId}/verify_farm/`);
-      alert('Farm verified successfully!');
       fetchFarms();
     } catch (error) {
       console.error('Error verifying farm:', error);
-      alert('Failed to verify farm');
     }
   };
 
@@ -78,11 +75,9 @@ const AdminFarms = ({ user, onLogout }) => {
 
     try {
       await api.delete(`/admin/farms/${farmId}/`);
-      alert('Farm deleted successfully!');
       fetchFarms();
     } catch (error) {
       console.error('Error deleting farm:', error);
-      alert('Failed to delete farm');
     }
   };
 
