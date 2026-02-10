@@ -1047,9 +1047,13 @@ const HeatMap = ({ user, onLogout }) => {
 
                   // ✅ NEW: Check if user is verified
                   const isVerified = detection.user_verified !== false; // Default to true if not specified
-                  const adjustedRadius = isVerified ? radius : radius * 0.5; // Half size for unverified
-                  const adjustedOpacity = isVerified ? 0.3 : 0.2; // Lower opacity for unverified
-                  const borderColor = isVerified ? color : '#fbbf24'; // Yellow border for unverified
+                  
+                  // VERIFIED users: Large hollow circles with border
+                  // UNVERIFIED users: Small solid dots (no border, high opacity)
+                  const adjustedRadius = isVerified ? radius : 50; // Fixed 50px for unverified (small dot)
+                  const fillOpacity = isVerified ? 0.3 : 0.9; // Solid fill for unverified dots
+                  const borderColor = isVerified ? color : color; // Same color for unverified
+                  const borderWeight = isVerified ? 2 : 0; // No border for unverified dots
 
                   return (
                     <Circle
@@ -1058,9 +1062,10 @@ const HeatMap = ({ user, onLogout }) => {
                       radius={adjustedRadius}
                       pathOptions={{
                         fillColor: color,
-                        fillOpacity: adjustedOpacity,
+                        fillOpacity: fillOpacity,
                         color: borderColor,
-                        weight: isVerified ? 2 : 3
+                        weight: borderWeight,
+                        opacity: isVerified ? 1 : 0.95 // Slightly transparent border for dots
                       }}
                     >
                       <Popup>
