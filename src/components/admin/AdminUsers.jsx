@@ -45,6 +45,14 @@ const VerificationReviewModal = ({ request, onClose, onActionComplete }) => {
         review_notes: reviewNotes
       });
       
+      // Check for error responses (axios validateStatus accepts 4xx)
+      if (response.status >= 400) {
+        const errorMessage = response.data?.error || response.data?.detail || `Failed to ${action} request (${response.status})`;
+        setError(errorMessage);
+        setLoading(false);
+        return;
+      }
+      
       console.log(`✅ ${action} successful:`, response.data);
       
       // Show success message
