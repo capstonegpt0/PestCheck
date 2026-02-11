@@ -1048,10 +1048,10 @@ const HeatMap = ({ user, onLogout }) => {
                   // ✅ NEW: Check if user is verified
                   const isVerified = detection.user_verified !== false; // Default to true if not specified
                   
-                  // VERIFIED users: Large hollow circles with border
-                  // UNVERIFIED users: Small solid dots (no border, high opacity)
-                  const adjustedRadius = isVerified ? radius : 50; // Fixed 50px for unverified (small dot)
-                  const fillOpacity = isVerified ? 0.3 : 0.9; // Solid fill for unverified dots
+                  // VERIFIED users: Large hollow circles with border (size varies by severity)
+                  // UNVERIFIED users: VERY SMALL solid dot (10px - same for all severities)
+                  const adjustedRadius = isVerified ? radius : 10; // VERY SMALL 10px dot for unverified
+                  const fillOpacity = isVerified ? 0.3 : 1; // Completely solid for unverified dots
                   const borderColor = isVerified ? color : color; // Same color for unverified
                   const borderWeight = isVerified ? 2 : 0; // No border for unverified dots
 
