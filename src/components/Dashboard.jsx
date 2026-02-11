@@ -5,132 +5,132 @@ import Navigation from './Navigation';
 import AlertNotifications from './AlertNotifications';
 
 const Dashboard = ({ user, onLogout }) => {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation user={user} onLogout={onLogout} />
-      
-      {/* Alert Notifications */}
-      <AlertNotifications user={user} />
-      
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Unverified User Banner */}
-        {!user.is_verified && (
-          <div className="bg-amber-50 border-l-4 border-amber-400 rounded-lg shadow p-4 mb-6">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-amber-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-semibold text-amber-800">Unverified Account</h3>
-                <p className="text-sm text-amber-700 mt-1">
-                  Your account is not yet verified. You can still detect pests, but your detections will be marked as unverified and won't appear as heatmap zones. 
-                  To request farms and get full access, please contact an administrator to verify your account.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+ return (
+ <div className="min-h-screen bg-gray-50">
+ <Navigation user={user} onLogout={onLogout} />
+ 
+ {/* Alert Notifications */}
+ <AlertNotifications user={user} />
+ 
+ <div className="max-w-7xl mx-auto px-4 py-8">
+ {/* Unverified User Banner */}
+ {!user.is_verified && (
+ <div className="bg-amber-50 border-l-4 border-amber-400 rounded-lg shadow p-4 mb-6">
+ <div className="flex items-start">
+ <div className="flex-shrink-0">
+ <svg className="h-5 w-5 text-amber-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+ <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+ </svg>
+ </div>
+ <div className="ml-3">
+ <h3 className="text-sm font-semibold text-amber-800">Unverified Account</h3>
+ <p className="text-sm text-amber-700 mt-1">
+ Your account is not yet verified. You can still detect pests, but your detections will be marked as unverified and won't appear as heatmap zones. 
+ To request farms and get full access, please contact an administrator to verify your account.
+ </p>
+ </div>
+ </div>
+ </div>
+ )}
 
-        {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow-lg p-8 mb-8 text-white">
-          <h1 className="text-4xl font-bold mb-2">
-            Welcome back, {user.first_name || user.username}!
-          </h1>
-          <p className="text-lg text-green-100">
-            Ready to protect your crops? Choose an option below to get started.
-          </p>
-        </div>
+ {/* Welcome Section */}
+ <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow-lg p-8 mb-8 text-white">
+ <h1 className="text-4xl font-bold mb-2">
+ Welcome back, {user.first_name || user.username}!
+ </h1>
+ <p className="text-lg text-green-100">
+ Ready to protect your crops? Choose an option below to get started.
+ </p>
+ </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link
-            to="/heatmap"
-            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
-                <Map className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                Detect & Map
-              </h3>
-              <p className="text-gray-600 text-sm">
-                Detect pests and track infestations on the map
-              </p>
-            </div>
-          </Link>
+ {/* Quick Actions */}
+ <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+ <Link
+ to="/heatmap"
+ className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
+ >
+ <div className="flex flex-col items-center text-center">
+ <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
+ <Map className="w-8 h-8 text-green-600" />
+ </div>
+ <h3 className="text-xl font-semibold text-gray-800 mb-2">
+ Detect & Map
+ </h3>
+ <p className="text-gray-600 text-sm">
+ Detect pests and track infestations on the map
+ </p>
+ </div>
+ </Link>
 
-          <Link
-            to="/pests"
-            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-yellow-200 transition-colors">
-                <Book className="w-8 h-8 text-yellow-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                Pest Library
-              </h3>
-              <p className="text-gray-600 text-sm">
-                Learn about common pests and control methods
-              </p>
-            </div>
-          </Link>
+ <Link
+ to="/pests"
+ className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
+ >
+ <div className="flex flex-col items-center text-center">
+ <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-yellow-200 transition-colors">
+ <Book className="w-8 h-8 text-yellow-600" />
+ </div>
+ <h3 className="text-xl font-semibold text-gray-800 mb-2">
+ Pest Library
+ </h3>
+ <p className="text-gray-600 text-sm">
+ Learn about common pests and control methods
+ </p>
+ </div>
+ </Link>
 
-          <Link
-            to="/profile"
-            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
-                <User className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                My Profile
-              </h3>
-              <p className="text-gray-600 text-sm">
-                View your detection history and account settings
-              </p>
-            </div>
-          </Link>
-        </div>
+ <Link
+ to="/profile"
+ className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
+ >
+ <div className="flex flex-col items-center text-center">
+ <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
+ <User className="w-8 h-8 text-purple-600" />
+ </div>
+ <h3 className="text-xl font-semibold text-gray-800 mb-2">
+ My Profile
+ </h3>
+ <p className="text-gray-600 text-sm">
+ View your detection history and account settings
+ </p>
+ </div>
+ </Link>
+ </div>
 
-        {/* Info Section */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">
-            How to use PestCheck
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
-            <div>
-              <span className="font-semibold">1. Detect:</span> Go to Heat Map and click "Detect Pest" to upload or capture an image
-            </div>
-            <div>
-              <span className="font-semibold">2. Confirm:</span> Verify the AI detection and assess the damage level
-            </div>
-            <div>
-              <span className="font-semibold">3. Track:</span> Monitor all infestations on the map and manage your farms
-            </div>
-          </div>
-        </div>
+ {/* Info Section */}
+ <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+ <h3 className="text-lg font-semibold text-blue-900 mb-3">
+ How to use PestCheck
+ </h3>
+ <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+ <div>
+ <span className="font-semibold">1. Detect:</span> Go to Heat Map and click "Detect Pest" to upload or capture an image
+ </div>
+ <div>
+ <span className="font-semibold">2. Confirm:</span> Verify the AI detection and assess the damage level
+ </div>
+ <div>
+ <span className="font-semibold">3. Track:</span> Monitor all infestations on the map and manage your farms
+ </div>
+ </div>
+ </div>
 
-        {/* Feature Highlight */}
-        <div className="mt-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
-          <h3 className="text-xl font-semibold mb-2">New Feature: Integrated Detection</h3>
-          <p className="text-blue-100">
-            Detection is now integrated into the Heat Map! Click the "Detect Pest" button on the Heat Map page to:
-          </p>
-          <ul className="mt-3 space-y-1 text-blue-100">
-            <li>â€¢ Upload or capture pest images directly</li>
-            <li>â€¢ Confirm AI detections before saving</li>
-            <li>â€¢ Assess damage levels from 0 (healthy) to 5 (critical)</li>
-            <li>â€¢ Instantly see detections on the map</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
+ {/* Feature Highlight */}
+ <div className="mt-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+ <h3 className="text-xl font-semibold mb-2">New Feature: Integrated Detection</h3>
+ <p className="text-blue-100">
+ Detection is now integrated into the Heat Map! Click the "Detect Pest" button on the Heat Map page to:
+ </p>
+ <ul className="mt-3 space-y-1 text-blue-100">
+ <li> Upload or capture pest images directly</li>
+ <li> Confirm AI detections before saving</li>
+ <li> Assess damage levels from 0 (healthy) to 5 (critical)</li>
+ <li> Instantly see detections on the map</li>
+ </ul>
+ </div>
+ </div>
+ </div>
+ );
 };
 
 export default Dashboard;
