@@ -750,18 +750,21 @@ const HeatMap = ({ user, onLogout }) => {
   const closeDetectionModal = async () => {
     // ✅ FIXED: Only delete if detection was NOT saved (not confirmed)
     // Don't delete if user completed the workflow
-    if (detectionResult && detectionResult.id && detectionStep !== 'success') {
-      // Additional check: Don't delete if it was already confirmed
-      if (!detectionResult.confirmed && !detectionResult.active) {
-        try {
-          await api.delete(`/detections/${detectionResult.id}/`);
-          console.log(`Deleted unconfirmed detection on modal close ID: ${detectionResult.id}`);
-        } catch (error) {
-          console.error('Error deleting unconfirmed detection on close:', error);
-        }
-      } else {
-        console.log(`Keeping confirmed detection ID: ${detectionResult.id}`);
+    const shouldDelete = detectionResult && 
+                        detectionResult.id && 
+                        detectionStep !== 'success' &&
+                        !detectionResult.confirmed && 
+                        !detectionResult.active;
+    
+    if (shouldDelete) {
+      try {
+        await api.delete(`/detections/${detectionResult.id}/`);
+        console.log(`Deleted unconfirmed detection on modal close ID: ${detectionResult.id}`);
+      } catch (error) {
+        console.error('Error deleting unconfirmed detection on close:', error);
       }
+    } else if (detectionResult && detectionResult.id) {
+      console.log(`Keeping detection ID: ${detectionResult.id} (step: ${detectionStep}, confirmed: ${detectionResult.confirmed})`);
     }
     
     setShowDetectionModal(false);
