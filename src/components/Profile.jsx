@@ -322,6 +322,12 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  email: user.email || '',
  phone: user.phone || ''
  });
+ // Fetch saved notification preferences
+ api.get('/auth/notification-settings/').then(res => {
+ if (res.data && typeof res.data === 'object') {
+ setNotificationSettings(prev => ({ ...prev, ...res.data }));
+ }
+ }).catch(() => {});
  }
  }, [user, isOpen]);
 
