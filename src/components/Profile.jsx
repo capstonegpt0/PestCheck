@@ -478,59 +478,6 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
   );
 };
 
-
-// ✅ NEW: Verification Status Component
-const VerificationStatusCard = ({ user }) => (
-  <div className="bg-white rounded-lg shadow p-6 mb-6">
-    <h2 className="text-xl font-semibold text-gray-800 mb-4">Account Status</h2>
-    
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-gray-600">Role:</span>
-        <span className="font-semibold text-gray-800">
-          {user.role === 'admin' ? 'Administrator' : 'Farmer'}
-        </span>
-      </div>
-      
-      <div className="flex items-center justify-between">
-        <span className="text-gray-600">Verification Status:</span>
-        {user.is_verified ? (
-          <span className="flex items-center text-green-600 font-semibold">
-            <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            Verified
-          </span>
-        ) : (
-          <span className="flex items-center text-yellow-600 font-semibold">
-            <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-            Pending Verification
-          </span>
-        )}
-      </div>
-      
-      {!user.is_verified && user.role !== 'admin' && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-          <p className="text-sm text-yellow-800">
-            Your account is pending verification. Contact an administrator to verify your account
-            and unlock full features including farm registration.
-          </p>
-        </div>
-      )}
-      
-      {user.is_verified && user.role !== 'admin' && (
-        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
-          <p className="text-sm text-green-800">
-            ✓ Your account is verified. You have full access to all features including farm registration.
-          </p>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
 const Profile = ({ user, onLogout }) => {
   const [profileData, setProfileData] = useState(null);
   const [myDetections, setMyDetections] = useState([]);
@@ -599,9 +546,6 @@ const Profile = ({ user, onLogout }) => {
       <Navigation user={user} onLogout={onLogout} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* ✅ NEW: Verification Status Card */}
-        <VerificationStatusCard user={user} />
-
         <h1 className="text-3xl font-bold text-gray-800 mb-8">My Profile</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

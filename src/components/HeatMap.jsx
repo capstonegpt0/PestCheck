@@ -321,8 +321,8 @@ const HeatMap = ({ user, onLogout }) => {
         return true;
       });
       
-      console.log(`âœ… Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
-      console.log(`âœ… Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
+      console.log(`Ã¢Å“â€¦ Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
+      console.log(`Ã¢Å“â€¦ Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
       
       setDetections(validDetections);
       setFarms(validFarms);
@@ -682,7 +682,7 @@ const HeatMap = ({ user, onLogout }) => {
       // Find the selected farm - use loose comparison for id type mismatch
       const farm = farms.find(f => Number(f.id) === Number(selectedFarm));
       
-      console.log('📍 saveDetection debug:', {
+      console.log('ðŸ“ saveDetection debug:', {
         locationChoice,
         selectedFarm,
         selectedFarmType: typeof selectedFarm,
@@ -710,27 +710,27 @@ const HeatMap = ({ user, onLogout }) => {
         if (farm && farm.lat != null && farm.lng != null) {
           updateData.latitude = parseFloat(farm.lat);
           updateData.longitude = parseFloat(farm.lng);
-          console.log('📍 Using FARM coordinates:', updateData.latitude, updateData.longitude);
+          console.log('ðŸ“ Using FARM coordinates:', updateData.latitude, updateData.longitude);
         } else {
-          console.warn('⚠️ Farm location chosen but farm coords missing!', { farm });
+          console.warn('âš ï¸ Farm location chosen but farm coords missing!', { farm });
           // Fallback: try to get coords from the farm object with other field names
           if (farm && farm.latitude != null && farm.longitude != null) {
             updateData.latitude = parseFloat(farm.latitude);
             updateData.longitude = parseFloat(farm.longitude);
-            console.log('📍 Using FARM coordinates (latitude/longitude fields):', updateData.latitude, updateData.longitude);
+            console.log('ðŸ“ Using FARM coordinates (latitude/longitude fields):', updateData.latitude, updateData.longitude);
           }
         }
       } else if (locationChoice === 'current' && location) {
         updateData.latitude = location.latitude;
         updateData.longitude = location.longitude;
-        console.log('📍 Using CURRENT coordinates:', updateData.latitude, updateData.longitude);
+        console.log('ðŸ“ Using CURRENT coordinates:', updateData.latitude, updateData.longitude);
       }
 
-      console.log('📍 Final PATCH data:', JSON.stringify(updateData));
+      console.log('ðŸ“ Final PATCH data:', JSON.stringify(updateData));
 
       // Update the existing detection record to confirm it
       const response = await api.patch(`/detections/${detectionResult.id}/`, updateData);
-      console.log('📍 PATCH response:', response.data);
+      console.log('ðŸ“ PATCH response:', response.data);
 
       setDetectionStep('success');
       
@@ -803,7 +803,7 @@ const HeatMap = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
       
-      {/* ✅ NEW: Proximity Alert Notifications */}
+      {/* âœ… NEW: Proximity Alert Notifications */}
       <AlertNotifications user={user} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -893,7 +893,7 @@ const HeatMap = ({ user, onLogout }) => {
                                      isFinite(parseFloat(farm.lng));
                   
                   if (!hasValidLat || !hasValidLng) {
-                    console.error('âŒ Filtering out invalid farm before render:', {
+                    console.error('Ã¢ÂÅ’ Filtering out invalid farm before render:', {
                       id: farm.id,
                       name: farm.name,
                       lat: farm.lat,
@@ -911,7 +911,7 @@ const HeatMap = ({ user, onLogout }) => {
                   const lng = parseFloat(farm.lng);
                   
                   if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-                    console.error('âŒ Skipping farm with invalid coords in map:', farm);
+                    console.error('Ã¢ÂÅ’ Skipping farm with invalid coords in map:', farm);
                     return null;
                   }
                   
@@ -1003,7 +1003,7 @@ const HeatMap = ({ user, onLogout }) => {
                                      isFinite(parseFloat(lng));
                   
                   if (!hasValidLat || !hasValidLng) {
-                    console.error('âŒ Filtering out invalid detection before render:', {
+                    console.error('Ã¢ÂÅ’ Filtering out invalid detection before render:', {
                       id: detection.id,
                       pest: detection.pest,
                       lat,
@@ -1021,7 +1021,7 @@ const HeatMap = ({ user, onLogout }) => {
                   
                   // Double safety check
                   if (isNaN(position.lat) || isNaN(position.lng) || !isFinite(position.lat) || !isFinite(position.lng)) {
-                    console.error('âŒ Skipping detection with invalid coords in map:', detection);
+                    console.error('Ã¢ÂÅ’ Skipping detection with invalid coords in map:', detection);
                     return null;
                   }
                   
@@ -1103,7 +1103,7 @@ const HeatMap = ({ user, onLogout }) => {
                           
                           {detection.farm_id && (
                             <p className="text-xs text-blue-600 mt-2 italic">
-                              📍 {isGroup && count === 1 ? 'Farm detection' : `Merged ${count} same-pest reports`}
+                              ðŸ“ {isGroup && count === 1 ? 'Farm detection' : `Merged ${count} same-pest reports`}
                             </p>
                           )}
                         </div>
@@ -1172,7 +1172,7 @@ const HeatMap = ({ user, onLogout }) => {
 
                 <div className="bg-gray-50 p-3 rounded">
                   <p className="text-sm text-gray-600">
-                    📍 Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}
+                    ðŸ“ Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}
                   </p>
                   <p className="text-xs text-gray-500 mt-2">
                     Your farm request will be reviewed by an administrator before approval.
@@ -1344,7 +1344,7 @@ const HeatMap = ({ user, onLogout }) => {
                       {/* Image Comparison Section */}
                       <div>
                         <h4 className="text-base font-semibold text-gray-800 mb-3 text-center">
-                          📸 Visual Comparison
+                          ðŸ“¸ Visual Comparison
                         </h4>
                         
                         {/* User's Captured Image */}
@@ -1419,7 +1419,7 @@ const HeatMap = ({ user, onLogout }) => {
                         {/* Reference Damage Section */}
                         <div className="mt-4">
                           <h4 className="text-sm font-semibold text-gray-800 mb-2 text-center">
-                            🌾 Reference Damage Pattern
+                            ðŸŒ¾ Reference Damage Pattern
                           </h4>
                           <div className="border-2 border-red-400 rounded-lg overflow-hidden shadow-md bg-white">
                             {referenceDamageImage ? (
@@ -1460,7 +1460,7 @@ const HeatMap = ({ user, onLogout }) => {
                             <div className="flex items-start">
                               <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
                               <div className="text-sm text-blue-900">
-                                <p className="font-semibold mb-1">📍 Identification Tips:</p>
+                                <p className="font-semibold mb-1">ðŸ“ Identification Tips:</p>
                                 <ul className="list-disc list-inside space-y-0.5 text-xs">
                                   {identificationTips.slice(0, 5).map((tip, idx) => (
                                     <li key={idx}>{tip}</li>
@@ -1476,7 +1476,7 @@ const HeatMap = ({ user, onLogout }) => {
                           <div className="flex items-start">
                             <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
                             <div className="text-sm text-yellow-800">
-                              <p className="font-semibold mb-1">💡 Comparison Tips:</p>
+                              <p className="font-semibold mb-1">ðŸ’¡ Comparison Tips:</p>
                               <ul className="list-disc list-inside space-y-0.5 text-xs">
                                 <li>Compare body color and patterns with reference pest</li>
                                 <li>Check body shape and size against reference</li>
@@ -1527,7 +1527,7 @@ const HeatMap = ({ user, onLogout }) => {
                     {/* Location Choice */}
                     <div>
                       <label className="block text-lg font-medium text-gray-800 mb-3">
-                        📍 Pin Location <span className="text-red-500">*</span>
+                        ðŸ“ Pin Location <span className="text-red-500">*</span>
                       </label>
                       <div className="grid grid-cols-2 gap-3 mb-3">
                         <button
@@ -1588,7 +1588,7 @@ const HeatMap = ({ user, onLogout }) => {
                         {farms.filter(farm => farm.user_name === user.username).length === 0 && (
                           <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                             <p className="text-sm text-yellow-800">
-                              ⚠️ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
+                              âš ï¸ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
                             </p>
                           </div>
                         )}
@@ -1596,7 +1596,7 @@ const HeatMap = ({ user, onLogout }) => {
                         {/* Location info hint */}
                         {selectedFarm && (
                           <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">
-                            <p>📍 Detection will be pinned at <span className="font-semibold">{farms.find(f => f.id === selectedFarm)?.name || 'selected farm'}</span>'s location on the map.</p>
+                            <p>ðŸ“ Detection will be pinned at <span className="font-semibold">{farms.find(f => f.id === selectedFarm)?.name || 'selected farm'}</span>'s location on the map.</p>
                           </div>
                         )}
                       </div>
@@ -1610,7 +1610,7 @@ const HeatMap = ({ user, onLogout }) => {
                           <div>
                             <p className="font-medium text-blue-900 mb-1">Using Current Location</p>
                             <p className="text-sm text-blue-800">
-                              📍 Detection will be pinned at your current GPS coordinates:
+                              ðŸ“ Detection will be pinned at your current GPS coordinates:
                               {location ? (
                                 <span className="font-semibold block mt-1">
                                   {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
