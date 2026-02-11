@@ -308,9 +308,8 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  });
 
  const [notificationSettings, setNotificationSettings] = useState({
- email_notifications: true,
+ push_enabled: true,
  detection_alerts: true,
- weekly_reports: false,
  critical_alerts: true
  });
 
@@ -383,6 +382,25 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  setError('');
  setSuccess('');
  try {
+ // If enabling push, request browser permission first
+ if (notificationSettings.push_enabled) {
+ if ('Notification' in window && Notification.permission === 'default') {
+ const permission = await Notification.requestPermission();
+ if (permission !== 'granted') {
+ setNotificationSettings(prev => ({ ...prev, push_enabled: false }));
+ setError('Push notification permission was denied. You can enable it in browser settings.');
+ setLoading(false);
+ return;
+ }
+ }
+ // Subscribe to push
+ try {
+ const { subscribeToPush } = await import('../utils/pushNotifications');
+ await subscribeToPush();
+ } catch (pushErr) {
+ console.error('Push subscription failed:', pushErr);
+ }
+ }
  await api.patch('/auth/notification-settings/', notificationSettings);
  setSuccess('Notification settings updated!');
  setTimeout(() => setSuccess(''), 2000);
@@ -550,9 +568,8 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  <form onSubmit={handleUpdateNotifications} className="space-y-4">
  <div className="space-y-3">
  {[
- { key: 'email_notifications', label: 'Email Notifications', desc: 'Receive updates via email', danger: false },
- { key: 'detection_alerts', label: 'Detection Alerts', desc: 'Get notified about new pest detections', danger: false },
- { key: 'weekly_reports', label: 'Weekly Reports', desc: 'Receive weekly summary reports', danger: false },
+ { key: 'push_enabled', label: 'Push Notifications', desc: 'Receive browser push notifications', danger: false },
+ { key: 'detection_alerts', label: 'Detection Alerts', desc: 'Get notified about new pest detections near your farms', danger: false },
  { key: 'critical_alerts', label: 'Critical Alerts', desc: 'Important notifications about critical infestations', danger: true },
  ].map(({ key, label, desc, danger }) => (
  <div

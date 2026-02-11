@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Map, Book, User, LogOut, Bug, Menu, X } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 const Navigation = ({ user, onLogout }) => {
   const location = useLocation();
@@ -47,6 +48,7 @@ const Navigation = ({ user, onLogout }) => {
             </div>
 
             <div className="flex items-center space-x-4">
+              <NotificationBell />
               <span className="text-gray-700">Hello, {user.username}</span>
               <button
                 onClick={onLogout}
@@ -69,16 +71,19 @@ const Navigation = ({ user, onLogout }) => {
               <span className="text-lg font-bold text-gray-800">PestCheck</span>
             </div>
 
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-gray-700 hover:bg-gray-100"
-            >
+            <div className="flex items-center space-x-2">
+              <NotificationBell />
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-lg text-gray-700 hover:bg-gray-100"
+              >
               {mobileMenuOpen ? (
                 <X className="w-6 h-6" />
               ) : (
                 <Menu className="w-6 h-6" />
               )}
-            </button>
+              </button>
+            </div>
           </div>
         </div>
 
