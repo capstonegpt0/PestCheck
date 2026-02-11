@@ -560,7 +560,24 @@ const Profile = ({ user, onLogout }) => {
                 <h2 className="text-2xl font-bold text-gray-800 mb-1">
                   {profileData?.first_name} {profileData?.last_name}
                 </h2>
-                <p className="text-gray-600 mb-4">@{profileData?.username}</p>
+                <p className="text-gray-600 mb-2">@{profileData?.username}</p>
+                
+                {/* Verification Status Badge */}
+                {user?.is_verified ? (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-300 mb-4">
+                    <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Verified Farmer
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 border border-amber-300 mb-4">
+                    <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    Unverified User
+                  </span>
+                )}
 
                 <div className="w-full space-y-3 mt-4">
                   <div className="flex items-center text-gray-700">

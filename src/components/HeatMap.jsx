@@ -103,7 +103,7 @@ const HeatMap = ({ user, onLogout }) => {
   const [detectionError, setDetectionError] = useState(null);
   const [damageLevel, setDamageLevel] = useState(2);
   const [selectedFarm, setSelectedFarm] = useState(null);
-  const [locationChoice, setLocationChoice] = useState('farm'); // 'farm' or 'current'
+  const [locationChoice, setLocationChoice] = useState(user?.is_verified ? 'farm' : 'current'); // 'farm' or 'current'
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
 
@@ -553,6 +553,10 @@ const HeatMap = ({ user, onLogout }) => {
     setDetectionError(null);
     setDamageLevel(2);
     setSelectedFarm(null);
+    // Unverified users can only use current location
+    if (!user.is_verified) {
+      setLocationChoice('current');
+    }
   };
 
   const handleFileSelect = (e) => {
@@ -712,7 +716,7 @@ const HeatMap = ({ user, onLogout }) => {
           updateData.longitude = parseFloat(farm.lng);
           console.log('ðŸ“ Using FARM coordinates:', updateData.latitude, updateData.longitude);
         } else {
-          console.warn('âš ï¸ Farm location chosen but farm coords missing!', { farm });
+          console.warn('âš ï¸ Farm location chosen but farm coords missing!', { farm });
           // Fallback: try to get coords from the farm object with other field names
           if (farm && farm.latitude != null && farm.longitude != null) {
             updateData.latitude = parseFloat(farm.latitude);
@@ -766,7 +770,7 @@ const HeatMap = ({ user, onLogout }) => {
     setDetectionError(null);
     setDamageLevel(2);
     setSelectedFarm(null);
-    setLocationChoice('farm');
+    setLocationChoice(user.is_verified ? 'farm' : 'current');
   };
 
   const getDamageLevelText = (level) => {
@@ -849,18 +853,20 @@ const HeatMap = ({ user, onLogout }) => {
             Detect Pest
           </button>
 
-          <button
-            onClick={() => setIsAddingFarm(true)}
-            className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-              isAddingFarm
-                ? 'bg-gray-400 text-white cursor-not-allowed'
-                : 'bg-primary text-white hover:bg-green-600'
-            }`}
-            disabled={isAddingFarm}
-          >
-            <MapPin className="w-5 h-5 mr-2" />
-            {isAddingFarm ? 'Click on map to place farm...' : 'Request Farm'}
-          </button>
+          {user.is_verified && (
+            <button
+              onClick={() => setIsAddingFarm(true)}
+              className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                isAddingFarm
+                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                  : 'bg-primary text-white hover:bg-green-600'
+              }`}
+              disabled={isAddingFarm}
+            >
+              <MapPin className="w-5 h-5 mr-2" />
+              {isAddingFarm ? 'Click on map to place farm...' : 'Request Farm'}
+            </button>
+          )}
         </div>
 
         {/* Map */}
@@ -1003,32 +1009,26 @@ const HeatMap = ({ user, onLogout }) => {
                                      isFinite(parseFloat(lng));
                   
                   if (!hasValidLat || !hasValidLng) {
-                    console.error('Ã¢ÂÅ’ Filtering out invalid detection before render:', {
-                      id: detection.id,
-                      pest: detection.pest,
-                      lat,
-                      lng
-                    });
                     return false;
                   }
                   return true;
                 });
 
-                const groupedDetections = getGroupedAndOffsetDetections(validDetections);
+                // Separate verified and unverified detections
+                const verifiedDetections = validDetections.filter(d => d.user_is_verified !== false);
+                const unverifiedDetections = validDetections.filter(d => d.user_is_verified === false);
 
-                return groupedDetections.map((item, index) => {
+                const groupedDetections = getGroupedAndOffsetDetections(verifiedDetections);
+
+                const verifiedCircles = groupedDetections.map((item, index) => {
                   const { position, detection, isGroup, count, allDetections } = item;
                   
-                  // Double safety check
                   if (isNaN(position.lat) || isNaN(position.lng) || !isFinite(position.lat) || !isFinite(position.lng)) {
-                    console.error('Ã¢ÂÅ’ Skipping detection with invalid coords in map:', detection);
                     return null;
                   }
                   
-                  // Determine severity for display
                   let displaySeverity = detection.severity;
                   if (isGroup && allDetections && allDetections.length > 0) {
-                    // Use highest severity from all grouped detections
                     const severityOrder = { low: 1, medium: 2, high: 3, critical: 4 };
                     displaySeverity = allDetections.reduce((highest, d) => {
                       const currentLevel = severityOrder[d.severity] || 0;
@@ -1103,7 +1103,7 @@ const HeatMap = ({ user, onLogout }) => {
                           
                           {detection.farm_id && (
                             <p className="text-xs text-blue-600 mt-2 italic">
-                              ðŸ“ {isGroup && count === 1 ? 'Farm detection' : `Merged ${count} same-pest reports`}
+                              {isGroup && count === 1 ? 'Farm detection' : `Merged ${count} same-pest reports`}
                             </p>
                           )}
                         </div>
@@ -1111,6 +1111,79 @@ const HeatMap = ({ user, onLogout }) => {
                     </Circle>
                   );
                 }).filter(circle => circle !== null);
+
+                // Render unverified detections as small dot markers with caution
+                const unverifiedMarkers = unverifiedDetections.map((detection, index) => {
+                  const lat = parseFloat(detection.lat || detection.latitude);
+                  const lng = parseFloat(detection.lng || detection.longitude);
+                  
+                  if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+                    return null;
+                  }
+
+                  const unverifiedDotIcon = L.divIcon({
+                    className: 'unverified-detection-marker',
+                    html: `
+                      <div style="position: relative; text-align: center;">
+                        <div style="
+                          width: 16px;
+                          height: 16px;
+                          background-color: #9ca3af;
+                          border: 2px solid #6b7280;
+                          border-radius: 50%;
+                          margin: 0 auto;
+                          box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                        "></div>
+                        <div style="
+                          background: #fef3c7;
+                          border: 1px solid #f59e0b;
+                          padding: 1px 4px;
+                          border-radius: 3px;
+                          font-size: 8px;
+                          font-weight: 600;
+                          color: #92400e;
+                          white-space: nowrap;
+                          margin-top: 2px;
+                        ">⚠ Unverified</div>
+                      </div>
+                    `,
+                    iconSize: [60, 36],
+                    iconAnchor: [30, 8],
+                    popupAnchor: [0, -8]
+                  });
+
+                  return (
+                    <Marker
+                      key={`unverified-${detection.id}-${index}`}
+                      position={[lat, lng]}
+                      icon={unverifiedDotIcon}
+                    >
+                      <Popup>
+                        <div className="p-2">
+                          <div className="bg-amber-50 border border-amber-300 rounded-lg p-2 mb-2">
+                            <div className="flex items-center space-x-1 mb-1">
+                              <span className="text-amber-600 text-sm">⚠️</span>
+                              <span className="text-xs font-bold text-amber-800">Unverified Detection</span>
+                            </div>
+                            <p className="text-xs text-amber-700">
+                              This detection was submitted by an unverified user. Data may not be reliable.
+                            </p>
+                          </div>
+                          <h3 className="font-bold text-lg text-gray-700">{detection.pest}</h3>
+                          <p className="text-sm text-gray-600">Severity: {detection.severity}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(detection.detected_at || detection.reported_at).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Reported by: {detection.user_name || 'Unknown'} (unverified)
+                          </p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                }).filter(marker => marker !== null);
+
+                return [...verifiedCircles, ...unverifiedMarkers];
               })()}
             </MapContainer>
           )}
@@ -1524,43 +1597,71 @@ const HeatMap = ({ user, onLogout }) => {
                       </h3>
                     </div>
 
-                    {/* Location Choice */}
+                                        {/* Location Choice */}
                     <div>
                       <label className="block text-lg font-medium text-gray-800 mb-3">
-                        ðŸ“ Pin Location <span className="text-red-500">*</span>
+                        📍 Pin Location <span className="text-red-500">*</span>
                       </label>
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                        <button
-                          type="button"
-                          onClick={() => setLocationChoice('farm')}
-                          className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
-                            locationChoice === 'farm'
-                              ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
-                              : 'border-gray-200 bg-white hover:border-gray-300'
-                          }`}
-                        >
-                          <MapPin className={`w-6 h-6 mb-1 ${locationChoice === 'farm' ? 'text-green-600' : 'text-gray-400'}`} />
-                          <span className={`text-sm font-semibold ${locationChoice === 'farm' ? 'text-green-700' : 'text-gray-600'}`}>
-                            Farm Location
-                          </span>
-                          <span className="text-xs text-gray-500 mt-0.5">Pin on your farm</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setLocationChoice('current')}
-                          className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
-                            locationChoice === 'current'
-                              ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                              : 'border-gray-200 bg-white hover:border-gray-300'
-                          }`}
-                        >
-                          <Activity className={`w-6 h-6 mb-1 ${locationChoice === 'current' ? 'text-blue-600' : 'text-gray-400'}`} />
-                          <span className={`text-sm font-semibold ${locationChoice === 'current' ? 'text-blue-700' : 'text-gray-600'}`}>
-                            Current Location
-                          </span>
-                          <span className="text-xs text-gray-500 mt-0.5">Use GPS coordinates</span>
-                        </button>
-                      </div>
+                      
+                      {/* Unverified user notice */}
+                      {!user.is_verified && (
+                        <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 mb-3">
+                          <div className="flex items-start space-x-2">
+                            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-amber-800">Unverified Account</p>
+                              <p className="text-xs text-amber-700 mt-0.5">
+                                Your detection will use your current GPS location. To select a farm location, please get your account verified by an administrator.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {user.is_verified ? (
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <button
+                            type="button"
+                            onClick={() => setLocationChoice('farm')}
+                            className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                              locationChoice === 'farm'
+                                ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                          >
+                            <MapPin className={`w-6 h-6 mb-1 ${locationChoice === 'farm' ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className={`text-sm font-semibold ${locationChoice === 'farm' ? 'text-green-700' : 'text-gray-600'}`}>
+                              Farm Location
+                            </span>
+                            <span className="text-xs text-gray-500 mt-0.5">Pin on your farm</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLocationChoice('current')}
+                            className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                              locationChoice === 'current'
+                                ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                          >
+                            <Activity className={`w-6 h-6 mb-1 ${locationChoice === 'current' ? 'text-blue-600' : 'text-gray-400'}`} />
+                            <span className={`text-sm font-semibold ${locationChoice === 'current' ? 'text-blue-700' : 'text-gray-600'}`}>
+                              Current Location
+                            </span>
+                            <span className="text-xs text-gray-500 mt-0.5">Use GPS coordinates</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="mb-3">
+                          <div className="flex flex-col items-center justify-center p-4 rounded-lg border-2 border-blue-500 bg-blue-50 ring-2 ring-blue-200">
+                            <Activity className="w-6 h-6 mb-1 text-blue-600" />
+                            <span className="text-sm font-semibold text-blue-700">
+                              Current Location
+                            </span>
+                            <span className="text-xs text-gray-500 mt-0.5">Use GPS coordinates</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Farm Selection - only shown when Farm Location is selected */}
@@ -1588,7 +1689,7 @@ const HeatMap = ({ user, onLogout }) => {
                         {farms.filter(farm => farm.user_name === user.username).length === 0 && (
                           <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                             <p className="text-sm text-yellow-800">
-                              âš ï¸ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
+                              âš ï¸ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
                             </p>
                           </div>
                         )}
@@ -1835,6 +1936,11 @@ const HeatMap = ({ user, onLogout }) => {
                                   </div>
                                   <p className="text-xs text-gray-400 mt-1">
                                     Reported by: {detection.user_name || 'Unknown'}
+                                    {detection.user_is_verified === false && (
+                                      <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300">
+                                        ⚠ Unverified
+                                      </span>
+                                    )}
                                   </p>
                                   <p className="text-xs text-gray-500">
                                     Date: {new Date(detection.detected_at || detection.reported_at).toLocaleDateString('en-US', {
