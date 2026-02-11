@@ -18,11 +18,12 @@ const getImageUrl = (imagePath) => {
 
 
 // ==================== VERIFICATION REVIEW MODAL ====================
-const VerificationReviewModal = ({ request, onClose, onAction }) => {
+const VerificationReviewModal = ({ request, onClose, onActionComplete }) => {
   const [reviewNotes, setReviewNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showIdImage, setShowIdImage] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   if (!request) return null;
 
@@ -31,17 +32,43 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
       setError('Please provide a reason for rejection.');
       return;
     }
+    
     setLoading(true);
     setError('');
+    setSuccess(false);
+    
+    console.log(`🔄 Attempting to ${action} verification request ID:`, request.id);
+    console.log('Review notes:', reviewNotes);
+    
     try {
-      await api.post(`/admin/verification-requests/${request.id}/${action}/`, {
+      const response = await api.post(`/admin/verification-requests/${request.id}/${action}/`, {
         review_notes: reviewNotes
       });
-      onAction();
-      onClose();
+      
+      console.log(`✅ ${action} successful:`, response.data);
+      
+      // Show success message
+      setSuccess(true);
+      
+      // Wait a bit to show success, then close and refresh
+      setTimeout(async () => {
+        console.log('🔄 Calling onActionComplete to refresh data...');
+        await onActionComplete();
+        console.log('✅ Data refreshed, closing modal');
+        onClose();
+      }, 500);
+      
     } catch (err) {
-      setError(err.response?.data?.error || `Failed to ${action} request.`);
-    } finally {
+      console.error(`❌ Failed to ${action} request:`, err);
+      console.error('Error response:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      
+      const errorMessage = err.response?.data?.error 
+        || err.response?.data?.message 
+        || err.message 
+        || `Failed to ${action} request.`;
+      
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -64,12 +91,24 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
               })}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button 
+            onClick={onClose} 
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+            disabled={loading}
+          >
             <X className="w-6 h-6" />
           </button>
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Success Message */}
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2" />
+              <span>Action completed successfully! Refreshing data...</span>
+            </div>
+          )}
+
           {/* User Info */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">Farmer Information</h3>
@@ -151,7 +190,7 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
           )}
 
           {/* Admin Review Section */}
-          {request.status === 'pending' && (
+          {request.status === 'pending' && !success && (
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">
                 Review Notes <span className="text-gray-400 font-normal">(required for rejection)</span>
@@ -161,7 +200,8 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
                 onChange={(e) => setReviewNotes(e.target.value)}
                 placeholder="Enter review notes or reason for rejection..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                disabled={loading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none disabled:bg-gray-100"
               />
             </div>
           )}
@@ -201,7 +241,7 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
         </div>
 
         {/* Action Buttons */}
-        {request.status === 'pending' && (
+        {request.status === 'pending' && !success && (
           <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex space-x-3">
             <button
               onClick={() => handleAction('approve')}
@@ -221,9 +261,13 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
             </button>
           </div>
         )}
-        {request.status !== 'pending' && (
+        {(request.status !== 'pending' || success) && (
           <div className="p-6 border-t border-gray-200">
-            <button onClick={onClose} className="w-full bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+            <button 
+              onClick={onClose} 
+              disabled={loading && !success}
+              className="w-full bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:bg-gray-50 disabled:cursor-not-allowed"
+            >
               Close
             </button>
           </div>
@@ -266,16 +310,19 @@ const AdminUsers = ({ user, onLogout }) => {
 
   // ==================== USER FUNCTIONS ====================
   const fetchUsers = async () => {
+    console.log('🔄 Fetching users...');
     setUsersLoading(true);
     try {
       const response = await api.get('/admin/users/');
+      console.log('✅ Users response:', response.data);
+      
       const userData = Array.isArray(response.data)
         ? response.data
         : (response.data.results || []);
       setUsers(userData);
       setFilteredUsers(userData);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('❌ Error fetching users:', error);
       setUsers([]);
       setFilteredUsers([]);
     } finally {
@@ -339,20 +386,39 @@ const AdminUsers = ({ user, onLogout }) => {
 
   // ==================== VERIFICATION REQUEST FUNCTIONS ====================
   const fetchVerificationRequests = async () => {
+    console.log('🔄 Fetching verification requests...');
     setVrLoading(true);
     try {
       const response = await api.get('/admin/verification-requests/');
+      console.log('✅ Verification requests response:', response.data);
+      
       const data = Array.isArray(response.data)
         ? response.data
         : (response.data.results || []);
+      
+      console.log('📋 Processed VR data:', data);
+      console.log('📊 Pending count:', data.filter(r => r.status === 'pending').length);
+      
       setVerificationRequests(data);
       setPendingCount(data.filter(r => r.status === 'pending').length);
     } catch (error) {
-      console.error('Error fetching verification requests:', error);
+      console.error('❌ Error fetching verification requests:', error);
       setVerificationRequests([]);
     } finally {
       setVrLoading(false);
     }
+  };
+
+  const handleActionComplete = async () => {
+    console.log('🔄 handleActionComplete: Starting data refresh...');
+    
+    // Refresh both users and verification requests
+    await Promise.all([
+      fetchUsers(),
+      fetchVerificationRequests()
+    ]);
+    
+    console.log('✅ handleActionComplete: Data refresh completed');
   };
 
   const filteredVRs = verificationRequests.filter(r =>
@@ -454,77 +520,87 @@ const AdminUsers = ({ user, onLogout }) => {
             {/* Users Table */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
               {usersLoading ? (
-                <div className="p-8 text-center"><p className="text-gray-600">Loading users...</p></div>
+                <div className="p-12 text-center text-gray-500">Loading users...</div>
               ) : filteredUsers.length === 0 ? (
-                <div className="p-8 text-center"><p className="text-gray-600">No users found</p></div>
+                <div className="p-12 text-center text-gray-500">No users found</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        {['User', 'Email', 'Role', 'Status', 'Joined', 'Actions'].map((h) => (
-                          <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
-                        ))}
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Joined</th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200">
                       {filteredUsers.map((u) => (
-                        <tr key={u.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
+                        <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4">
                             <div className="flex items-center">
-                              <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                                <span className="text-gray-600 font-semibold">{u.username.charAt(0).toUpperCase()}</span>
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                {u.username.charAt(0).toUpperCase()}
                               </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{u.username}</div>
-                                <div className="text-sm text-gray-500">{u.first_name} {u.last_name}</div>
+                              <div className="ml-3">
+                                <p className="font-semibold text-gray-800">{u.username}</p>
+                                <p className="text-sm text-gray-500">{u.first_name} {u.last_name}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{u.email}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(u.role)}`}>
+                          <td className="px-6 py-4 text-sm text-gray-600">{u.email}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getRoleBadgeColor(u.role)}`}>
+                              {u.role === 'admin' ? <Shield className="w-3 h-3 mr-1" /> : <UserCheck className="w-3 h-3 mr-1" />}
                               {u.role}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4">
                             {u.is_verified ? (
-                              <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                ✓ Verified
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Verified
                               </span>
                             ) : (
-                              <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
                                 Unverified
                               </span>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {new Date(u.date_joined || u.created_at).toLocaleDateString()}
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {new Date(u.date_joined).toLocaleDateString()}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <div className="flex items-center space-x-2">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-end space-x-2">
                               {!u.is_verified && (
                                 <button
                                   onClick={() => handleVerifyUser(u.id)}
-                                  className="text-green-600 hover:text-green-800 transition-colors"
-                                  title="Verify user directly"
+                                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                  title="Verify User"
                                 >
-                                  <UserCheck className="w-5 h-5" />
+                                  <ShieldCheck className="w-4 h-4" />
                                 </button>
                               )}
                               <button
-                                onClick={() => { setSelectedUser(u); setNewRole(u.role); setShowRoleModal(true); }}
-                                className="text-blue-600 hover:text-blue-800 transition-colors"
-                                title="Change role"
+                                onClick={() => {
+                                  setSelectedUser(u);
+                                  setNewRole(u.role);
+                                  setShowRoleModal(true);
+                                }}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Change Role"
                               >
-                                <Shield className="w-5 h-5" />
+                                <Edit className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteUser(u.id)}
-                                className="text-red-600 hover:text-red-800 transition-colors"
-                                title="Delete user"
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete User"
                               >
-                                <Trash2 className="w-5 h-5" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
@@ -538,40 +614,28 @@ const AdminUsers = ({ user, onLogout }) => {
           </>
         )}
 
-
         {/* ==================== VERIFICATION REQUESTS TAB ==================== */}
         {activeTab === 'verification' && (
           <>
-            {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              {[
-                { label: 'Pending', count: verificationRequests.filter(r => r.status === 'pending').length, color: 'amber' },
-                { label: 'Approved', count: verificationRequests.filter(r => r.status === 'approved').length, color: 'green' },
-                { label: 'Rejected', count: verificationRequests.filter(r => r.status === 'rejected').length, color: 'red' },
-              ].map(({ label, count, color }) => (
-                <div key={label} className={`bg-white rounded-lg shadow p-4 border-l-4 border-${color}-400`}>
-                  <p className="text-sm text-gray-500">{label}</p>
-                  <p className={`text-2xl font-bold text-${color}-600`}>{count}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="bg-white rounded-lg shadow mb-6">
-              <div className="flex border-b border-gray-200 px-4">
-                {['pending', 'approved', 'rejected', 'all'].map((f) => (
+            {/* Filter Buttons */}
+            <div className="bg-white rounded-lg shadow p-4 mb-6">
+              <div className="flex space-x-2">
+                {['pending', 'approved', 'rejected', 'all'].map((filter) => (
                   <button
-                    key={f}
-                    onClick={() => setVrFilter(f)}
-                    className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors capitalize ${
-                      vrFilter === f
-                        ? 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    key={filter}
+                    onClick={() => setVrFilter(filter)}
+                    className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors capitalize ${
+                      vrFilter === filter
+                        ? filter === 'pending' ? 'bg-amber-600 text-white'
+                        : filter === 'approved' ? 'bg-green-600 text-white'
+                        : filter === 'rejected' ? 'bg-red-600 text-white'
+                        : 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {f === 'all' ? 'All Requests' : `${f.charAt(0).toUpperCase() + f.slice(1)}`}
-                    {f === 'pending' && pendingCount > 0 && (
-                      <span className="ml-1.5 text-xs font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                    {filter === 'all' ? 'All Requests' : filter}
+                    {filter === 'pending' && pendingCount > 0 && (
+                      <span className="ml-2 bg-white text-amber-600 rounded-full px-2 py-0.5 text-xs font-bold">
                         {pendingCount}
                       </span>
                     )}
@@ -580,77 +644,66 @@ const AdminUsers = ({ user, onLogout }) => {
               </div>
             </div>
 
-            {/* Requests List */}
+            {/* Verification Requests Table */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
               {vrLoading ? (
-                <div className="p-8 text-center"><p className="text-gray-600">Loading verification requests...</p></div>
+                <div className="p-12 text-center text-gray-500">Loading verification requests...</div>
               ) : filteredVRs.length === 0 ? (
-                <div className="p-12 text-center">
-                  <ShieldCheck className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 font-medium">
-                    No {vrFilter !== 'all' ? vrFilter : ''} verification requests
-                  </p>
-                  <p className="text-gray-400 text-sm mt-1">
-                    {vrFilter === 'pending' ? 'All requests have been reviewed.' : 'No records to show.'}
-                  </p>
+                <div className="p-12 text-center text-gray-500">
+                  No {vrFilter !== 'all' ? vrFilter : ''} verification requests found
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        {['Farmer', 'RSBSA Number', 'Submitted', 'Status', 'Reviewed By', 'Actions'].map((h) => (
-                          <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
-                        ))}
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">RSBSA Number</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Submitted</th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200">
                       {filteredVRs.map((vr) => (
                         <tr key={vr.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4">
                             <div className="flex items-center">
-                              <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                                <span className="text-blue-700 font-semibold text-sm">
-                                  {vr.user_name?.charAt(0).toUpperCase()}
-                                </span>
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                                {vr.user_name.charAt(0).toUpperCase()}
                               </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">@{vr.user_name}</p>
-                                <p className="text-xs text-gray-500">{vr.user_full_name}</p>
+                              <div className="ml-3">
+                                <p className="font-semibold text-gray-800">@{vr.user_name}</p>
+                                <p className="text-sm text-gray-500">{vr.user_full_name}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="font-mono text-sm text-gray-800 bg-gray-100 px-2 py-1 rounded">
-                              {vr.rsbsa_number}
-                            </span>
+                          <td className="px-6 py-4">
+                            <p className="font-mono text-sm text-gray-800">{vr.rsbsa_number}</p>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {new Date(vr.created_at).toLocaleDateString('en-PH', {
-                              month: 'short', day: 'numeric', year: 'numeric'
-                            })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${getVRStatusBadge(vr.status)}`}>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getVRStatusBadge(vr.status)}`}>
                               {getVRStatusIcon(vr.status)}
                               {vr.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {vr.reviewed_by_name ? `@${vr.reviewed_by_name}` : '—'}
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {new Date(vr.created_at).toLocaleDateString('en-PH', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <button
-                              onClick={() => setSelectedVR(vr)}
-                              className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                                vr.status === 'pending'
-                                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
-                            >
-                              <Eye className="w-3.5 h-3.5 mr-1" />
-                              {vr.status === 'pending' ? 'Review' : 'View'}
-                            </button>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-end">
+                              <button
+                                onClick={() => setSelectedVR(vr)}
+                                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                Review
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -663,34 +716,43 @@ const AdminUsers = ({ user, onLogout }) => {
         )}
       </div>
 
-      {/* Change Role Modal */}
-      {showRoleModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Change User Role</h2>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-1">User: <span className="font-semibold">{selectedUser?.username}</span></p>
-              <p className="text-sm text-gray-600 mb-4">Current Role: <span className="font-semibold">{selectedUser?.role}</span></p>
-              <label className="block text-sm font-medium text-gray-700 mb-2">New Role</label>
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="farmer">Farmer</option>
-                <option value="admin">Admin</option>
-              </select>
+      {/* Role Change Modal */}
+      {showRoleModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Change User Role</h3>
+            <p className="text-gray-600 mb-4">
+              Change role for <span className="font-semibold">{selectedUser.username}</span>
+            </p>
+            <div className="space-y-3 mb-6">
+              {['farmer', 'admin'].map((role) => (
+                <label key={role} className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="role"
+                    value={role}
+                    checked={newRole === role}
+                    onChange={(e) => setNewRole(e.target.value)}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="ml-3 font-medium text-gray-800 capitalize">{role}</span>
+                </label>
+              ))}
             </div>
             <div className="flex space-x-3">
               <button
                 onClick={handleChangeRole}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-medium"
+                className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
-                Change Role
+                Save Changes
               </button>
               <button
-                onClick={() => { setShowRoleModal(false); setSelectedUser(null); setNewRole(''); }}
-                className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
+                onClick={() => {
+                  setShowRoleModal(false);
+                  setSelectedUser(null);
+                  setNewRole('');
+                }}
+                className="flex-1 bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
               >
                 Cancel
               </button>
@@ -704,10 +766,7 @@ const AdminUsers = ({ user, onLogout }) => {
         <VerificationReviewModal
           request={selectedVR}
           onClose={() => setSelectedVR(null)}
-          onAction={() => {
-            fetchVerificationRequests();
-            fetchUsers();
-          }}
+          onActionComplete={handleActionComplete}
         />
       )}
     </div>
