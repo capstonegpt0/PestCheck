@@ -748,23 +748,14 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const closeDetectionModal = async () => {
-    // ✅ FIXED: Only delete if detection was NOT saved (not confirmed)
-    // Don't delete if user completed the workflow
-    const shouldDelete = detectionResult && 
-                        detectionResult.id && 
-                        detectionStep !== 'success' &&
-                        !detectionResult.confirmed && 
-                        !detectionResult.active;
-    
-    if (shouldDelete) {
+    // If there's an unconfirmed detection, delete it
+    if (detectionResult && detectionResult.id && detectionStep !== 'success') {
       try {
         await api.delete(`/detections/${detectionResult.id}/`);
         console.log(`Deleted unconfirmed detection on modal close ID: ${detectionResult.id}`);
       } catch (error) {
         console.error('Error deleting unconfirmed detection on close:', error);
       }
-    } else if (detectionResult && detectionResult.id) {
-      console.log(`Keeping detection ID: ${detectionResult.id} (step: ${detectionStep}, confirmed: ${detectionResult.confirmed})`);
     }
     
     setShowDetectionModal(false);
@@ -1056,13 +1047,9 @@ const HeatMap = ({ user, onLogout }) => {
 
                   // ✅ NEW: Check if user is verified
                   const isVerified = detection.user_verified !== false; // Default to true if not specified
-                  
-                  // VERIFIED users: Large hollow circles with border (size varies by severity)
-                  // UNVERIFIED users: VERY SMALL solid dot (10px - same for all severities)
-                  const adjustedRadius = isVerified ? radius : 10; // VERY SMALL 10px dot for unverified
-                  const fillOpacity = isVerified ? 0.3 : 1; // Completely solid for unverified dots
-                  const borderColor = isVerified ? color : color; // Same color for unverified
-                  const borderWeight = isVerified ? 2 : 0; // No border for unverified dots
+                  const adjustedRadius = isVerified ? radius : radius * 0.5; // Half size for unverified
+                  const adjustedOpacity = isVerified ? 0.3 : 0.2; // Lower opacity for unverified
+                  const borderColor = isVerified ? color : '#fbbf24'; // Yellow border for unverified
 
                   return (
                     <Circle
@@ -1071,10 +1058,9 @@ const HeatMap = ({ user, onLogout }) => {
                       radius={adjustedRadius}
                       pathOptions={{
                         fillColor: color,
-                        fillOpacity: fillOpacity,
+                        fillOpacity: adjustedOpacity,
                         color: borderColor,
-                        weight: borderWeight,
-                        opacity: isVerified ? 1 : 0.95 // Slightly transparent border for dots
+                        weight: isVerified ? 2 : 3
                       }}
                     >
                       <Popup>
