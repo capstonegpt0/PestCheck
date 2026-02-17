@@ -9,17 +9,19 @@ const AdminAlerts = ({ user, onLogout }) => {
   const [showModal, setShowModal] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [editingAlert, setEditingAlert] = useState(null);
+  const [farms, setFarms] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     message: '',
     alert_type: 'info',
-    target_area: 'Magalang, Pampanga',
+    target_area: '',
     is_active: true,
     expires_at: ''
   });
 
   useEffect(() => {
     fetchAlerts();
+    fetchFarms();
   }, []);
 
   const fetchAlerts = async () => {
@@ -35,6 +37,19 @@ const AdminAlerts = ({ user, onLogout }) => {
       setAlerts([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFarms = async () => {
+    try {
+      const response = await api.get('/admin/farms/');
+      const farmData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data.results || []);
+      setFarms(farmData);
+    } catch (error) {
+      console.error('Error fetching farms:', error);
+      setFarms([]);
     }
   };
 
@@ -84,7 +99,7 @@ const AdminAlerts = ({ user, onLogout }) => {
       title: alert.title,
       message: alert.message,
       alert_type: alert.alert_type,
-      target_area: alert.target_area || 'Magalang, Pampanga',
+      target_area: alert.target_area || '',
       is_active: alert.is_active,
       expires_at: alert.expires_at ? new Date(alert.expires_at).toISOString().slice(0, 16) : ''
     });
@@ -97,7 +112,7 @@ const AdminAlerts = ({ user, onLogout }) => {
       title: '',
       message: '',
       alert_type: 'info',
-      target_area: 'Magalang, Pampanga',
+      target_area: '',
       is_active: true,
       expires_at: ''
     });
@@ -344,13 +359,23 @@ const AdminAlerts = ({ user, onLogout }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Target Area
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.target_area}
                     onChange={(e) => setFormData({...formData, target_area: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Magalang, Pampanga"
-                  />
+                  >
+                    <option value="">All Farms (Region-wide)</option>
+                    {farms.map(farm => (
+                      <option key={farm.id} value={farm.name}>
+                        {farm.name} — {farm.user_name} ({farm.crop_type || 'N/A'})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formData.target_area 
+                      ? `Alert will be shown to the owner of "${formData.target_area}"` 
+                      : 'Alert will be shown to all users in the region'}
+                  </p>
                 </div>
 
                 <div>
