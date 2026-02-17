@@ -1952,6 +1952,7 @@ const HeatMap = ({ user, onLogout }) => {
             </div>
           </div>
 
+
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Active Infestations by Farm</h2>
             <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -1959,40 +1960,61 @@ const HeatMap = ({ user, onLogout }) => {
                 <p className="text-gray-500">No active infestations reported.</p>
               ) : (
                 (() => {
-                  // Group detections by farm
+                  // Group detections by farm — null/undefined farm_id grouped as 'unassigned'
                   const detectionsByFarm = {};
                   activeDetections.forEach(detection => {
-                    const farmId = detection.farm_id;
+                    const farmId = detection.farm_id != null ? detection.farm_id : '__unassigned__';
                     if (!detectionsByFarm[farmId]) {
                       detectionsByFarm[farmId] = [];
                     }
                     detectionsByFarm[farmId].push(detection);
                   });
 
-                  // Sort farms by number of infestations (descending)
-                  const sortedFarmIds = Object.keys(detectionsByFarm).sort((a, b) => 
-                    detectionsByFarm[b].length - detectionsByFarm[a].length
-                  );
+                  // Sort: real farms first (by infestation count desc), unassigned last
+                  const sortedFarmIds = Object.keys(detectionsByFarm).sort((a, b) => {
+                    if (a === '__unassigned__') return 1;
+                    if (b === '__unassigned__') return -1;
+                    return detectionsByFarm[b].length - detectionsByFarm[a].length;
+                  });
 
                   return sortedFarmIds.map(farmId => {
-                    const farm = farms.find(f => f.id === parseInt(farmId));
+                    const isUnassigned = farmId === '__unassigned__';
+                    const farm = isUnassigned ? null : farms.find(f => f.id === parseInt(farmId));
                     const farmDetections = detectionsByFarm[farmId];
                     
                     return (
-                      <div key={farmId} className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <div key={farmId} className={`border-2 rounded-lg p-4 ${isUnassigned ? 'border-dashed border-gray-300 bg-gray-50/50' : 'border-gray-200 bg-gray-50'}`}>
                         <div className="flex items-center justify-between mb-3">
                           <div>
-                            <h3 className="font-bold text-gray-800">
-                              {farm ? farm.name : `Farm ID: ${farmId}`}
-                            </h3>
-                            {farm && (
-                              <p className="text-xs text-gray-500">
-                                {farm.crop_type} - {farm.size} ha - Owner: {farm.user_name}
-                              </p>
+                            {isUnassigned ? (
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="w-4 h-4 text-blue-500" />
+                                  <h3 className="font-bold text-gray-700">GPS / Field Detections</h3>
+                                </div>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  Detected via current location \u2014 not linked to a registered farm
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <h3 className="font-bold text-gray-800">
+                                  {farm ? farm.name : `Unknown Farm (#${farmId})`}
+                                </h3>
+                                {farm && (
+                                  <p className="text-xs text-gray-500">
+                                    {farm.crop_type} - {farm.size} ha - Owner: {farm.user_name}
+                                  </p>
+                                )}
+                              </>
                             )}
                           </div>
-                          <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
-                            {farmDetections.length} {farmDetections.length === 1 ? 'Infestation' : 'Infestations'}
+                          <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                            isUnassigned 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {farmDetections.length} {farmDetections.length === 1 ? 'Detection' : 'Detections'}
                           </div>
                         </div>
 
@@ -2011,7 +2033,7 @@ const HeatMap = ({ user, onLogout }) => {
                                     Reported by: {detection.user_name || 'Unknown'}
                                     {detection.user_is_verified === false && (
                                       <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300">
-                                        âš  Unverified
+                                        \u26a0 Unverified
                                       </span>
                                     )}
                                   </p>
@@ -2024,6 +2046,12 @@ const HeatMap = ({ user, onLogout }) => {
                                       minute: '2-digit'
                                     })}
                                   </p>
+                                  {/* Show coordinates for unassigned detections so user knows where it was */}
+                                  {isUnassigned && detection.lat != null && detection.lng != null && (
+                                    <p className="text-xs text-blue-500 mt-0.5">
+                                      \ud83d\udccd {parseFloat(detection.lat).toFixed(4)}, {parseFloat(detection.lng).toFixed(4)}
+                                    </p>
+                                  )}
                                   <p className="text-sm text-gray-600 mt-1">
                                     Severity: <span className={`font-bold ${
                                       detection.severity === 'critical' ? 'text-red-900' : 
