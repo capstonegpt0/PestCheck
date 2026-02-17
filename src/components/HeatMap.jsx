@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMapEvents } from 'react-leaflet';
 import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity, Camera, Upload, Loader, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react';
 import Navigation from './Navigation';
-import AlertNotifications from './AlertNotifications';
 import api from '../utils/api';
 import L from 'leaflet';
 import { PEST_REFERENCE_DATA, getPestById } from '../utils/pestReferenceData';
@@ -92,6 +91,9 @@ const HeatMap = ({ user, onLogout }) => {
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
   const [selectedInfestationToResolve, setSelectedInfestationToResolve] = useState(null);
   const [farmForm, setFarmForm] = useState({ name: '', size: '', crop_type: '' });
+
+  // Farm list sorting: 'all' = default, 'mine' = my farms first
+  const [farmSortMode, setFarmSortMode] = useState('mine');
 
   // Detection workflow states
   const [showDetectionModal, setShowDetectionModal] = useState(false);
@@ -615,7 +617,7 @@ const HeatMap = ({ user, onLogout }) => {
           setDetectionResult(response.data);
           setDetectionStep('confirm');
         } else {
-          setDetectionError('no_pest');
+          setDetectionError('No pest detected in the image. Please try another image with clearer pest visibility.');
           setDetectionStep('upload');
         }
       } else {
@@ -626,11 +628,7 @@ const HeatMap = ({ user, onLogout }) => {
       console.error('Detection error:', error);
       
       if (error.response?.status === 400) {
-        if (error.response.data?.no_pest_detected) {
-          setDetectionError('no_pest');
-        } else {
-          setDetectionError(error.response.data?.error || 'Detection failed. Please try again.');
-        }
+        setDetectionError(error.response.data?.error || 'No pest detected. Please try another image.');
       } else if (error.response?.status === 503) {
         setDetectionError('ML service is warming up. Please wait 30 seconds and try again.');
       } else {
@@ -655,7 +653,7 @@ const HeatMap = ({ user, onLogout }) => {
           console.error('Error deleting rejected detection:', error);
         }
       }
-      setDetectionError('no_pest');
+      setDetectionError('Please try another image with a clearer view of the pest.');
       setDetectionStep('upload');
       setDetectionResult(null);
     }
@@ -811,8 +809,6 @@ const HeatMap = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
       
-      {/* Ã¢Å“â€¦ NEW: Proximity Alert Notifications */}
-      <AlertNotifications user={user} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
@@ -1343,26 +1339,7 @@ const HeatMap = ({ user, onLogout }) => {
                       </div>
                     )}
 
-                    {detectionError && detectionError === 'no_pest' && (
-                      <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
-                        <div className="flex items-start">
-                          <AlertCircle className="w-6 h-6 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="text-sm font-semibold text-amber-900 mb-1">No Pest Detected</p>
-                            <p className="text-sm text-amber-800">
-                              The system could not recognize a pest in this image. Please try again with a clearer photo showing the pest up close.
-                            </p>
-                            <ul className="text-xs text-amber-700 mt-2 space-y-1 list-disc list-inside">
-                              <li>Make sure the pest is clearly visible and in focus</li>
-                              <li>Use good lighting and avoid blurry images</li>
-                              <li>Get closer to the pest or damaged area</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {detectionError && detectionError !== 'no_pest' && (
+                    {detectionError && (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                         <div className="flex items-start">
                           <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
@@ -1858,46 +1835,119 @@ const HeatMap = ({ user, onLogout }) => {
         {/* Farm and Infestation Lists */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">All Farms</h2>
-            <div className="space-y-3">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-800">All Farms</h2>
+              <div className="flex bg-gray-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setFarmSortMode('mine')}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    farmSortMode === 'mine'
+                      ? 'bg-white text-green-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  My Farms First
+                </button>
+                <button
+                  onClick={() => setFarmSortMode('all')}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    farmSortMode === 'all'
+                      ? 'bg-white text-green-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  All
+                </button>
+              </div>
+            </div>
+            <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {farms.length === 0 ? (
                 <p className="text-gray-500">No farms registered yet.</p>
               ) : (
-                farms.map(farm => {
-                  const status = getFarmStatus(farm.id);
-                  const infestationCount = detections.filter(d => d.farm_id === farm.id && d.active !== false).length;
-                  return (
-                    <div key={farm.id} className="border border-gray-200 rounded-lg p-3">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-800">{farm.name}</p>
-                          <p className="text-xs text-gray-400">Owner: {farm.user_name}</p>
-                          <p className="text-sm text-gray-600">{farm.crop_type} - {farm.size} hectares</p>
-                          
-                          {/* Only show status if threshold is reached */}
-                          {status.showStatus && (
-                            <p className={`text-sm font-medium mt-1 ${status.color}`}>
-                              {status.text}
-                            </p>
-                          )}
-                          
-                          {infestationCount > 0 && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              {infestationCount} active infestation(s)
-                              {!status.showStatus && infestationCount < FARM_STATUS_CONFIG.MINIMUM_THRESHOLD && ' (monitoring)'}
-                            </p>
-                          )}
+                (() => {
+                  // Sort farms: 'mine' puts user's farms first, then others
+                  const sortedFarms = [...farms].sort((a, b) => {
+                    if (farmSortMode === 'mine') {
+                      const aIsMine = a.user_name === user.username ? 0 : 1;
+                      const bIsMine = b.user_name === user.username ? 0 : 1;
+                      if (aIsMine !== bIsMine) return aIsMine - bIsMine;
+                    }
+                    // Secondary sort: by name
+                    return (a.name || '').localeCompare(b.name || '');
+                  });
+
+                  const myFarmCount = farms.filter(f => f.user_name === user.username).length;
+
+                  // Track if we need a divider between my farms and others
+                  let shownDivider = false;
+
+                  return sortedFarms.map((farm, idx) => {
+                    const status = getFarmStatus(farm.id);
+                    const infestationCount = detections.filter(d => d.farm_id === farm.id && d.active !== false).length;
+                    const isMine = farm.user_name === user.username;
+
+                    // Show a divider between "My Farms" and "Other Farms" when sorting by mine
+                    let divider = null;
+                    if (farmSortMode === 'mine' && !isMine && !shownDivider && myFarmCount > 0) {
+                      shownDivider = true;
+                      divider = (
+                        <div key="divider" className="flex items-center gap-2 py-2">
+                          <div className="flex-1 border-t border-gray-200"></div>
+                          <span className="text-xs text-gray-400 font-medium px-2">Other Farms</span>
+                          <div className="flex-1 border-t border-gray-200"></div>
                         </div>
-                        <div className="flex items-center">
-                          <div 
-                            className="w-4 h-4 rounded-full" 
-                            style={{ backgroundColor: getFarmHeatmapColor(farm.id) }}
-                          ></div>
+                      );
+                    }
+
+                    const farmCard = (
+                      <div 
+                        key={farm.id} 
+                        className={`border rounded-lg p-3 transition-colors ${
+                          isMine 
+                            ? 'border-green-300 bg-green-50/50' 
+                            : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-gray-800">{farm.name}</p>
+                              {isMine && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">
+                                  MY FARM
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-400">Owner: {farm.user_name}</p>
+                            <p className="text-sm text-gray-600">{farm.crop_type} - {farm.size} hectares</p>
+                            
+                            {/* Only show status if threshold is reached */}
+                            {status.showStatus && (
+                              <p className={`text-sm font-medium mt-1 ${status.color}`}>
+                                {status.text}
+                              </p>
+                            )}
+                            
+                            {infestationCount > 0 && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {infestationCount} active infestation(s)
+                                {!status.showStatus && infestationCount < FARM_STATUS_CONFIG.MINIMUM_THRESHOLD && ' (monitoring)'}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center">
+                            <div 
+                              className="w-4 h-4 rounded-full" 
+                              style={{ backgroundColor: getFarmHeatmapColor(farm.id) }}
+                            ></div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+
+                    return divider ? [divider, farmCard] : farmCard;
+                  });
+                })()
               )}
             </div>
           </div>
