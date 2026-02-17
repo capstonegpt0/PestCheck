@@ -22,43 +22,50 @@ const AlertNotifications = ({ user }) => {
 
   const fetchAlerts = async () => {
     try {
-      // Try the specific my_alerts endpoint first
+      // Use the main /alerts/ endpoint which returns both farm-specific AND general alerts
+      // The backend get_queryset handles filtering by user's farms + general alerts
       let response;
       try {
-        response = await api.get('/alerts/my_alerts/');
-      } catch (error) {
-        // Fallback to general alerts endpoint if my_alerts doesn't exist
-        console.log('Falling back to /alerts/ endpoint');
         response = await api.get('/alerts/');
+      } catch (error) {
+        console.error('Failed to fetch alerts:', error);
+        setAlerts([]);
+        return;
       }
       
-      console.log('✅ Alerts API Response:', response.data);
+      console.log('Alerts API Response:', response.data);
       
       // Handle both array and object responses
       let alertsData = [];
       if (Array.isArray(response.data)) {
         alertsData = response.data;
       } else if (response.data && typeof response.data === 'object') {
-        // If it's an object, try to extract alerts from common keys
-        if (response.data.alerts) {
-          alertsData = Array.isArray(response.data.alerts) ? response.data.alerts : [];
-        } else if (response.data.results) {
+        if (response.data.results) {
           alertsData = Array.isArray(response.data.results) ? response.data.results : [];
+        } else if (response.data.alerts) {
+          alertsData = Array.isArray(response.data.alerts) ? response.data.alerts : [];
         } else if (response.data.data) {
           alertsData = Array.isArray(response.data.data) ? response.data.data : [];
         } else {
-          // If it's a single alert object, wrap it in array
-          alertsData = [response.data];
+          // If it's a single alert object with an id, wrap it in array
+          if (response.data.id) {
+            alertsData = [response.data];
+          }
         }
+      }
+
+      // Guard against non-array (e.g. error response that slipped through)
+      if (!Array.isArray(alertsData)) {
+        console.warn('Alerts data is not an array, resetting:', alertsData);
+        alertsData = [];
       }
       
       // Filter to only active, non-expired alerts
       const now = new Date();
       const activeAlerts = alertsData.filter(alert => {
-        // Must be active
+        if (!alert || !alert.id) return false;
         if (!alert.is_active) return false;
         
-        // Check expiration
         if (alert.expires_at) {
           const expiryDate = new Date(alert.expires_at);
           if (now > expiryDate) return false;
@@ -70,7 +77,6 @@ const AlertNotifications = ({ user }) => {
       setAlerts(activeAlerts);
     } catch (error) {
       console.error('Error fetching alerts:', error);
-      // Don't show error to user - just fail silently for alerts
       setAlerts([]);
     } finally {
       setLoading(false);
@@ -125,7 +131,7 @@ const AlertNotifications = ({ user }) => {
     }
   };
 
-  // Filter out dismissed alerts - safely handle if alerts is not an array
+  // Filter out dismissed alerts
   const visibleAlerts = Array.isArray(alerts) 
     ? alerts.filter(alert => !dismissedAlerts.includes(alert.id))
     : [];
@@ -139,64 +145,10 @@ const AlertNotifications = ({ user }) => {
   }
 
   return (
-    <div className="fixed top-20 right-4 z-40 max-w-md space-y-3">
-      {visibleAlerts.map((alert) => {
-        const colors = getAlertColors(alert.alert_type);
-        
-        return (
-          <div
-            key={alert.id}
-            className={`${colors.bg} border-l-4 ${colors.border} rounded-lg shadow-lg p-4 animate-slide-in`}
-          >
-            <div className="flex items-start">
-              <div className={`${colors.icon} flex-shrink-0 mt-0.5`}>
-                {getAlertIcon(alert.alert_type)}
-              </div>
-              
-              <div className="ml-3 flex-1">
-                <h3 className={`text-sm font-semibold ${colors.text} mb-1`}>
-                  {alert.title}
-                </h3>
-                <p className={`text-sm ${colors.text} whitespace-pre-line`}>
-                  {alert.message}
-                </p>
-                
-                {/* Target area */}
-                {alert.target_area && (
-                  <p className="text-xs opacity-75 mt-2">
-                    📍 {alert.target_area}
-                  </p>
-                )}
-                
-                {/* Expiration info */}
-                {alert.expires_at && (
-                  <p className="text-xs opacity-75 mt-1">
-                    Expires: {new Date(alert.expires_at).toLocaleDateString()}
-                  </p>
-                )}
-                
-                {/* Timestamp */}
-                {alert.created_at && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    {new Date(alert.created_at).toLocaleString()}
-                  </p>
-                )}
-              </div>
-              
-              <button
-                onClick={() => dismissAlert(alert.id)}
-                className={`ml-2 ${colors.text} ${colors.button} rounded-lg p-1 transition-colors flex-shrink-0`}
-                aria-label="Dismiss alert"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        );
-      })}
-      
-      <style jsx>{`
-        @keyframes slide-in {
+    <>
+      {/* Inject animation CSS via a normal style tag (not style jsx) */}
+      <style>{`
+        @keyframes pestcheck-slide-in {
           from {
             transform: translateX(400px);
             opacity: 0;
@@ -206,12 +158,68 @@ const AlertNotifications = ({ user }) => {
             opacity: 1;
           }
         }
-        
         .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
+          animation: pestcheck-slide-in 0.3s ease-out;
         }
       `}</style>
-    </div>
+
+      <div className="fixed top-20 right-4 z-40 max-w-md space-y-3">
+        {visibleAlerts.map((alert) => {
+          const colors = getAlertColors(alert.alert_type);
+          
+          return (
+            <div
+              key={alert.id}
+              className={`${colors.bg} border-l-4 ${colors.border} rounded-lg shadow-lg p-4 animate-slide-in`}
+            >
+              <div className="flex items-start">
+                <div className={`${colors.icon} flex-shrink-0 mt-0.5`}>
+                  {getAlertIcon(alert.alert_type)}
+                </div>
+                
+                <div className="ml-3 flex-1">
+                  <h3 className={`text-sm font-semibold ${colors.text} mb-1`}>
+                    {alert.title}
+                  </h3>
+                  <p className={`text-sm ${colors.text} whitespace-pre-line`}>
+                    {alert.message}
+                  </p>
+                  
+                  {/* Target area */}
+                  {alert.target_area && (
+                    <p className="text-xs opacity-75 mt-2">
+                      📍 {alert.target_area}
+                    </p>
+                  )}
+                  
+                  {/* Expiration info */}
+                  {alert.expires_at && (
+                    <p className="text-xs opacity-75 mt-1">
+                      Expires: {new Date(alert.expires_at).toLocaleDateString()}
+                    </p>
+                  )}
+                  
+                  {/* Timestamp */}
+                  {alert.created_at && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      {new Date(alert.created_at).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+                
+                <button
+                  onClick={() => dismissAlert(alert.id)}
+                  className={`ml-2 ${colors.text} ${colors.button} rounded-lg p-1 transition-colors flex-shrink-0`}
+                  aria-label="Dismiss alert"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 };
 

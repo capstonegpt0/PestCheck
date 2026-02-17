@@ -23,6 +23,9 @@ import AdminFarmRequests from './components/admin/AdminFarmrequests';
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import OfflineIndicator from './components/OfflineIndicator'
 
+// Global Alert Notifications (shown on all pages for logged-in farmers)
+import AlertNotifications from './components/AlertNotifications';
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -100,6 +103,9 @@ function App() {
       {/* PWA Components - Add these at the top level */}
       <OfflineIndicator />
       <PWAInstallPrompt />
+      
+      {/* Global Alert Notifications - shown on all pages for logged-in farmers */}
+      {user && user.role !== 'admin' && <AlertNotifications user={user} />}
       
       <Routes>
         {/* Public Routes */}
