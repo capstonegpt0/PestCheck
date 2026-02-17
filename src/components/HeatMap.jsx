@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMapEvents } from 'react-leaflet';
-import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity, Camera, Upload, Loader, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react';
+import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity, Camera, Upload, Loader, ThumbsUp, ThumbsDown, AlertCircle, Shield, Bug, Leaf } from 'lucide-react';
 import Navigation from './Navigation';
 import api from '../utils/api';
 import L from 'leaflet';
@@ -1589,13 +1589,104 @@ const HeatMap = ({ user, onLogout }) => {
                 })()}
 
                 {/* Assessment Step */}
-                {detectionStep === 'assessment' && detectionResult && (
+                {detectionStep === 'assessment' && detectionResult && (() => {
+                  const pestName = detectionResult.pest_name || detectionResult.pest || '';
+                  const pestData = getPestById(pestName) || getPestById(pestName.toLowerCase().replace(/\s+/g, '-'));
+                  
+                  // Gather control methods from ML response and/or pest reference data
+                  const mlControlMethods = detectionResult.control_methods || [];
+                  const mlPrevention = detectionResult.prevention || [];
+                  const refControlMethods = pestData?.controlMethods || '';
+                  const refPrevention = pestData?.prevention || '';
+                  const refSymptoms = pestData?.symptoms || detectionResult.symptoms || '';
+
+                  // Parse control methods into array
+                  const controlList = mlControlMethods.length > 0 
+                    ? mlControlMethods 
+                    : refControlMethods ? refControlMethods.split(',').map(s => s.trim()).filter(Boolean) : [];
+                  
+                  const preventionList = mlPrevention.length > 0
+                    ? mlPrevention
+                    : refPrevention ? refPrevention.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+                  return (
                   <div className="space-y-6">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <h3 className="text-lg font-semibold text-green-900">
                         Detected: {detectionResult.pest_name || detectionResult.pest}
                       </h3>
+                      {(detectionResult.scientific_name || pestData?.scientificName) && (
+                        <p className="text-sm italic text-green-700 mt-1">
+                          {detectionResult.scientific_name || pestData?.scientificName}
+                        </p>
+                      )}
                     </div>
+
+                    {/* Control Methods & Recommendations */}
+                    {(controlList.length > 0 || preventionList.length > 0 || refSymptoms) && (
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        {/* Section Header */}
+                        <div className="bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3 border-b border-gray-200">
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-5 h-5 text-red-600" />
+                            <h4 className="font-semibold text-gray-800">Control Methods & Recommendations</h4>
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-4 bg-white">
+                          {/* Symptoms / Damage Signs */}
+                          {refSymptoms && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Bug className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                                <p className="text-sm font-semibold text-gray-700">Damage Signs to Watch For</p>
+                              </div>
+                              <p className="text-sm text-gray-600 bg-amber-50 border border-amber-100 rounded-lg p-3 leading-relaxed">
+                                {refSymptoms}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Control Methods */}
+                          {controlList.length > 0 && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Shield className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                <p className="text-sm font-semibold text-gray-700">How to Control This Pest</p>
+                              </div>
+                              <div className="space-y-2">
+                                {controlList.map((method, idx) => (
+                                  <div key={idx} className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg p-3">
+                                    <span className="bg-red-200 text-red-800 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                      {idx + 1}
+                                    </span>
+                                    <p className="text-sm text-gray-700 leading-relaxed">{method}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Prevention Tips */}
+                          {preventionList.length > 0 && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Leaf className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                <p className="text-sm font-semibold text-gray-700">Prevention & Future Protection</p>
+                              </div>
+                              <div className="space-y-2">
+                                {preventionList.map((tip, idx) => (
+                                  <div key={idx} className="flex items-start gap-2 bg-green-50 border border-green-100 rounded-lg p-3">
+                                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                    <p className="text-sm text-gray-700 leading-relaxed">{tip}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                                         {/* Location Choice */}
                     <div>
@@ -1785,18 +1876,78 @@ const HeatMap = ({ user, onLogout }) => {
                       </button>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Success Step */}
-                {detectionStep === 'success' && (
-                  <div className="py-12 text-center">
-                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="w-12 h-12 text-green-600" />
+                {detectionStep === 'success' && detectionResult && (() => {
+                  const pestName = detectionResult.pest_name || detectionResult.pest || '';
+                  const pestData = getPestById(pestName) || getPestById(pestName.toLowerCase().replace(/\s+/g, '-'));
+                  const mlControlMethods = detectionResult.control_methods || [];
+                  const mlPrevention = detectionResult.prevention || [];
+                  const refControlMethods = pestData?.controlMethods || '';
+                  const refPrevention = pestData?.prevention || '';
+
+                  const controlList = mlControlMethods.length > 0 
+                    ? mlControlMethods 
+                    : refControlMethods ? refControlMethods.split(',').map(s => s.trim()).filter(Boolean) : [];
+                  
+                  const preventionList = mlPrevention.length > 0
+                    ? mlPrevention
+                    : refPrevention ? refPrevention.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+                  return (
+                  <div className="space-y-6">
+                    <div className="py-8 text-center">
+                      <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle className="w-12 h-12 text-green-600" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-800 mb-2">Detection Saved!</h3>
+                      <p className="text-gray-600">The infestation has been recorded and will appear on the map.</p>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Detection Saved!</h3>
-                    <p className="text-gray-600">The infestation has been recorded and will appear on the map.</p>
+
+                    {/* Quick Action Summary */}
+                    {(controlList.length > 0 || preventionList.length > 0) && (
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-50 to-green-50 px-4 py-3 border-b border-gray-200">
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-5 h-5 text-blue-600" />
+                            <h4 className="font-semibold text-gray-800">Quick Action Guide for {pestName}</h4>
+                          </div>
+                        </div>
+                        <div className="p-4 space-y-3 bg-white">
+                          {controlList.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-1.5">Immediate Actions</p>
+                              <ul className="space-y-1">
+                                {controlList.slice(0, 3).map((method, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                                    <span className="text-red-400 mt-1">•</span>
+                                    {method}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {preventionList.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1.5">Prevention</p>
+                              <ul className="space-y-1">
+                                {preventionList.slice(0, 3).map((tip, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                                    <span className="text-green-400 mt-1">•</span>
+                                    {tip}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           </div>
