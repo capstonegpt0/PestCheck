@@ -166,7 +166,7 @@ button {
 
 /* Accessibility improvements */
 :focus-visible {
-  outline: 2px solid #f0f404;
+  outline: 2px solid #e8d50c;
   outline-offset: 2px;
 }
 
@@ -223,9 +223,9 @@ button {
   contain: layout;
 }
 
-/* Performance optimization for animations on mobile */
+/* Performance optimization for animations on mobile - exclude page/modal transitions */
 @media (max-width: 768px) {
-  * {
+  *:not(.page-transition):not(.page-enter):not(.page-exit):not(.modal-enter):not(.modal-exit):not(.modal-backdrop-layer):not(.modal-content-layer) {
     animation-duration: 0.2s !important;
     transition-duration: 0.2s !important;
   }
@@ -342,5 +342,280 @@ img {
     content: attr(data-label);
     font-weight: 600;
     margin-right: 1rem;
+  }
+}
+
+
+/* ============================================
+   PAGE TRANSITION ANIMATIONS
+   ============================================ */
+
+@keyframes pageFadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pageFadeSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.page-transition {
+  will-change: opacity, transform;
+}
+
+.page-enter {
+  animation: pageFadeSlideIn 0.3s ease-out forwards;
+}
+
+.page-exit {
+  animation: pageFadeSlideOut 0.15s ease-in forwards;
+}
+
+
+/* ============================================
+   MODAL / WINDOW ANIMATIONS
+   ============================================ */
+
+/* --- AnimatedModal component animations --- */
+
+@keyframes modalBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modalBackdropOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes modalContentIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalContentOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+
+/* Backdrop layer */
+.modal-backdrop-layer {
+  opacity: 0;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-enter .modal-backdrop-layer {
+  animation: modalBackdropIn 0.25s ease-out forwards;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-exit .modal-backdrop-layer {
+  animation: modalBackdropOut 0.2s ease-in forwards;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Content layer */
+.modal-content-layer {
+  opacity: 0;
+}
+
+.modal-enter .modal-content-layer {
+  animation: modalContentIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-exit .modal-content-layer {
+  animation: modalContentOut 0.2s ease-in forwards;
+}
+
+
+/* --- Auto-animate existing inline modals (fixed inset-0 pattern) --- */
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes overlaySlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Modals using class-based z-index (z-50) */
+.fixed.inset-0.z-50 {
+  animation: overlayFadeIn 0.25s ease-out;
+}
+
+.fixed.inset-0.z-50 > .bg-white,
+.fixed.inset-0.z-50 > div > .bg-white {
+  animation: overlaySlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Modals using inline style zIndex (HeatMap detection modals) */
+div[style*="9999"],
+div[style*="10000"] {
+  animation: overlayFadeIn 0.25s ease-out;
+}
+
+div[style*="9999"] > .bg-white,
+div[style*="9999"] > div > .bg-white,
+div[style*="10000"] > .bg-white,
+div[style*="10000"] > div > .bg-white {
+  animation: overlaySlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+
+/* ============================================
+   DROPDOWN / MENU ANIMATIONS
+   ============================================ */
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile navigation menu dropdown */
+.border-t.border-gray-200.bg-white {
+  animation: dropdownSlideIn 0.2s ease-out;
+}
+
+
+/* ============================================
+   STAGGERED CARD ENTRANCE (grid children)
+   ============================================ */
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.grid > .bg-white {
+  animation: cardFadeIn 0.35s ease-out both;
+}
+
+.grid > .bg-white:nth-child(1) { animation-delay: 0.04s; }
+.grid > .bg-white:nth-child(2) { animation-delay: 0.08s; }
+.grid > .bg-white:nth-child(3) { animation-delay: 0.12s; }
+.grid > .bg-white:nth-child(4) { animation-delay: 0.16s; }
+.grid > .bg-white:nth-child(5) { animation-delay: 0.2s; }
+.grid > .bg-white:nth-child(6) { animation-delay: 0.24s; }
+.grid > .bg-white:nth-child(7) { animation-delay: 0.28s; }
+.grid > .bg-white:nth-child(8) { animation-delay: 0.32s; }
+.grid > .bg-white:nth-child(9) { animation-delay: 0.36s; }
+
+
+/* ============================================
+   NOTIFICATION / ALERT BANNER ANIMATIONS
+   ============================================ */
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Alert banners with left border */
+.bg-amber-50.border-l-4,
+.bg-red-50.border-l-4 {
+  animation: slideInFromTop 0.35s ease-out;
+}
+
+
+/* ============================================
+   BUTTON PRESS FEEDBACK
+   ============================================ */
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+
+/* ============================================
+   HERO / GRADIENT SECTION ENTRANCE
+   ============================================ */
+
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bg-gradient-to-r {
+  animation: heroFadeIn 0.4s ease-out;
+}
+
+
+/* ============================================
+   REDUCE MOTION (accessibility)
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .page-enter,
+  .page-exit {
+    animation: none !important;
+    opacity: 1 !important;
   }
 }
