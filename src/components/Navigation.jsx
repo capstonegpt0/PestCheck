@@ -36,8 +36,8 @@ const Navigation = ({ user, onLogout }) => {
                     to={item.path}
                     className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
                       isActive(item.path)
-                        ? 'bg-primary text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-primary text-gray-900 font-semibold'
+                        : 'text-gray-700 hover:bg-yellow-50'
                     }`}
                   >
                     <Icon className="w-5 h-5 mr-2" />
@@ -104,8 +104,8 @@ const Navigation = ({ user, onLogout }) => {
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center px-4 py-3 rounded-lg mb-1 transition-colors ${
                       isActive(item.path)
-                        ? 'bg-primary text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-primary text-gray-900 font-semibold'
+                        : 'text-gray-700 hover:bg-yellow-50'
                     }`}
                   >
                     <Icon className="w-5 h-5 mr-3" />
@@ -140,11 +140,11 @@ const Navigation = ({ user, onLogout }) => {
                 to={item.path}
                 className={`flex flex-col items-center justify-center flex-1 h-full ${
                   isActive(item.path)
-                    ? 'text-primary'
+                    ? 'text-yellow-600'
                     : 'text-gray-600'
                 }`}
               >
-                <Icon className={`w-6 h-6 ${isActive(item.path) ? 'text-primary' : ''}`} />
+                <Icon className={`w-6 h-6 ${isActive(item.path) ? 'text-yellow-600' : ''}`} />
                 <span className="text-xs mt-1">{item.label}</span>
               </Link>
             );

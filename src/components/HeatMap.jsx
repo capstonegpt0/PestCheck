@@ -323,8 +323,8 @@ const HeatMap = ({ user, onLogout }) => {
         return true;
       });
       
-      console.log(`✅ Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
-      console.log(`✅ Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
+      console.log(`âœ… Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
+      console.log(`âœ… Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
       
       setDetections(validDetections);
       setFarms(validFarms);
@@ -465,7 +465,7 @@ const HeatMap = ({ user, onLogout }) => {
     if (count >= FARM_STATUS_CONFIG.LOW_THRESHOLD) {
       return {
         text: 'Low Risk - Early Detection',
-        color: 'text-green-600',
+        color: 'text-yellow-600',
         showStatus: true
       };
     }
@@ -688,7 +688,7 @@ const HeatMap = ({ user, onLogout }) => {
       // Find the selected farm - use loose comparison for id type mismatch
       const farm = farms.find(f => Number(f.id) === Number(selectedFarm));
       
-      console.log('📋 saveDetection debug:', {
+      console.log('ðŸ“‹ saveDetection debug:', {
         locationChoice,
         selectedFarm,
         selectedFarmType: typeof selectedFarm,
@@ -716,27 +716,27 @@ const HeatMap = ({ user, onLogout }) => {
         if (farm && farm.lat != null && farm.lng != null) {
           updateData.latitude = parseFloat(farm.lat);
           updateData.longitude = parseFloat(farm.lng);
-          console.log('📋 Using FARM coordinates:', updateData.latitude, updateData.longitude);
+          console.log('ðŸ“‹ Using FARM coordinates:', updateData.latitude, updateData.longitude);
         } else {
-          console.warn('⚠️ Farm location chosen but farm coords missing!', { farm });
+          console.warn('âš ï¸ Farm location chosen but farm coords missing!', { farm });
           // Fallback: try to get coords from the farm object with other field names
           if (farm && farm.latitude != null && farm.longitude != null) {
             updateData.latitude = parseFloat(farm.latitude);
             updateData.longitude = parseFloat(farm.longitude);
-            console.log('📋 Using FARM coordinates (latitude/longitude fields):', updateData.latitude, updateData.longitude);
+            console.log('ðŸ“‹ Using FARM coordinates (latitude/longitude fields):', updateData.latitude, updateData.longitude);
           }
         }
       } else if (locationChoice === 'current' && location) {
         updateData.latitude = location.latitude;
         updateData.longitude = location.longitude;
-        console.log('📋 Using CURRENT coordinates:', updateData.latitude, updateData.longitude);
+        console.log('ðŸ“‹ Using CURRENT coordinates:', updateData.latitude, updateData.longitude);
       }
 
-      console.log('📋 Final PATCH data:', JSON.stringify(updateData));
+      console.log('ðŸ“‹ Final PATCH data:', JSON.stringify(updateData));
 
       // Update the existing detection record to confirm it
       const response = await api.patch(`/detections/${detectionResult.id}/`, updateData);
-      console.log('📋 PATCH response:', response.data);
+      console.log('ðŸ“‹ PATCH response:', response.data);
 
       setDetectionStep('success');
       
@@ -788,7 +788,7 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const getDamageLevelColor = (level) => {
-    if (level === 0) return 'bg-green-500';
+    if (level === 0) return 'bg-yellow-500';
     if (level === 1) return 'bg-green-400';
     if (level === 2) return 'bg-yellow-400';
     if (level === 3) return 'bg-orange-400';
@@ -836,7 +836,7 @@ const HeatMap = ({ user, onLogout }) => {
 
           <button
             onClick={fetchInitialData}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center px-4 py-2 bg-primary text-gray-900 rounded-lg hover:bg-yellow-400 transition-colors"
             title="Refresh map data"
           >
             <Activity className="w-5 h-5 mr-2" />
@@ -847,7 +847,7 @@ const HeatMap = ({ user, onLogout }) => {
 
           <button
             onClick={startDetection}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center px-4 py-2 bg-primary text-gray-900 rounded-lg hover:bg-yellow-400 transition-colors"
           >
             <Camera className="w-5 h-5 mr-2" />
             Detect Pest
@@ -859,7 +859,7 @@ const HeatMap = ({ user, onLogout }) => {
               className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
                 isAddingFarm
                   ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-primary text-white hover:bg-green-600'
+                  : 'bg-primary text-gray-900 hover:bg-yellow-400'
               }`}
               disabled={isAddingFarm}
             >
@@ -899,7 +899,7 @@ const HeatMap = ({ user, onLogout }) => {
                                      isFinite(parseFloat(farm.lng));
                   
                   if (!hasValidLat || !hasValidLng) {
-                    console.error('❌ Filtering out invalid farm before render:', {
+                    console.error('âŒ Filtering out invalid farm before render:', {
                       id: farm.id,
                       name: farm.name,
                       lat: farm.lat,
@@ -917,7 +917,7 @@ const HeatMap = ({ user, onLogout }) => {
                   const lng = parseFloat(farm.lng);
                   
                   if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-                    console.error('❌ Skipping farm with invalid coords in map:', farm);
+                    console.error('âŒ Skipping farm with invalid coords in map:', farm);
                     return null;
                   }
                   
@@ -954,7 +954,7 @@ const HeatMap = ({ user, onLogout }) => {
                                                 infestation.severity === 'critical' ? 'text-red-900' : 
                                                 infestation.severity === 'high' ? 'text-red-500' : 
                                                 infestation.severity === 'medium' ? 'text-yellow-500' : 
-                                                'text-green-500'
+                                                'text-yellow-500'
                                               }`}>{infestation.severity}</span>
                                             </p>
                                             <p className="text-xs text-gray-500">
@@ -1078,7 +1078,7 @@ const HeatMap = ({ user, onLogout }) => {
                                         det.severity === 'critical' ? 'text-red-900' : 
                                         det.severity === 'high' ? 'text-red-500' : 
                                         det.severity === 'medium' ? 'text-yellow-600' : 
-                                        'text-green-600'
+                                        'text-yellow-600'
                                       }`}>{det.severity}</span>
                                       <br/>
                                       <span className="text-gray-500">
@@ -1144,7 +1144,7 @@ const HeatMap = ({ user, onLogout }) => {
                           color: #92400e;
                           white-space: nowrap;
                           margin-top: 2px;
-                        ">⚠ Unverified</div>
+                        ">âš  Unverified</div>
                       </div>
                     `,
                     iconSize: [60, 36],
@@ -1162,7 +1162,7 @@ const HeatMap = ({ user, onLogout }) => {
                         <div className="p-2">
                           <div className="bg-amber-50 border border-amber-300 rounded-lg p-2 mb-2">
                             <div className="flex items-center space-x-1 mb-1">
-                              <span className="text-amber-600 text-sm">⚠️</span>
+                              <span className="text-amber-600 text-sm">âš ï¸</span>
                               <span className="text-xs font-bold text-amber-800">Unverified Detection</span>
                             </div>
                             <p className="text-xs text-amber-700">
@@ -1245,7 +1245,7 @@ const HeatMap = ({ user, onLogout }) => {
 
                 <div className="bg-gray-50 p-3 rounded">
                   <p className="text-sm text-gray-600">
-                    📍 Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}
+                    ðŸ“ Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}
                   </p>
                   <p className="text-xs text-gray-500 mt-2">
                     Your farm request will be reviewed by an administrator before approval.
@@ -1255,7 +1255,7 @@ const HeatMap = ({ user, onLogout }) => {
                 <div className="flex space-x-3 pt-4">
                   <button
                     onClick={saveFarm}
-                    className="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-green-600 font-medium flex items-center justify-center"
+                    className="flex-1 bg-primary text-gray-900 py-2 px-4 rounded-lg hover:bg-yellow-400 font-medium flex items-center justify-center"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     Submit Request
@@ -1302,10 +1302,10 @@ const HeatMap = ({ user, onLogout }) => {
                         </button>
                         <button
                           onClick={handleCameraClick}
-                          className="flex flex-col items-center justify-center p-6 bg-green-50 border-2 border-green-300 rounded-lg hover:bg-green-100 transition-colors"
+                          className="flex flex-col items-center justify-center p-6 bg-yellow-50 border-2 border-yellow-300 rounded-lg hover:bg-yellow-100 transition-colors"
                         >
-                          <Camera className="w-8 h-8 text-green-600 mb-2" />
-                          <span className="font-semibold text-green-800">Camera</span>
+                          <Camera className="w-8 h-8 text-yellow-600 mb-2" />
+                          <span className="font-semibold text-yellow-800">Camera</span>
                         </button>
                       </div>
 
@@ -1353,7 +1353,7 @@ const HeatMap = ({ user, onLogout }) => {
                         <button
                           onClick={runDetection}
                           disabled={detectionLoading || locationLoading}
-                          className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center disabled:bg-gray-400"
+                          className="flex-1 bg-primary text-gray-900 py-3 rounded-lg hover:bg-yellow-500 font-semibold flex items-center justify-center disabled:bg-gray-400"
                         >
                           <CheckCircle className="w-5 h-5 mr-2" />
                           Detect Pest
@@ -1376,7 +1376,7 @@ const HeatMap = ({ user, onLogout }) => {
                 {/* Detecting Step */}
                 {detectionStep === 'detecting' && (
                   <div className="py-12 text-center">
-                    <Loader className="w-16 h-16 text-green-600 animate-spin mx-auto mb-4" />
+                    <Loader className="w-16 h-16 text-yellow-500 animate-spin mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-gray-800 mb-2">Analyzing Image...</h3>
                     <p className="text-gray-600">this will take a moment</p>
                   </div>
@@ -1417,7 +1417,7 @@ const HeatMap = ({ user, onLogout }) => {
                       {/* Image Comparison Section */}
                       <div>
                         <h4 className="text-base font-semibold text-gray-800 mb-3 text-center">
-                          📸 Visual Comparison
+                          ðŸ“¸ Visual Comparison
                         </h4>
                         
                         {/* User's Captured Image */}
@@ -1440,13 +1440,13 @@ const HeatMap = ({ user, onLogout }) => {
 
                         {/* Reference Images from Pest Database */}
                         <div className="space-y-2">
-                          <p className="text-sm font-medium text-center text-green-700">
+                          <p className="text-sm font-medium text-center text-yellow-700">
                             {referenceImages.length > 1 ? 'Reference Images' : 'Reference Pest'}
                           </p>
                           {referenceImages.length > 0 ? (
                             <div className={`grid ${referenceImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
                               {referenceImages.map((refImg, idx) => (
-                                <div key={idx} className="border-2 border-green-400 rounded-lg overflow-hidden shadow-md bg-white">
+                                <div key={idx} className="border-2 border-yellow-400 rounded-lg overflow-hidden shadow-md bg-white">
                                   <div className="relative">
                                     <img 
                                       src={refImg.url} 
@@ -1478,7 +1478,7 @@ const HeatMap = ({ user, onLogout }) => {
                               ))}
                             </div>
                           ) : (
-                            <div className="border-2 border-green-400 rounded-lg overflow-hidden shadow-md bg-white">
+                            <div className="border-2 border-yellow-400 rounded-lg overflow-hidden shadow-md bg-white">
                               <div className="w-full h-40 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                                 <AlertCircle className="w-10 h-10 text-gray-400 mb-2" />
                                 <p className="text-gray-500 text-xs text-center px-4">
@@ -1492,7 +1492,7 @@ const HeatMap = ({ user, onLogout }) => {
                         {/* Reference Damage Section */}
                         <div className="mt-4">
                           <h4 className="text-sm font-semibold text-gray-800 mb-2 text-center">
-                            🌾 Reference Damage Pattern
+                            ðŸŒ¾ Reference Damage Pattern
                           </h4>
                           <div className="border-2 border-red-400 rounded-lg overflow-hidden shadow-md bg-white">
                             {referenceDamageImage ? (
@@ -1533,7 +1533,7 @@ const HeatMap = ({ user, onLogout }) => {
                             <div className="flex items-start">
                               <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
                               <div className="text-sm text-blue-900">
-                                <p className="font-semibold mb-1">🔍 Identification Tips:</p>
+                                <p className="font-semibold mb-1">ðŸ” Identification Tips:</p>
                                 <ul className="list-disc list-inside space-y-0.5 text-xs">
                                   {identificationTips.slice(0, 5).map((tip, idx) => (
                                     <li key={idx}>{tip}</li>
@@ -1549,7 +1549,7 @@ const HeatMap = ({ user, onLogout }) => {
                           <div className="flex items-start">
                             <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
                             <div className="text-sm text-yellow-800">
-                              <p className="font-semibold mb-1">💡 Comparison Tips:</p>
+                              <p className="font-semibold mb-1">ðŸ’¡ Comparison Tips:</p>
                               <ul className="list-disc list-inside space-y-0.5 text-xs">
                                 <li>Compare body color and patterns with reference pest</li>
                                 <li>Check body shape and size against reference</li>
@@ -1570,7 +1570,7 @@ const HeatMap = ({ user, onLogout }) => {
                         <div className="flex space-x-4">
                           <button
                             onClick={() => confirmDetection(true)}
-                            className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center transition-colors"
+                            className="flex-1 bg-primary text-gray-900 py-4 rounded-lg hover:bg-yellow-500 font-semibold flex items-center justify-center transition-colors"
                           >
                             <ThumbsUp className="w-5 h-5 mr-2" />
                             Yes, Matches
@@ -1611,12 +1611,12 @@ const HeatMap = ({ user, onLogout }) => {
 
                   return (
                   <div className="space-y-6">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-green-900">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-yellow-900">
                         Detected: {detectionResult.pest_name || detectionResult.pest}
                       </h3>
                       {(detectionResult.scientific_name || pestData?.scientificName) && (
-                        <p className="text-sm italic text-green-700 mt-1">
+                        <p className="text-sm italic text-yellow-700 mt-1">
                           {detectionResult.scientific_name || pestData?.scientificName}
                         </p>
                       )}
@@ -1671,13 +1671,13 @@ const HeatMap = ({ user, onLogout }) => {
                           {preventionList.length > 0 && (
                             <div>
                               <div className="flex items-center gap-2 mb-2">
-                                <Leaf className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                <Leaf className="w-4 h-4 text-yellow-600 flex-shrink-0" />
                                 <p className="text-sm font-semibold text-gray-700">Prevention & Future Protection</p>
                               </div>
                               <div className="space-y-2">
                                 {preventionList.map((tip, idx) => (
-                                  <div key={idx} className="flex items-start gap-2 bg-green-50 border border-green-100 rounded-lg p-3">
-                                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                  <div key={idx} className="flex items-start gap-2 bg-yellow-50 border border-yellow-100 rounded-lg p-3">
+                                    <CheckCircle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
                                     <p className="text-sm text-gray-700 leading-relaxed">{tip}</p>
                                   </div>
                                 ))}
@@ -1691,7 +1691,7 @@ const HeatMap = ({ user, onLogout }) => {
                                         {/* Location Choice */}
                     <div>
                       <label className="block text-lg font-medium text-gray-800 mb-3">
-                        ðŸ“ Pin Location <span className="text-red-500">*</span>
+                        Ã°Å¸â€œÂ Pin Location <span className="text-red-500">*</span>
                       </label>
                       
                       {/* Unverified user notice */}
@@ -1716,12 +1716,12 @@ const HeatMap = ({ user, onLogout }) => {
                             onClick={() => setLocationChoice('farm')}
                             className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
                               locationChoice === 'farm'
-                                ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
+                                ? 'border-yellow-500 bg-yellow-50 ring-2 ring-yellow-200'
                                 : 'border-gray-200 bg-white hover:border-gray-300'
                             }`}
                           >
-                            <MapPin className={`w-6 h-6 mb-1 ${locationChoice === 'farm' ? 'text-green-600' : 'text-gray-400'}`} />
-                            <span className={`text-sm font-semibold ${locationChoice === 'farm' ? 'text-green-700' : 'text-gray-600'}`}>
+                            <MapPin className={`w-6 h-6 mb-1 ${locationChoice === 'farm' ? 'text-yellow-600' : 'text-gray-400'}`} />
+                            <span className={`text-sm font-semibold ${locationChoice === 'farm' ? 'text-yellow-700' : 'text-gray-600'}`}>
                               Farm Location
                             </span>
                             <span className="text-xs text-gray-500 mt-0.5">Pin on your farm</span>
@@ -1780,15 +1780,15 @@ const HeatMap = ({ user, onLogout }) => {
                         {farms.filter(farm => farm.user_name === user.username).length === 0 && (
                           <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                             <p className="text-sm text-yellow-800">
-                              ⚠️ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
+                              âš ï¸ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
                             </p>
                           </div>
                         )}
 
                         {/* Location info hint */}
                         {selectedFarm && (
-                          <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">
-                            <p>📍 Detection will be pinned at <span className="font-semibold">{farms.find(f => f.id === selectedFarm)?.name || 'selected farm'}</span>'s location on the map.</p>
+                          <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                            <p>ðŸ“ Detection will be pinned at <span className="font-semibold">{farms.find(f => f.id === selectedFarm)?.name || 'selected farm'}</span>'s location on the map.</p>
                           </div>
                         )}
                       </div>
@@ -1802,7 +1802,7 @@ const HeatMap = ({ user, onLogout }) => {
                           <div>
                             <p className="font-medium text-blue-900 mb-1">Using Current Location</p>
                             <p className="text-sm text-blue-800">
-                              📍 Detection will be pinned at your current GPS coordinates:
+                              ðŸ“ Detection will be pinned at your current GPS coordinates:
                               {location ? (
                                 <span className="font-semibold block mt-1">
                                   {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
@@ -1854,7 +1854,7 @@ const HeatMap = ({ user, onLogout }) => {
                       <button
                         onClick={saveDetection}
                         disabled={detectionLoading || (locationChoice === 'farm' && !selectedFarm)}
-                        className="flex-1 bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="flex-1 bg-primary text-gray-900 py-4 rounded-lg hover:bg-yellow-400 font-semibold flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         {detectionLoading ? (
                           <>
@@ -1899,8 +1899,8 @@ const HeatMap = ({ user, onLogout }) => {
                   return (
                   <div className="space-y-6">
                     <div className="py-8 text-center">
-                      <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle className="w-12 h-12 text-green-600" />
+                      <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle className="w-12 h-12 text-yellow-600" />
                       </div>
                       <h3 className="text-2xl font-bold text-gray-800 mb-2">Detection Saved!</h3>
                       <p className="text-gray-600">The infestation has been recorded and will appear on the map.</p>
@@ -1909,7 +1909,7 @@ const HeatMap = ({ user, onLogout }) => {
                     {/* Quick Action Summary */}
                     {(controlList.length > 0 || preventionList.length > 0) && (
                       <div className="border border-gray-200 rounded-lg overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-50 to-green-50 px-4 py-3 border-b border-gray-200">
+                        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 px-4 py-3 border-b border-gray-200">
                           <div className="flex items-center gap-2">
                             <Shield className="w-5 h-5 text-blue-600" />
                             <h4 className="font-semibold text-gray-800">Quick Action Guide for {pestName}</h4>
@@ -1922,7 +1922,7 @@ const HeatMap = ({ user, onLogout }) => {
                               <ul className="space-y-1">
                                 {controlList.slice(0, 3).map((method, idx) => (
                                   <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                                    <span className="text-red-400 mt-1">•</span>
+                                    <span className="text-red-400 mt-1">â€¢</span>
                                     {method}
                                   </li>
                                 ))}
@@ -1931,11 +1931,11 @@ const HeatMap = ({ user, onLogout }) => {
                           )}
                           {preventionList.length > 0 && (
                             <div>
-                              <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1.5">Prevention</p>
+                              <p className="text-xs font-semibold text-yellow-700 uppercase tracking-wide mb-1.5">Prevention</p>
                               <ul className="space-y-1">
                                 {preventionList.slice(0, 3).map((tip, idx) => (
                                   <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                                    <span className="text-green-400 mt-1">•</span>
+                                    <span className="text-yellow-400 mt-1">â€¢</span>
                                     {tip}
                                   </li>
                                 ))}
@@ -1965,7 +1965,7 @@ const HeatMap = ({ user, onLogout }) => {
               <div className="flex space-x-3">
                 <button
                   onClick={resolveInfestation}
-                  className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-medium"
+                  className="flex-1 bg-primary text-gray-900 py-2 px-4 rounded-lg hover:bg-yellow-500 font-medium"
                 >
                   Yes, Resolve
                 </button>
@@ -1993,7 +1993,7 @@ const HeatMap = ({ user, onLogout }) => {
                   onClick={() => setFarmSortMode('mine')}
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                     farmSortMode === 'mine'
-                      ? 'bg-white text-green-700 shadow-sm'
+                      ? 'bg-white text-yellow-700 shadow-sm'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -2003,7 +2003,7 @@ const HeatMap = ({ user, onLogout }) => {
                   onClick={() => setFarmSortMode('all')}
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                     farmSortMode === 'all'
-                      ? 'bg-white text-green-700 shadow-sm'
+                      ? 'bg-white text-yellow-700 shadow-sm'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -2055,7 +2055,7 @@ const HeatMap = ({ user, onLogout }) => {
                         key={farm.id} 
                         className={`border rounded-lg p-3 transition-colors ${
                           isMine 
-                            ? 'border-green-300 bg-green-50/50' 
+                            ? 'border-yellow-300 bg-yellow-50/50' 
                             : 'border-gray-200'
                         }`}
                       >
@@ -2064,7 +2064,7 @@ const HeatMap = ({ user, onLogout }) => {
                             <div className="flex items-center gap-2">
                               <p className="font-semibold text-gray-800">{farm.name}</p>
                               {isMine && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">
                                   MY FARM
                                 </span>
                               )}
@@ -2111,7 +2111,7 @@ const HeatMap = ({ user, onLogout }) => {
                 <p className="text-gray-500">No active infestations reported.</p>
               ) : (
                 (() => {
-                  // Group detections by farm — null/undefined farm_id grouped as 'unassigned'
+                  // Group detections by farm â€” null/undefined farm_id grouped as 'unassigned'
                   const detectionsByFarm = {};
                   activeDetections.forEach(detection => {
                     const farmId = detection.farm_id != null ? detection.farm_id : '__unassigned__';
@@ -2144,7 +2144,7 @@ const HeatMap = ({ user, onLogout }) => {
                                   <h3 className="font-bold text-gray-700">GPS / Field Detections</h3>
                                 </div>
                                 <p className="text-xs text-gray-400 mt-0.5">
-                                  Detected via current location — not linked to a registered farm
+                                  Detected via current location â€” not linked to a registered farm
                                 </p>
                               </>
                             ) : (
@@ -2184,7 +2184,7 @@ const HeatMap = ({ user, onLogout }) => {
                                     Reported by: {detection.user_name || 'Unknown'}
                                     {detection.user_is_verified === false && (
                                       <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300">
-                                        ⚠ Unverified
+                                        âš  Unverified
                                       </span>
                                     )}
                                   </p>
@@ -2200,7 +2200,7 @@ const HeatMap = ({ user, onLogout }) => {
                                   {/* Show coordinates for unassigned detections so user knows where it was */}
                                   {isUnassigned && detection.lat != null && detection.lng != null && (
                                     <p className="text-xs text-blue-500 mt-0.5">
-                                      📍 {parseFloat(detection.lat).toFixed(4)}, {parseFloat(detection.lng).toFixed(4)}
+                                      ðŸ“ {parseFloat(detection.lat).toFixed(4)}, {parseFloat(detection.lng).toFixed(4)}
                                     </p>
                                   )}
                                   <p className="text-sm text-gray-600 mt-1">
@@ -2208,7 +2208,7 @@ const HeatMap = ({ user, onLogout }) => {
                                       detection.severity === 'critical' ? 'text-red-900' : 
                                       detection.severity === 'high' ? 'text-red-500' : 
                                       detection.severity === 'medium' ? 'text-yellow-600' : 
-                                      'text-green-600'
+                                      'text-yellow-600'
                                     }`}>{detection.severity.toUpperCase()}</span>
                                   </p>
                                 </div>
@@ -2217,12 +2217,12 @@ const HeatMap = ({ user, onLogout }) => {
                                     detection.severity === 'critical' ? 'bg-red-900' : 
                                     detection.severity === 'high' ? 'bg-red-500' : 
                                     detection.severity === 'medium' ? 'bg-yellow-500' : 
-                                    'bg-green-500'
+                                    'bg-yellow-500'
                                   }`}></div>
                                   {(detection.user_name === user.username || user.role === 'admin') && (
                                     <button
                                       onClick={() => confirmResolveInfestation(detection.id)}
-                                      className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded transition-colors"
+                                      className="text-yellow-600 hover:text-yellow-800 p-1 hover:bg-yellow-50 rounded transition-colors"
                                       title="Mark as resolved"
                                     >
                                       <CheckCircle className="w-5 h-5" />
@@ -2246,4 +2246,4 @@ const HeatMap = ({ user, onLogout }) => {
   );
 };
 
-export default HeatMap;
+export default HeatMap; 

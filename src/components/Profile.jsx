@@ -180,7 +180,7 @@ const VerificationRequestModal = ({ isOpen, onClose, onSuccess, existingRequest 
  value={rsbsaNumber}
  onChange={(e) => setRsbsaNumber(e.target.value)}
  placeholder="e.g. 03-0101-000-00000-0"
- className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+ className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm"
  required
  />
  <p className="text-xs text-gray-500 mt-1">
@@ -196,7 +196,7 @@ const VerificationRequestModal = ({ isOpen, onClose, onSuccess, existingRequest 
  <div
  className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
  validIdPreview
- ? 'border-primary bg-green-50'
+ ? 'border-primary bg-yellow-50'
  : 'border-gray-300 hover:border-primary hover:bg-gray-50'
  }`}
  onClick={() => document.getElementById('valid-id-upload').click()}
@@ -243,7 +243,7 @@ const VerificationRequestModal = ({ isOpen, onClose, onSuccess, existingRequest 
  onChange={(e) => setNotes(e.target.value)}
  placeholder="Any additional information for the admin..."
  rows={3}
- className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm resize-none"
+ className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm resize-none"
  />
  </div>
 
@@ -251,7 +251,7 @@ const VerificationRequestModal = ({ isOpen, onClose, onSuccess, existingRequest 
  <button
  type="submit"
  disabled={loading}
- className="flex-1 bg-primary text-white py-2.5 px-4 rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+ className="flex-1 bg-primary text-gray-900 py-2.5 px-4 rounded-lg hover:bg-yellow-400 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
  >
  {loading ? (
  <>
@@ -458,7 +458,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  </div>
  )}
  {success && (
- <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+ <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
  {success}
  </div>
  )}
@@ -473,7 +473,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  type="text"
  value={profileData.first_name}
  onChange={(e) => setProfileData({ ...profileData, first_name: e.target.value })}
- className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+ className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
  />
  </div>
  <div>
@@ -482,7 +482,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  type="text"
  value={profileData.last_name}
  onChange={(e) => setProfileData({ ...profileData, last_name: e.target.value })}
- className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+ className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
  />
  </div>
  </div>
@@ -492,7 +492,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  type="email"
  value={profileData.email}
  onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
- className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+ className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
  />
  </div>
  <div>
@@ -501,7 +501,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  type="tel"
  value={profileData.phone}
  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
- className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+ className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
  placeholder="+63 XXX XXX XXXX"
  />
  </div>
@@ -509,7 +509,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  <button
  type="submit"
  disabled={loading}
- className="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400"
+ className="flex-1 bg-primary text-gray-900 py-2 px-4 rounded-lg hover:bg-yellow-400 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400"
  >
  <Save className="w-4 h-4 mr-2" />
  {loading ? 'Saving...' : 'Save Changes'}
@@ -536,7 +536,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  type={show ? 'text' : 'password'}
  value={passwordData[key]}
  onChange={(e) => setPasswordData({ ...passwordData, [key]: e.target.value })}
- className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+ className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
  minLength={key !== 'current_password' ? 8 : undefined}
  required
  />
@@ -551,7 +551,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  <button
  type="submit"
  disabled={loading}
- className="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400"
+ className="flex-1 bg-primary text-gray-900 py-2 px-4 rounded-lg hover:bg-yellow-400 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400"
  >
  <Lock className="w-4 h-4 mr-2" />
  {loading ? 'Changing...' : 'Change Password'}
@@ -587,7 +587,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  onChange={(e) => setNotificationSettings({ ...notificationSettings, [key]: e.target.checked })}
  className="sr-only peer"
  />
- <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 ${danger ? 'peer-focus:ring-red-300 peer-checked:bg-red-600' : 'peer-focus:ring-green-300 peer-checked:bg-primary'} rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
+ <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 ${danger ? 'peer-focus:ring-red-300 peer-checked:bg-red-600' : 'peer-focus:ring-yellow-300 peer-checked:bg-primary'} rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
  </label>
  </div>
  ))}
@@ -596,7 +596,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
  <button
  type="submit"
  disabled={loading}
- className="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400"
+ className="flex-1 bg-primary text-gray-900 py-2 px-4 rounded-lg hover:bg-yellow-400 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400"
  >
  <Save className="w-4 h-4 mr-2" />
  {loading ? 'Saving...' : 'Save Settings'}
@@ -755,7 +755,7 @@ const Profile = ({ user, onLogout }) => {
  </div>
  <button
  onClick={() => setShowVerificationModal(true)}
- className="w-full bg-primary text-white py-1.5 px-3 rounded-lg text-xs font-medium hover:bg-green-600 transition-colors flex items-center justify-center"
+ className="w-full bg-primary text-gray-900 py-1.5 px-3 rounded-lg text-xs font-medium hover:bg-yellow-400 transition-colors flex items-center justify-center"
  >
  <ShieldCheck className="w-3 h-3 mr-1" />
  Request Verification

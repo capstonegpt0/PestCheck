@@ -30,11 +30,11 @@ const Dashboard = ({ user, onLogout }) => {
         )}
 
         {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow-lg p-8 mb-8 text-white">
+        <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg shadow-lg p-8 mb-8 text-gray-900">
           <h1 className="text-4xl font-bold mb-2">
             Welcome back, {user.first_name || user.username}!
           </h1>
-          <p className="text-lg text-green-100">
+          <p className="text-lg text-yellow-900/80">
             Ready to protect your crops? Choose an option below to get started.
           </p>
         </div>
@@ -46,8 +46,8 @@ const Dashboard = ({ user, onLogout }) => {
             className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
           >
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
-                <Map className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-yellow-200 transition-colors">
+                <Map className="w-8 h-8 text-yellow-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
                 Detect & Map
@@ -80,8 +80,8 @@ const Dashboard = ({ user, onLogout }) => {
             className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
           >
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
-                <User className="w-8 h-8 text-purple-600" />
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-yellow-200 transition-colors">
+                <User className="w-8 h-8 text-yellow-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
                 My Profile
@@ -94,11 +94,11 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
 
         {/* Info Section */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">
+        <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-yellow-900 mb-3">
             How to use PestCheck
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-yellow-800">
             <div>
               <span className="font-semibold">1. Detect:</span> Go to Heat Map and click "Detect Pest" to upload or capture an image
             </div>
@@ -112,12 +112,12 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
 
         {/* Feature Highlight */}
-        <div className="mt-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+        <div className="mt-6 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-6 text-gray-900">
           <h3 className="text-xl font-semibold mb-2">New Feature: Integrated Detection</h3>
-          <p className="text-blue-100">
+          <p className="text-yellow-900/80">
             Detection is now integrated into the Heat Map! Click the "Detect Pest" button on the Heat Map page to:
           </p>
-          <ul className="mt-3 space-y-1 text-blue-100">
+          <ul className="mt-3 space-y-1 text-yellow-900/80">
             <li>• Upload or capture pest images directly</li>
             <li>• Confirm AI detections before saving</li>
             <li>• Assess damage levels from 0 (healthy) to 5 (critical)</li>
