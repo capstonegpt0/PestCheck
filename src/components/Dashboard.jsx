@@ -120,10 +120,10 @@ const Dashboard = ({ user, onLogout }) => {
             Detection is now integrated into the Heat Map! Click the "Detect Pest" button on the Heat Map page to:
           </p>
           <ul className="mt-3 space-y-1 text-blue-100">
-            <li>â€¢ Upload or capture pest images directly</li>
-            <li>â€¢ Confirm AI detections before saving</li>
-            <li>â€¢ Assess damage levels from 0 (healthy) to 5 (critical)</li>
-            <li>â€¢ Instantly see detections on the map</li>
+            <li>• Upload or capture pest images directly</li>
+            <li>• Confirm AI detections before saving</li>
+            <li>• Assess damage levels from 0 (healthy) to 5 (critical)</li>
+            <li>• Instantly see detections on the map</li>
           </ul>
         </div>
       </div>
