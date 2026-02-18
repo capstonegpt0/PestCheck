@@ -225,7 +225,7 @@ button {
 
 /* Performance optimization for animations on mobile - exclude page/modal transitions */
 @media (max-width: 768px) {
-  *:not(.page-transition):not(.page-enter):not(.page-exit):not(.modal-enter):not(.modal-exit):not(.modal-backdrop-layer):not(.modal-content-layer) {
+  *:not(.page-content-enter):not(.modal-enter):not(.modal-exit):not(.modal-backdrop-layer):not(.modal-content-layer) {
     animation-duration: 0.2s !important;
     transition-duration: 0.2s !important;
   }
@@ -347,10 +347,11 @@ img {
 
 
 /* ============================================
-   PAGE TRANSITION ANIMATIONS
+   PAGE CONTENT TRANSITION ANIMATIONS
+   (only content below nav bar animates)
    ============================================ */
 
-@keyframes pageFadeSlideIn {
+@keyframes pageContentFadeIn {
   from {
     opacity: 0;
     transform: translateY(12px);
@@ -361,27 +362,9 @@ img {
   }
 }
 
-@keyframes pageFadeSlideOut {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-}
-
-.page-transition {
+.page-content-enter {
+  animation: pageContentFadeIn 0.3s ease-out forwards;
   will-change: opacity, transform;
-}
-
-.page-enter {
-  animation: pageFadeSlideIn 0.3s ease-out forwards;
-}
-
-.page-exit {
-  animation: pageFadeSlideOut 0.15s ease-in forwards;
 }
 
 
@@ -613,8 +596,7 @@ button:active:not(:disabled) {
     scroll-behavior: auto !important;
   }
 
-  .page-enter,
-  .page-exit {
+  .page-content-enter {
     animation: none !important;
     opacity: 1 !important;
   }

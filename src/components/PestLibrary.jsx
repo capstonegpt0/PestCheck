@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Book, Image as ImageIcon, Info, Bug, Calendar, ChevronDown, ChevronUp, Sun, CloudRain, Droplets, Wind } from 'lucide-react';
 import Navigation from './Navigation';
+import PageContent from './PageContent';
 import api from '../utils/api';
 import { PEST_REFERENCE_DATA, getPestsByCrop, searchPests } from '../utils/pestReferenceData';
 
@@ -506,15 +507,15 @@ const PestDetailModal = ({ pest, onClose }) => {
               <p className="text-gray-700">{pest.control_methods || referenceData?.controlMethods}</p>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h3 className="text-xl font-semibold text-yellow-800 mb-2">Prevention</h3>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="text-xl font-semibold text-green-800 mb-2">Prevention</h3>
               <p className="text-gray-700">{pest.prevention || referenceData?.prevention}</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="mt-6 w-full bg-primary text-gray-900 py-3 rounded-lg hover:bg-yellow-400 transition-colors font-semibold"
+            className="mt-6 w-full bg-primary text-white py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold"
           >
             Close
           </button>
@@ -681,6 +682,7 @@ const PestLibrary = ({ user, onLogout }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
+      <PageContent>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">Pest Library</h1>
@@ -694,7 +696,7 @@ const PestLibrary = ({ user, onLogout }) => {
                 placeholder="Search pests..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
 
@@ -702,7 +704,7 @@ const PestLibrary = ({ user, onLogout }) => {
               <button
                 onClick={() => setCropFilter('all')}
                 className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  cropFilter === 'all' ? 'bg-primary text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  cropFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 All
@@ -710,7 +712,7 @@ const PestLibrary = ({ user, onLogout }) => {
               <button
                 onClick={() => setCropFilter('rice')}
                 className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  cropFilter === 'rice' ? 'bg-primary text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  cropFilter === 'rice' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 Rice
@@ -718,7 +720,7 @@ const PestLibrary = ({ user, onLogout }) => {
               <button
                 onClick={() => setCropFilter('corn')}
                 className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  cropFilter === 'corn' ? 'bg-primary text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  cropFilter === 'corn' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 Corn
@@ -758,8 +760,8 @@ const PestLibrary = ({ user, onLogout }) => {
                           e.target.nextSibling.style.display = 'flex';
                         }}
                       />
-                      <div className="hidden w-full h-full items-center justify-center bg-gradient-to-br from-yellow-50 to-yellow-100">
-                        <Bug className="w-16 h-16 text-yellow-300" />
+                      <div className="hidden w-full h-full items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
+                        <Bug className="w-16 h-16 text-green-300" />
                       </div>
                     </div>
                   )}
@@ -790,7 +792,9 @@ const PestLibrary = ({ user, onLogout }) => {
         {/* Pest Detail Modal */}
         {selectedPest && <PestDetailModal pest={selectedPest} onClose={() => setSelectedPest(null)} />}
       </div>
-    </div>
+    
+      </PageContent>
+      </div>
   );
 };
 

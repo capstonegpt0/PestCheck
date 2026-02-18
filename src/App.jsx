@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
 
@@ -27,22 +27,42 @@ import OfflineIndicator from './components/OfflineIndicator'
 import AlertNotifications from './components/AlertNotifications';
 
 
-// Animated page wrapper - plays fade-in on every route change
-const AnimatedRoutes = ({ user, handleLogin, handleLogout }) => {
-  const location = useLocation();
-  const [animKey, setAnimKey] = useState(location.key);
-  const [stage, setStage] = useState('enter');
+function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (location.key !== animKey) {
-      setStage('exit');
-      const timeout = setTimeout(() => {
-        setAnimKey(location.key);
-        setStage('enter');
-      }, 150); // short exit duration
-      return () => clearTimeout(timeout);
+    // Check if user is logged in
+    const token = localStorage.getItem('access_token');
+    const userData = localStorage.getItem('user');
+    
+    if (token && userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+      }
     }
-  }, [location.key]);
+    setLoading(false);
+  }, []);
+
+  const handleLogin = (userData, tokens) => {
+    setUser(userData);
+    localStorage.setItem('access_token', tokens.access);
+    localStorage.setItem('refresh_token', tokens.refresh);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    window.location.href = '/#/login';
+  };
 
   // Protected Route Component
   const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -70,9 +90,24 @@ const AnimatedRoutes = ({ user, handleLogin, handleLogout }) => {
     return <Navigate to="/dashboard" />;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`page-transition ${stage === 'enter' ? 'page-enter' : 'page-exit'}`}>
-      <Routes location={location}>
+    <Router>
+      {/* PWA Components - Add these at the top level */}
+      <OfflineIndicator />
+      <PWAInstallPrompt />
+      
+      {/* Global Alert Notifications - shown on all pages for logged-in farmers */}
+      {user && user.role !== 'admin' && <AlertNotifications user={user} />}
+      
+      <Routes>
         {/* Public Routes */}
         <Route
           path="/login"
@@ -201,66 +236,6 @@ const AnimatedRoutes = ({ user, handleLogin, handleLogout }) => {
         {/* 404 Route */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-    </div>
-  );
-};
-
-
-function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem('access_token');
-    const userData = localStorage.getItem('user');
-    
-    if (token && userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-      }
-    }
-    setLoading(false);
-  }, []);
-
-  const handleLogin = (userData, tokens) => {
-    setUser(userData);
-    localStorage.setItem('access_token', tokens.access);
-    localStorage.setItem('refresh_token', tokens.refresh);
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    window.location.href = '/#/login';
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600 animate-pulse">Loading...</div>
-      </div>
-    );
-  }
-
-  return (
-    <Router>
-      {/* PWA Components - Add these at the top level */}
-      <OfflineIndicator />
-      <PWAInstallPrompt />
-      
-      {/* Global Alert Notifications - shown on all pages for logged-in farmers */}
-      {user && user.role !== 'admin' && <AlertNotifications user={user} />}
-      
-      <AnimatedRoutes user={user} handleLogin={handleLogin} handleLogout={handleLogout} />
     </Router>
   );
 }
