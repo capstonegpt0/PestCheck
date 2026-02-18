@@ -46,8 +46,8 @@ const Dashboard = ({ user, onLogout }) => {
             className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
           >
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-yellow-200 transition-colors">
-                <Map className="w-8 h-8 text-yellow-600" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
+                <Map className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
                 Detect & Map
@@ -80,8 +80,8 @@ const Dashboard = ({ user, onLogout }) => {
             className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
           >
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-yellow-200 transition-colors">
-                <User className="w-8 h-8 text-yellow-600" />
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
+                <User className="w-8 h-8 text-purple-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
                 My Profile
