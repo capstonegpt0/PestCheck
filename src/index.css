@@ -223,11 +223,12 @@ button {
   contain: layout;
 }
 
-/* Performance optimization for animations on mobile - exclude page/modal transitions */
+/* Performance: disable heavy animations on mobile but keep our transitions smooth */
 @media (max-width: 768px) {
-  *:not(.page-content-enter):not(.modal-enter):not(.modal-exit):not(.modal-backdrop-layer):not(.modal-content-layer) {
-    animation-duration: 0.2s !important;
-    transition-duration: 0.2s !important;
+  .leaflet-marker-icon,
+  .card-hover {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
   }
 }
 
@@ -354,7 +355,7 @@ img {
 @keyframes pageContentFadeIn {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -363,7 +364,7 @@ img {
 }
 
 .page-content-enter {
-  animation: pageContentFadeIn 0.3s ease-out forwards;
+  animation: pageContentFadeIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   will-change: opacity, transform;
 }
 
@@ -387,7 +388,7 @@ img {
 @keyframes modalContentIn {
   from {
     opacity: 0;
-    transform: translateY(24px) scale(0.96);
+    transform: translateY(16px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -402,7 +403,7 @@ img {
   }
   to {
     opacity: 0;
-    transform: translateY(16px) scale(0.96);
+    transform: translateY(10px) scale(0.98);
   }
 }
 
@@ -414,12 +415,12 @@ img {
 }
 
 .modal-enter .modal-backdrop-layer {
-  animation: modalBackdropIn 0.25s ease-out forwards;
+  animation: modalBackdropIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal-exit .modal-backdrop-layer {
-  animation: modalBackdropOut 0.2s ease-in forwards;
+  animation: modalBackdropOut 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   background-color: rgba(0, 0, 0, 0.5);
 }
 
@@ -429,11 +430,11 @@ img {
 }
 
 .modal-enter .modal-content-layer {
-  animation: modalContentIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalContentIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .modal-exit .modal-content-layer {
-  animation: modalContentOut 0.2s ease-in forwards;
+  animation: modalContentOut 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 
@@ -447,7 +448,7 @@ img {
 @keyframes overlaySlideUp {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.97);
+    transform: translateY(16px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -457,25 +458,25 @@ img {
 
 /* Modals using class-based z-index (z-50) */
 .fixed.inset-0.z-50 {
-  animation: overlayFadeIn 0.25s ease-out;
+  animation: overlayFadeIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .fixed.inset-0.z-50 > .bg-white,
 .fixed.inset-0.z-50 > div > .bg-white {
-  animation: overlaySlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: overlaySlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Modals using inline style zIndex (HeatMap detection modals) */
 div[style*="9999"],
 div[style*="10000"] {
-  animation: overlayFadeIn 0.25s ease-out;
+  animation: overlayFadeIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 div[style*="9999"] > .bg-white,
 div[style*="9999"] > div > .bg-white,
 div[style*="10000"] > .bg-white,
 div[style*="10000"] > div > .bg-white {
-  animation: overlaySlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: overlaySlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 
@@ -486,7 +487,7 @@ div[style*="10000"] > div > .bg-white {
 @keyframes dropdownSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-6px);
   }
   to {
     opacity: 1;
@@ -496,7 +497,7 @@ div[style*="10000"] > div > .bg-white {
 
 /* Mobile navigation menu dropdown */
 .border-t.border-gray-200.bg-white {
-  animation: dropdownSlideIn 0.2s ease-out;
+  animation: dropdownSlideIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 
@@ -507,7 +508,7 @@ div[style*="10000"] > div > .bg-white {
 @keyframes cardFadeIn {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -516,18 +517,18 @@ div[style*="10000"] > div > .bg-white {
 }
 
 .grid > .bg-white {
-  animation: cardFadeIn 0.35s ease-out both;
+  animation: cardFadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.grid > .bg-white:nth-child(1) { animation-delay: 0.04s; }
-.grid > .bg-white:nth-child(2) { animation-delay: 0.08s; }
-.grid > .bg-white:nth-child(3) { animation-delay: 0.12s; }
-.grid > .bg-white:nth-child(4) { animation-delay: 0.16s; }
-.grid > .bg-white:nth-child(5) { animation-delay: 0.2s; }
-.grid > .bg-white:nth-child(6) { animation-delay: 0.24s; }
-.grid > .bg-white:nth-child(7) { animation-delay: 0.28s; }
-.grid > .bg-white:nth-child(8) { animation-delay: 0.32s; }
-.grid > .bg-white:nth-child(9) { animation-delay: 0.36s; }
+.grid > .bg-white:nth-child(1) { animation-delay: 0.03s; }
+.grid > .bg-white:nth-child(2) { animation-delay: 0.07s; }
+.grid > .bg-white:nth-child(3) { animation-delay: 0.11s; }
+.grid > .bg-white:nth-child(4) { animation-delay: 0.15s; }
+.grid > .bg-white:nth-child(5) { animation-delay: 0.19s; }
+.grid > .bg-white:nth-child(6) { animation-delay: 0.23s; }
+.grid > .bg-white:nth-child(7) { animation-delay: 0.27s; }
+.grid > .bg-white:nth-child(8) { animation-delay: 0.31s; }
+.grid > .bg-white:nth-child(9) { animation-delay: 0.35s; }
 
 
 /* ============================================
@@ -537,7 +538,7 @@ div[style*="10000"] > div > .bg-white {
 @keyframes slideInFromTop {
   from {
     opacity: 0;
-    transform: translateY(-100%);
+    transform: translateY(-20px);
   }
   to {
     opacity: 1;
@@ -548,7 +549,7 @@ div[style*="10000"] > div > .bg-white {
 /* Alert banners with left border */
 .bg-amber-50.border-l-4,
 .bg-red-50.border-l-4 {
-  animation: slideInFromTop 0.35s ease-out;
+  animation: slideInFromTop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 
@@ -556,9 +557,12 @@ div[style*="10000"] > div > .bg-white {
    BUTTON PRESS FEEDBACK
    ============================================ */
 
+button {
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 button:active:not(:disabled) {
   transform: scale(0.97);
-  transition: transform 0.1s ease;
 }
 
 
@@ -569,7 +573,7 @@ button:active:not(:disabled) {
 @keyframes heroFadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -578,7 +582,7 @@ button:active:not(:disabled) {
 }
 
 .bg-gradient-to-r {
-  animation: heroFadeIn 0.4s ease-out;
+  animation: heroFadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 
