@@ -60,15 +60,7 @@ const PWAInstallPrompt = () => {
     }
   }, []);
 
-  if (isInstalled) {
-    return (
-      <div className="fixed bottom-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg md:bottom-4">
-        <p className="text-sm font-medium">✓ App Installed</p>
-      </div>
-    );
-  }
-
-  if (!showPrompt) return null;
+  if (isInstalled || !showPrompt) return null;
 
   return (
     <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-auto md:right-4 md:w-96 bg-white rounded-lg shadow-2xl border border-gray-200 p-4 z-50">
