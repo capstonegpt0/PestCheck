@@ -22,55 +22,65 @@ const AlertNotifications = ({ user }) => {
 
   const fetchAlerts = async () => {
     try {
-      // Try the specific my_alerts endpoint first
       let response;
+      let alertsData = [];
+      
+      // Try my_alerts first, then fall back to /alerts/
       try {
         response = await api.get('/alerts/my_alerts/');
-      } catch (error) {
-        // Fallback to general alerts endpoint if my_alerts doesn't exist
-        console.log('Falling back to /alerts/ endpoint');
-        response = await api.get('/alerts/');
+        // validateStatus in api.js accepts 4xx, so check status manually
+        if (response.status >= 400) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (err) {
+        console.log('my_alerts unavailable, falling back to /alerts/');
+        try {
+          response = await api.get('/alerts/');
+          if (response.status >= 400) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+        } catch (err2) {
+          console.log('Both alert endpoints failed');
+          setAlerts([]);
+          setLoading(false);
+          return;
+        }
       }
       
-      console.log('✅ Alerts API Response:', response.data);
+      console.log('Alerts API response:', response.status, response.data);
       
-      // Handle both array and object responses
-      let alertsData = [];
+      // Extract alerts array from response
       if (Array.isArray(response.data)) {
         alertsData = response.data;
       } else if (response.data && typeof response.data === 'object') {
-        // If it's an object, try to extract alerts from common keys
-        if (response.data.alerts) {
-          alertsData = Array.isArray(response.data.alerts) ? response.data.alerts : [];
-        } else if (response.data.results) {
+        if (response.data.results) {
           alertsData = Array.isArray(response.data.results) ? response.data.results : [];
-        } else if (response.data.data) {
-          alertsData = Array.isArray(response.data.data) ? response.data.data : [];
-        } else {
-          // If it's a single alert object, wrap it in array
-          alertsData = [response.data];
+        } else if (response.data.alerts) {
+          alertsData = Array.isArray(response.data.alerts) ? response.data.alerts : [];
+        } else if (Array.isArray(response.data.data)) {
+          alertsData = response.data.data;
         }
+        // Don't treat error objects like {detail: "..."} as alerts
       }
       
       // Filter to only active, non-expired alerts
       const now = new Date();
       const activeAlerts = alertsData.filter(alert => {
+        // Must have id and title (basic sanity check)
+        if (!alert.id || !alert.title) return false;
         // Must be active
         if (!alert.is_active) return false;
-        
         // Check expiration
         if (alert.expires_at) {
           const expiryDate = new Date(alert.expires_at);
           if (now > expiryDate) return false;
         }
-        
         return true;
       });
       
       setAlerts(activeAlerts);
     } catch (error) {
       console.error('Error fetching alerts:', error);
-      // Don't show error to user - just fail silently for alerts
       setAlerts([]);
     } finally {
       setLoading(false);
