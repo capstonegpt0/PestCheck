@@ -367,7 +367,7 @@ const AdminAlerts = ({ user, onLogout }) => {
                     <option value="">All Farms (Region-wide)</option>
                     {farms.map(farm => (
                       <option key={farm.id} value={farm.name}>
-                        {farm.name} — {farm.user_name} ({farm.crop_type || 'N/A'})
+                        {farm.name} - {farm.user_name} ({farm.crop_type || 'N/A'})
                       </option>
                     ))}
                   </select>

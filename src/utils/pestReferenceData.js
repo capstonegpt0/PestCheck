@@ -3,7 +3,7 @@
 // Images served from frontend/public/assets/pests and public/assets/damage
 
 // Images are served from the frontend's public/assets folder
-// In Vite, files in public/ are served at root: public/assets/pests/x.jpg → /assets/pests/x.jpg
+// In Vite, files in public/ are served at root: public/assets/pests/x.jpg -> /assets/pests/x.jpg
 const PEST_IMAGES_BASE = '/assets/pests';
 const DAMAGE_IMAGES_BASE = '/assets/damage';
 

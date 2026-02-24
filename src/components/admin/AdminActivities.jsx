@@ -264,11 +264,11 @@ const AdminActivities = ({ user, onLogout }) => {
  )}
  <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
  <span>
- ðŸ {new Date(activity.timestamp).toLocaleString()}
+  {new Date(activity.timestamp).toLocaleString()}
  </span>
  {activity.ip_address && (
  <span>
- ðŸŒ {activity.ip_address}
+  {activity.ip_address}
  </span>
  )}
  </div>
