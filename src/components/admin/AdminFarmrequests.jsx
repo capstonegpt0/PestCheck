@@ -368,7 +368,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
               {selectedRequest.approved_farm_id && (
                 <div className="mb-4 bg-green-50 p-3 rounded border border-green-200">
                   <p className="text-sm text-green-800">
-                    ✓ Farm created (ID: #{selectedRequest.approved_farm_id})
+                    OK - Farm created (ID: #{selectedRequest.approved_farm_id})
                   </p>
                 </div>
               )}

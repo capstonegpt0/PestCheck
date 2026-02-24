@@ -174,7 +174,7 @@ const AlertNotifications = ({ user }) => {
                 {/* Target area */}
                 {alert.target_area && (
                   <p className="text-xs opacity-75 mt-2">
-                    📍 {alert.target_area}
+                     {alert.target_area}
                   </p>
                 )}
                 

@@ -240,7 +240,7 @@ const AdminAlerts = ({ user, onLogout }) => {
                       <p className="text-sm mb-3">{alert.message}</p>
                       <div className="flex items-center space-x-4 text-xs">
                         {alert.target_area && (
-                          <span>📍 {alert.target_area}</span>
+                          <span> {alert.target_area}</span>
                         )}
                         <span>Created: {new Date(alert.created_at).toLocaleDateString()}</span>
                         {alert.expires_at && (
@@ -470,7 +470,7 @@ const AdminAlerts = ({ user, onLogout }) => {
                           </p>
                           {editingAlert.target_area && (
                             <p className="text-xs mt-2 opacity-75">
-                              📍 {editingAlert.target_area}
+                               {editingAlert.target_area}
                             </p>
                           )}
                           {editingAlert.expires_at && (

@@ -74,8 +74,8 @@ export async function testNetworkConnectivity() {
       results.details.push('âœ… Internet access confirmed');
       console.log('âœ… Internet access: OK');
     } catch (err) {
-      results.errors.push('❌ No internet access - Check WiFi/cellular');
-      console.error('❌ Internet test failed:', err.message);
+      results.errors.push('[ERROR] No internet access - Check WiFi/cellular');
+      console.error('[ERROR] Internet test failed:', err.message);
     }
     
     // Test 2: Check if backend is reachable
@@ -96,8 +96,8 @@ export async function testNetworkConnectivity() {
       results.details.push(`âœ… Backend reachable (${response.status})`);
       console.log('âœ… Backend reachable:', response.status);
     } catch (err) {
-      results.errors.push(`❌ Cannot reach backend: ${err.message}`);
-      console.error('❌ Backend test failed:', err.message);
+      results.errors.push(`[ERROR] Cannot reach backend: ${err.message}`);
+      console.error('[ERROR] Backend test failed:', err.message);
       
       if (err.message.includes('Failed to fetch')) {
         results.errors.push('ðŸ’¡ Possible causes:');
@@ -129,8 +129,8 @@ export async function testNetworkConnectivity() {
       console.log('âœ… CORS Allow-Origin:', allowOrigin);
       console.log('âœ… CORS Allow-Methods:', allowMethods);
     } catch (err) {
-      results.errors.push(`❌ CORS check failed: ${err.message}`);
-      console.error('❌ CORS test failed:', err.message);
+      results.errors.push(`[ERROR] CORS check failed: ${err.message}`);
+      console.error('[ERROR] CORS test failed:', err.message);
     }
     
     // Test 4: Try actual API call
@@ -144,13 +144,13 @@ export async function testNetworkConnectivity() {
       results.details.push(`âœ… API endpoint accessible (${response.status})`);
       console.log('âœ… API test:', response.status);
     } catch (err) {
-      results.errors.push(`❌ API call failed: ${err.message}`);
-      console.error('❌ API test failed:', err);
+      results.errors.push(`[ERROR] API call failed: ${err.message}`);
+      console.error('[ERROR] API test failed:', err);
     }
     
   } catch (err) {
-    results.errors.push(`❌ Test suite error: ${err.message}`);
-    console.error('❌ Test suite error:', err);
+    results.errors.push(`[ERROR] Test suite error: ${err.message}`);
+    console.error('[ERROR] Test suite error:', err);
   }
   
   console.log('ðŸ”¬ === TEST RESULTS ===');
@@ -239,7 +239,7 @@ api.interceptors.request.use(
         const csrfToken = getCsrfToken();
         if (csrfToken) {
           config.headers['X-CSRFToken'] = csrfToken;
-          console.log('🛡️ CSRF token added');
+          console.log('[CSRF] CSRF token added');
         }
       }
     } else {
@@ -255,7 +255,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('❌ Request interceptor error:', error);
+    console.error('[ERROR] Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -276,7 +276,7 @@ api.interceptors.response.use(
   },
   async (error) => {
     // Enhanced error logging
-    console.error('❌ === API ERROR DETAILS ===');
+    console.error('[ERROR] === API ERROR DETAILS ===');
     console.error('Message:', error.message);
     console.error('Code:', error.code);
     console.error('Status:', error.response?.status);
@@ -307,7 +307,7 @@ api.interceptors.response.use(
 
     // Skip auth endpoints
     if (isAuthEndpoint(originalRequest.url)) {
-      console.log('⚠️ Auth endpoint failed - not retrying');
+      console.log('[WARN] Auth endpoint failed - not retrying');
       return Promise.reject(error);
     }
 
@@ -333,7 +333,7 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${access}`;
         return api(originalRequest);
       } catch (refreshError) {
-        console.error('❌ Token refresh failed:', refreshError);
+        console.error('[ERROR] Token refresh failed:', refreshError);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
