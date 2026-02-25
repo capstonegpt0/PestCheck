@@ -781,7 +781,7 @@ const PestLibrary = ({ user, onLogout }) => {
 
                     <button className="mt-4 text-primary font-semibold hover:underline flex items-center">
                       Learn More 
-                      <span className="ml-1">â†’</span>
+                      <span className="ml-1"></span>
                     </button>
                   </div>
                 </div>
