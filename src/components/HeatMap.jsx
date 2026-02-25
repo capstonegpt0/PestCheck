@@ -324,8 +324,8 @@ const HeatMap = ({ user, onLogout }) => {
         return true;
       });
       
-      console.log(`âœ… Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
-      console.log(`âœ… Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
+      console.log(`🔦 Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
+      console.log(`🔦 Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
       
       setDetections(validDetections);
       setFarms(validFarms);
@@ -719,7 +719,7 @@ const HeatMap = ({ user, onLogout }) => {
           updateData.longitude = parseFloat(farm.lng);
           console.log('ðŸ“‹ Using FARM coordinates:', updateData.latitude, updateData.longitude);
         } else {
-          console.warn('âš ï¸ Farm location chosen but farm coords missing!', { farm });
+          console.warn('⚠️ Farm location chosen but farm coords missing!', { farm });
           // Fallback: try to get coords from the farm object with other field names
           if (farm && farm.latitude != null && farm.longitude != null) {
             updateData.latitude = parseFloat(farm.latitude);
@@ -901,7 +901,7 @@ const HeatMap = ({ user, onLogout }) => {
                                      isFinite(parseFloat(farm.lng));
                   
                   if (!hasValidLat || !hasValidLng) {
-                    console.error('âŒ Filtering out invalid farm before render:', {
+                    console.error('❌ Filtering out invalid farm before render:', {
                       id: farm.id,
                       name: farm.name,
                       lat: farm.lat,
@@ -919,7 +919,7 @@ const HeatMap = ({ user, onLogout }) => {
                   const lng = parseFloat(farm.lng);
                   
                   if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-                    console.error('âŒ Skipping farm with invalid coords in map:', farm);
+                    console.error('❌ Skipping farm with invalid coords in map:', farm);
                     return null;
                   }
                   
@@ -1146,7 +1146,7 @@ const HeatMap = ({ user, onLogout }) => {
                           color: #92400e;
                           white-space: nowrap;
                           margin-top: 2px;
-                        ">âš  Unverified</div>
+                        ">✅ Unverified</div>
                       </div>
                     `,
                     iconSize: [60, 36],
@@ -1164,7 +1164,7 @@ const HeatMap = ({ user, onLogout }) => {
                         <div className="p-2">
                           <div className="bg-amber-50 border border-amber-300 rounded-lg p-2 mb-2">
                             <div className="flex items-center space-x-1 mb-1">
-                              <span className="text-amber-600 text-sm">âš ï¸</span>
+                              <span className="text-amber-600 text-sm">⚠️</span>
                               <span className="text-xs font-bold text-amber-800">Unverified Detection</span>
                             </div>
                             <p className="text-xs text-amber-700">
@@ -1693,7 +1693,7 @@ const HeatMap = ({ user, onLogout }) => {
                                         {/* Location Choice */}
                     <div>
                       <label className="block text-lg font-medium text-gray-800 mb-3">
-                        Ã°Å¸â€œÂ Pin Location <span className="text-red-500">*</span>
+                        📍 Pin Location <span className="text-red-500">*</span>
                       </label>
                       
                       {/* Unverified user notice */}
@@ -1782,7 +1782,7 @@ const HeatMap = ({ user, onLogout }) => {
                         {farms.filter(farm => farm.user_name === user.username).length === 0 && (
                           <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                             <p className="text-sm text-yellow-800">
-                              âš ï¸ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
+                              ⚠️ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
                             </p>
                           </div>
                         )}
@@ -1924,7 +1924,7 @@ const HeatMap = ({ user, onLogout }) => {
                               <ul className="space-y-1">
                                 {controlList.slice(0, 3).map((method, idx) => (
                                   <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                                    <span className="text-red-400 mt-1">â€¢</span>
+                                    <span className="text-red-400 mt-1">•</span>
                                     {method}
                                   </li>
                                 ))}
@@ -1937,7 +1937,7 @@ const HeatMap = ({ user, onLogout }) => {
                               <ul className="space-y-1">
                                 {preventionList.slice(0, 3).map((tip, idx) => (
                                   <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                                    <span className="text-green-400 mt-1">â€¢</span>
+                                    <span className="text-green-400 mt-1">•</span>
                                     {tip}
                                   </li>
                                 ))}
@@ -2113,7 +2113,7 @@ const HeatMap = ({ user, onLogout }) => {
                 <p className="text-gray-500">No active infestations reported.</p>
               ) : (
                 (() => {
-                  // Group detections by farm â€” null/undefined farm_id grouped as 'unassigned'
+                  // Group detections by farm — null/undefined farm_id grouped as 'unassigned'
                   const detectionsByFarm = {};
                   activeDetections.forEach(detection => {
                     const farmId = detection.farm_id != null ? detection.farm_id : '__unassigned__';
@@ -2146,7 +2146,7 @@ const HeatMap = ({ user, onLogout }) => {
                                   <h3 className="font-bold text-gray-700">GPS / Field Detections</h3>
                                 </div>
                                 <p className="text-xs text-gray-400 mt-0.5">
-                                  Detected via current location â€” not linked to a registered farm
+                                  Detected via current location — not linked to a registered farm
                                 </p>
                               </>
                             ) : (
@@ -2186,7 +2186,7 @@ const HeatMap = ({ user, onLogout }) => {
                                     Reported by: {detection.user_name || 'Unknown'}
                                     {detection.user_is_verified === false && (
                                       <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300">
-                                        âš  Unverified
+                                        ✅ Unverified
                                       </span>
                                     )}
                                   </p>
