@@ -3,7 +3,7 @@
 // Images served from frontend/public/assets/pests and public/assets/damage
 
 // Images are served from the frontend's public/assets folder
-// In Vite, files in public/ are served at root: public/assets/pests/x.jpg → /assets/pests/x.jpg
+// In Vite, files in public/ are served at root: public/assets/pests/x.jpg -> /assets/pests/x.jpg
 const PEST_IMAGES_BASE = '/assets/pests';
 const DAMAGE_IMAGES_BASE = '/assets/damage';
 
@@ -273,15 +273,15 @@ const normalizePestName = (name) => {
  */
 export const getPestById = (pestId) => {
   if (!pestId) {
-    console.log('❌ getPestById: No pest ID provided');
+    console.log('[ERROR] getPestById: No pest ID provided');
     return null;
   }
   
-  console.log('🔍 getPestById: Looking for pest:', pestId);
+  console.log('[SEARCH] getPestById: Looking for pest:', pestId);
   
   // Normalize the input ID
   const normalizedInput = normalizePestName(pestId);
-  console.log('🔍 getPestById: Normalized input:', normalizedInput);
+  console.log('[SEARCH] getPestById: Normalized input:', normalizedInput);
   
   // Try exact match on ID first (case-insensitive)
   const exactKey = Object.keys(PEST_REFERENCE_DATA).find(
@@ -289,9 +289,9 @@ export const getPestById = (pestId) => {
   );
   if (exactKey) {
     const match = PEST_REFERENCE_DATA[exactKey];
-    console.log('✅ getPestById: Exact key match found:', match.name);
-    console.log('📷 Reference images:', match.referenceImages);
-    console.log('🌾 Damage image:', match.damageImage);
+    console.log('[OK] getPestById: Exact key match found:', match.name);
+    console.log('[IMG] Reference images:', match.referenceImages);
+    console.log('[DMG] Damage image:', match.damageImage);
     return match;
   }
   
@@ -312,23 +312,23 @@ export const getPestById = (pestId) => {
                    pestNameContainsInput;
     
     if (isMatch) {
-      console.log('✅ getPestById: Flexible match found:', pest.name, {
+      console.log('[OK] getPestById: Flexible match found:', pest.name, {
         normalizedPestName,
         normalizedInput,
         matchType: normalizedPestName === normalizedInput ? 'exact' :
                    inputContainsPestName ? 'contains' : 'partial'
       });
-      console.log('📷 Reference images:', pest.referenceImages);
-      console.log('🌾 Damage image:', pest.damageImage);
+      console.log('[IMG] Reference images:', pest.referenceImages);
+      console.log('[DMG] Damage image:', pest.damageImage);
     }
     
     return isMatch;
   });
   
   if (!pestEntry) {
-    console.log('❌ getPestById: No match found for:', pestId);
-    console.log('📋 Available pest IDs:', Object.keys(PEST_REFERENCE_DATA));
-    console.log('📋 Available pest names:', Object.values(PEST_REFERENCE_DATA).map(p => p.name));
+    console.log('[ERROR] getPestById: No match found for:', pestId);
+    console.log('[LOG] Available pest IDs:', Object.keys(PEST_REFERENCE_DATA));
+    console.log('[LOG] Available pest names:', Object.values(PEST_REFERENCE_DATA).map(p => p.name));
   }
   
   return pestEntry || null;

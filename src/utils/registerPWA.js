@@ -9,7 +9,7 @@ export function registerPWA() {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
-          console.log('✅ Service Worker registered:', registration);
+          console.log('[OK] Service Worker registered:', registration);
 
           // Check for updates every hour
           setInterval(() => {
@@ -29,7 +29,7 @@ export function registerPWA() {
           });
         })
         .catch((error) => {
-          console.log('❌ Service Worker registration failed:', error);
+          console.log('[ERROR] Service Worker registration failed:', error);
         });
     });
   }
@@ -120,10 +120,10 @@ export function setupInstallPrompt() {
  */
 export function setupOfflineDetection() {
   window.addEventListener('online', () => {
-    console.log('✅ Back online');
+    console.log('[OK] Back online');
   });
 
   window.addEventListener('offline', () => {
-    console.log('📡 Offline mode');
+    console.log('[OFFLINE] Offline mode');
   });
 }

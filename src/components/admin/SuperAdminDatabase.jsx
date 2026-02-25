@@ -155,7 +155,7 @@ const SuperAdminDatabase = ({ user, onLogout }) => {
                 <Database className="w-8 h-8 mr-3 text-purple-600" />
                 Database Management
               </h1>
-              <p className="text-sm text-purple-600 mt-1">⚡ Super Admin Access Only</p>
+              <p className="text-sm text-purple-600 mt-1">Super Admin Access Only</p>
             </div>
             <div className="flex space-x-3">
               <button
