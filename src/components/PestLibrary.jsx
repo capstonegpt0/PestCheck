@@ -184,7 +184,7 @@ const SeasonalPestWindow = ({ cropFilter }) => {
           </div>
           <div className="text-left">
             <h2 className="text-base sm:text-lg font-bold text-gray-800">Seasonal Pest Activity</h2>
-            <p className="text-xs sm:text-sm text-gray-500">
+            <p className="text-sm text-gray-500">
               {currentSeasonLabel} â€” {FULL_MONTHS[currentMonth]} {new Date().getFullYear()}
             </p>
           </div>
@@ -203,7 +203,7 @@ const SeasonalPestWindow = ({ cropFilter }) => {
         <div className="border-t border-gray-100">
           {/* Season indicator bar */}
           <div className="px-3 sm:px-5 pt-4 pb-2">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-3">
+            <div className="flex items-center space-x-1 text-xs text-gray-500 mb-3">
               <div className="flex items-center space-x-1">
                 <Sun className="w-3.5 h-3.5 text-amber-500" />
                 <span>Dry Season (Novâ€“May)</span>
@@ -360,8 +360,7 @@ const PestDetailModal = ({ pest, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Sticky header */}
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-start z-10">
           <div className="min-w-0 flex-1 mr-4">
             <h2 className="text-xl sm:text-3xl font-bold text-gray-800 mb-1">{pest.name}</h2>
@@ -375,7 +374,7 @@ const PestDetailModal = ({ pest, onClose }) => {
           </button>
         </div>
 
-        <div className="p-4 sm:p-6">
+        <div className="p-4 sm:p-6 pb-8">
 
           {/* Seasonal Activity Mini-Chart inside detail modal */}
           {seasonalData && (
