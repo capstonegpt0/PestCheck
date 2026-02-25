@@ -590,6 +590,111 @@ button:active:not(:disabled) {
    REDUCE MOTION (accessibility)
    ============================================ */
 
+/* ============================================
+   ACCESSIBILITY: LARGE FONT MODE
+   Toggled via .large-font-mode on <html>
+   ============================================ */
+
+html.large-font-mode {
+  font-size: 120%;
+}
+
+html.large-font-mode body {
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+/* Scale up text elements */
+html.large-font-mode h1,
+html.large-font-mode .text-3xl {
+  font-size: 2.25rem !important;
+}
+
+html.large-font-mode h2,
+html.large-font-mode .text-2xl {
+  font-size: 1.875rem !important;
+}
+
+html.large-font-mode h3,
+html.large-font-mode .text-xl {
+  font-size: 1.5rem !important;
+}
+
+html.large-font-mode h4,
+html.large-font-mode .text-lg {
+  font-size: 1.25rem !important;
+}
+
+html.large-font-mode p,
+html.large-font-mode span,
+html.large-font-mode a,
+html.large-font-mode li,
+html.large-font-mode td,
+html.large-font-mode th,
+html.large-font-mode label,
+html.large-font-mode .text-sm {
+  font-size: 1.05rem !important;
+}
+
+html.large-font-mode .text-xs {
+  font-size: 0.925rem !important;
+}
+
+html.large-font-mode input,
+html.large-font-mode select,
+html.large-font-mode textarea {
+  font-size: 1.1rem !important;
+  padding: 0.65rem 0.85rem !important;
+}
+
+html.large-font-mode button {
+  font-size: 1.05rem !important;
+  padding: 0.65rem 1.15rem !important;
+}
+
+/* Larger icons in large font mode */
+html.large-font-mode svg {
+  transform: scale(1.12);
+}
+
+/* Larger nav items */
+html.large-font-mode nav .flex.items-center span,
+html.large-font-mode nav a {
+  font-size: 1.05rem !important;
+}
+
+/* Bottom mobile nav labels */
+html.large-font-mode .text-xs.mt-1 {
+  font-size: 0.85rem !important;
+}
+
+/* Badges and pills */
+html.large-font-mode .rounded-full {
+  font-size: 0.95rem !important;
+  padding: 0.35rem 0.85rem !important;
+}
+
+/* Better spacing for readability */
+html.large-font-mode .space-y-3 > * + * {
+  margin-top: 1rem;
+}
+
+html.large-font-mode .space-y-4 > * + * {
+  margin-top: 1.25rem;
+}
+
+/* Modal readability */
+html.large-font-mode .fixed.inset-0 p,
+html.large-font-mode .fixed.inset-0 span,
+html.large-font-mode .fixed.inset-0 label {
+  font-size: 1.05rem !important;
+}
+
+
+/* ============================================
+   REDUCE MOTION (accessibility)
+   ============================================ */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

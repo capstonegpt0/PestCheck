@@ -68,6 +68,12 @@ function App() {
         localStorage.removeItem('user');
       }
     }
+
+    // Apply accessibility: large font mode
+    if (localStorage.getItem('pestcheck_large_font') === 'true') {
+      document.documentElement.classList.add('large-font-mode');
+    }
+
     setLoading(false);
   }, []);
 
