@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -26,10 +26,29 @@ import OfflineIndicator from './components/OfflineIndicator'
 // Global Alert Notifications (shown on all pages for logged-in farmers)
 import AlertNotifications from './components/AlertNotifications';
 
+import api from './utils/api';
+
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Refresh user data from the API to get latest is_verified, role, etc.
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    
+    try {
+      const response = await api.get('/auth/profile/');
+      if (response.data) {
+        setUser(response.data);
+        localStorage.setItem('user', JSON.stringify(response.data));
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      // Don't clear session on refresh failure — keep stale data as fallback
+    }
+  }, []);
 
   useEffect(() => {
     // Check if user is logged in
@@ -38,7 +57,10 @@ function App() {
     
     if (token && userData) {
       try {
+        // Set cached user data immediately for fast render
         setUser(JSON.parse(userData));
+        // Then refresh from API to get latest data (is_verified, role, etc.)
+        refreshUser();
       } catch (error) {
         console.error('Error parsing user data:', error);
         localStorage.removeItem('access_token');
