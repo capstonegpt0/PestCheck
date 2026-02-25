@@ -610,7 +610,11 @@ const HeatMap = ({ user, onLogout }) => {
         },
       });
 
-      if (response.status === 201 && response.data) {
+      if (response.data?.no_pest_detected) {
+        // No pest found - show friendly message, not an error
+        setDetectionError(response.data.message || 'No pest was detected. Please try again with a clearer photo of the affected plant or pest.');
+        setDetectionStep('upload');
+      } else if ((response.status === 200 || response.status === 201) && response.data) {
         const pestName = response.data.pest_name || response.data.pest;
         
         if (pestName && pestName !== 'Unknown Pest' && pestName !== '') {
@@ -618,7 +622,7 @@ const HeatMap = ({ user, onLogout }) => {
           setDetectionResult(response.data);
           setDetectionStep('confirm');
         } else {
-          setDetectionError('No pest detected in the image. Please try another image with clearer pest visibility.');
+          setDetectionError('No pest was detected. Please try again with a clearer photo of the affected plant or pest.');
           setDetectionStep('upload');
         }
       } else {
@@ -628,9 +632,7 @@ const HeatMap = ({ user, onLogout }) => {
     } catch (error) {
       console.error('Detection error:', error);
       
-      if (error.response?.status === 400) {
-        setDetectionError(error.response.data?.error || 'No pest detected. Please try another image.');
-      } else if (error.response?.status === 503) {
+      if (error.response?.status === 503) {
         setDetectionError('ML service is warming up. Please wait 30 seconds and try again.');
       } else {
         setDetectionError('Detection failed. Please try again.');
@@ -1342,10 +1344,15 @@ const HeatMap = ({ user, onLogout }) => {
                     )}
 
                     {detectionError && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className={detectionError.includes('No pest') ? "bg-yellow-50 border border-yellow-200 rounded-lg p-4" : "bg-red-50 border border-red-200 rounded-lg p-4"}>
                         <div className="flex items-start">
-                          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
-                          <p className="text-sm text-red-800">{detectionError}</p>
+                          <AlertCircle className={`w-5 h-5 mt-0.5 mr-3 flex-shrink-0 ${detectionError.includes('No pest') ? 'text-yellow-600' : 'text-red-600'}`} />
+                          <div>
+                            <p className={`text-sm font-semibold ${detectionError.includes('No pest') ? 'text-yellow-800' : 'text-red-800'}`}>
+                              {detectionError.includes('No pest') ? 'No Pest Detected' : 'Detection Failed'}
+                            </p>
+                            <p className={`text-sm mt-0.5 ${detectionError.includes('No pest') ? 'text-yellow-700' : 'text-red-700'}`}>{detectionError}</p>
+                          </div>
                         </div>
                       </div>
                     )}
