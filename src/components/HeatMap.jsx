@@ -63,11 +63,11 @@ const createLabeledFarmIcon = (farmName, ownerName) => {
 
 // Farm status thresholds configuration
 const FARM_STATUS_CONFIG = {
-  MINIMUM_THRESHOLD: 3, // Minimum detections before showing any status
-  LOW_THRESHOLD: 3, // Low risk: 3-4 detections
-  MODERATE_THRESHOLD: 5, // Moderate risk: 5-6 detections 
-  HIGH_THRESHOLD: 7, // High risk: 7-9 detections
-  CRITICAL_THRESHOLD: 10 // Critical: 10+ detections
+  MINIMUM_THRESHOLD: 3,    // Minimum detections before showing any status
+  LOW_THRESHOLD: 3,        // Low risk: 3-4 detections
+  MODERATE_THRESHOLD: 5,   // Moderate risk: 5-6 detections  
+  HIGH_THRESHOLD: 7,       // High risk: 7-9 detections
+  CRITICAL_THRESHOLD: 10   // Critical: 10+ detections
 };
 
 const MapClickHandler = ({ onMapClick, isAddingFarm }) => {
@@ -324,8 +324,8 @@ const HeatMap = ({ user, onLogout }) => {
         return true;
       });
       
-      console.log(`... Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
-      console.log(`... Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
+      console.log(`âœ… Loaded ${validFarms.length} valid farms out of ${farmsData.length}`);
+      console.log(`âœ… Loaded ${validDetections.length} valid detections out of ${detectionsData.length}`);
       
       setDetections(validDetections);
       setFarms(validFarms);
@@ -689,7 +689,7 @@ const HeatMap = ({ user, onLogout }) => {
       // Find the selected farm - use loose comparison for id type mismatch
       const farm = farms.find(f => Number(f.id) === Number(selectedFarm));
       
-      console.log('" saveDetection debug:', {
+      console.log('ðŸ“‹ saveDetection debug:', {
         locationChoice,
         selectedFarm,
         selectedFarmType: typeof selectedFarm,
@@ -717,27 +717,27 @@ const HeatMap = ({ user, onLogout }) => {
         if (farm && farm.lat != null && farm.lng != null) {
           updateData.latitude = parseFloat(farm.lat);
           updateData.longitude = parseFloat(farm.lng);
-          console.log('" Using FARM coordinates:', updateData.latitude, updateData.longitude);
+          console.log('ðŸ“‹ Using FARM coordinates:', updateData.latitude, updateData.longitude);
         } else {
-          console.warn(' Farm location chosen but farm coords missing!', { farm });
+          console.warn('âš ï¸ Farm location chosen but farm coords missing!', { farm });
           // Fallback: try to get coords from the farm object with other field names
           if (farm && farm.latitude != null && farm.longitude != null) {
             updateData.latitude = parseFloat(farm.latitude);
             updateData.longitude = parseFloat(farm.longitude);
-            console.log('" Using FARM coordinates (latitude/longitude fields):', updateData.latitude, updateData.longitude);
+            console.log('ðŸ“‹ Using FARM coordinates (latitude/longitude fields):', updateData.latitude, updateData.longitude);
           }
         }
       } else if (locationChoice === 'current' && location) {
         updateData.latitude = location.latitude;
         updateData.longitude = location.longitude;
-        console.log('" Using CURRENT coordinates:', updateData.latitude, updateData.longitude);
+        console.log('ðŸ“‹ Using CURRENT coordinates:', updateData.latitude, updateData.longitude);
       }
 
-      console.log('" Final PATCH data:', JSON.stringify(updateData));
+      console.log('ðŸ“‹ Final PATCH data:', JSON.stringify(updateData));
 
       // Update the existing detection record to confirm it
       const response = await api.patch(`/detections/${detectionResult.id}/`, updateData);
-      console.log('" PATCH response:', response.data);
+      console.log('ðŸ“‹ PATCH response:', response.data);
 
       setDetectionStep('success');
       
@@ -812,21 +812,21 @@ const HeatMap = ({ user, onLogout }) => {
       <PageContent>
       
       
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Infestation Heat Map</h1>
-          <p className="text-gray-600">Track and manage pest infestations across farms</p>
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
+        <div className="mb-4 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">Infestation Heat Map</h1>
+          <p className="text-sm sm:text-base text-gray-600">Track and manage pest infestations across farms</p>
         </div>
 
         {/* Map Controls */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6 flex flex-wrap gap-4 items-center">
+        <div className="bg-white rounded-lg shadow p-4 mb-6 flex flex-wrap gap-3 items-center">
           <div className="flex items-center space-x-2">
             <Filter className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Time Range:</span>
+            <span className="text-sm font-medium text-gray-700 hidden sm:inline">Time Range:</span>
             <select
               value={days}
               onChange={(e) => setDays(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary text-sm"
             >
               <option value={7}>Last 7 days</option>
               <option value={14}>Last 14 days</option>
@@ -838,35 +838,35 @@ const HeatMap = ({ user, onLogout }) => {
 
           <button
             onClick={fetchInitialData}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
             title="Refresh map data"
           >
-            <Activity className="w-5 h-5 mr-2" />
-            Refresh
+            <Activity className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Refresh</span>
           </button>
 
-          <div className="flex-1"></div>
+          <div className="hidden sm:block flex-1"></div>
 
           <button
             onClick={startDetection}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
-            <Camera className="w-5 h-5 mr-2" />
+            <Camera className="w-4 h-4 mr-1 sm:mr-2" />
             Detect Pest
           </button>
 
           {user.is_verified && (
             <button
               onClick={() => setIsAddingFarm(true)}
-              className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center px-3 py-2 rounded-lg transition-colors text-sm ${
                 isAddingFarm
                   ? 'bg-gray-400 text-white cursor-not-allowed'
                   : 'bg-primary text-white hover:bg-green-600'
               }`}
               disabled={isAddingFarm}
             >
-              <MapPin className="w-5 h-5 mr-2" />
-              {isAddingFarm ? 'Click on map to place farm...' : 'Request Farm'}
+              <MapPin className="w-4 h-4 mr-1 sm:mr-2" />
+              {isAddingFarm ? 'Click map to place...' : 'Request Farm'}
             </button>
           )}
         </div>
@@ -901,7 +901,7 @@ const HeatMap = ({ user, onLogout }) => {
                                      isFinite(parseFloat(farm.lng));
                   
                   if (!hasValidLat || !hasValidLng) {
-                    console.error(' Filtering out invalid farm before render:', {
+                    console.error('âŒ Filtering out invalid farm before render:', {
                       id: farm.id,
                       name: farm.name,
                       lat: farm.lat,
@@ -919,7 +919,7 @@ const HeatMap = ({ user, onLogout }) => {
                   const lng = parseFloat(farm.lng);
                   
                   if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-                    console.error(' Skipping farm with invalid coords in map:', farm);
+                    console.error('âŒ Skipping farm with invalid coords in map:', farm);
                     return null;
                   }
                   
@@ -1146,7 +1146,7 @@ const HeatMap = ({ user, onLogout }) => {
                           color: #92400e;
                           white-space: nowrap;
                           margin-top: 2px;
-                        ">Unverified</div>
+                        ">âš  Unverified</div>
                       </div>
                     `,
                     iconSize: [60, 36],
@@ -1164,7 +1164,7 @@ const HeatMap = ({ user, onLogout }) => {
                         <div className="p-2">
                           <div className="bg-amber-50 border border-amber-300 rounded-lg p-2 mb-2">
                             <div className="flex items-center space-x-1 mb-1">
-                              <span className="text-amber-600 text-sm"> </span>
+                              <span className="text-amber-600 text-sm">âš ï¸</span>
                               <span className="text-xs font-bold text-amber-800">Unverified Detection</span>
                             </div>
                             <p className="text-xs text-amber-700">
@@ -1194,7 +1194,7 @@ const HeatMap = ({ user, onLogout }) => {
         {/* Farm Modal */}
         {showFarmModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" style={{ zIndex: 10000 }}>
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ zIndex: 10000 }}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800">Request New Farm</h2>
                 <button onClick={resetFarmForm} className="text-gray-500 hover:text-gray-700">
@@ -1247,7 +1247,7 @@ const HeatMap = ({ user, onLogout }) => {
 
                 <div className="bg-gray-50 p-3 rounded">
                   <p className="text-sm text-gray-600">
-                    Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}
+                    ðŸ“ Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}
                   </p>
                   <p className="text-xs text-gray-500 mt-2">
                     Your farm request will be reviewed by an administrator before approval.
@@ -1419,7 +1419,7 @@ const HeatMap = ({ user, onLogout }) => {
                       {/* Image Comparison Section */}
                       <div>
                         <h4 className="text-base font-semibold text-gray-800 mb-3 text-center">
-                          Visual Comparison
+                          ðŸ“¸ Visual Comparison
                         </h4>
                         
                         {/* User's Captured Image */}
@@ -1494,7 +1494,7 @@ const HeatMap = ({ user, onLogout }) => {
                         {/* Reference Damage Section */}
                         <div className="mt-4">
                           <h4 className="text-sm font-semibold text-gray-800 mb-2 text-center">
-                             Reference Damage Pattern
+                            ðŸŒ¾ Reference Damage Pattern
                           </h4>
                           <div className="border-2 border-red-400 rounded-lg overflow-hidden shadow-md bg-white">
                             {referenceDamageImage ? (
@@ -1535,7 +1535,7 @@ const HeatMap = ({ user, onLogout }) => {
                             <div className="flex items-start">
                               <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
                               <div className="text-sm text-blue-900">
-                                <p className="font-semibold mb-1">Identification Tips:</p>
+                                <p className="font-semibold mb-1">ðŸ” Identification Tips:</p>
                                 <ul className="list-disc list-inside space-y-0.5 text-xs">
                                   {identificationTips.slice(0, 5).map((tip, idx) => (
                                     <li key={idx}>{tip}</li>
@@ -1551,7 +1551,7 @@ const HeatMap = ({ user, onLogout }) => {
                           <div className="flex items-start">
                             <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
                             <div className="text-sm text-yellow-800">
-                              <p className="font-semibold mb-1">Comparison Tips:</p>
+                              <p className="font-semibold mb-1">ðŸ’¡ Comparison Tips:</p>
                               <ul className="list-disc list-inside space-y-0.5 text-xs">
                                 <li>Compare body color and patterns with reference pest</li>
                                 <li>Check body shape and size against reference</li>
@@ -1693,7 +1693,7 @@ const HeatMap = ({ user, onLogout }) => {
                                         {/* Location Choice */}
                     <div>
                       <label className="block text-lg font-medium text-gray-800 mb-3">
-                        ° Pin Location <span className="text-red-500">*</span>
+                        Ã°Å¸â€œÂ Pin Location <span className="text-red-500">*</span>
                       </label>
                       
                       {/* Unverified user notice */}
@@ -1782,7 +1782,7 @@ const HeatMap = ({ user, onLogout }) => {
                         {farms.filter(farm => farm.user_name === user.username).length === 0 && (
                           <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                             <p className="text-sm text-yellow-800">
-                                You don't have any approved farms yet. Please request a farm first or wait for admin approval.
+                              âš ï¸ You don't have any approved farms yet. Please request a farm first or wait for admin approval.
                             </p>
                           </div>
                         )}
@@ -1790,7 +1790,7 @@ const HeatMap = ({ user, onLogout }) => {
                         {/* Location info hint */}
                         {selectedFarm && (
                           <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">
-                            <p>Detection will be pinned at <span className="font-semibold">{farms.find(f => f.id === selectedFarm)?.name || 'selected farm'}</span>'s location on the map.</p>
+                            <p>ðŸ“ Detection will be pinned at <span className="font-semibold">{farms.find(f => f.id === selectedFarm)?.name || 'selected farm'}</span>'s location on the map.</p>
                           </div>
                         )}
                       </div>
@@ -1804,7 +1804,7 @@ const HeatMap = ({ user, onLogout }) => {
                           <div>
                             <p className="font-medium text-blue-900 mb-1">Using Current Location</p>
                             <p className="text-sm text-blue-800">
-                              Detection will be pinned at your current GPS coordinates:
+                              ðŸ“ Detection will be pinned at your current GPS coordinates:
                               {location ? (
                                 <span className="font-semibold block mt-1">
                                   {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
@@ -1924,7 +1924,7 @@ const HeatMap = ({ user, onLogout }) => {
                               <ul className="space-y-1">
                                 {controlList.slice(0, 3).map((method, idx) => (
                                   <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                                    <span className="text-red-400 mt-1"></span>
+                                    <span className="text-red-400 mt-1">â€¢</span>
                                     {method}
                                   </li>
                                 ))}
@@ -1937,7 +1937,7 @@ const HeatMap = ({ user, onLogout }) => {
                               <ul className="space-y-1">
                                 {preventionList.slice(0, 3).map((tip, idx) => (
                                   <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                                    <span className="text-green-400 mt-1"></span>
+                                    <span className="text-green-400 mt-1">â€¢</span>
                                     {tip}
                                   </li>
                                 ))}
@@ -1959,7 +1959,7 @@ const HeatMap = ({ user, onLogout }) => {
         {/* Resolve Confirmation Modal */}
         {showResolveConfirm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" style={{ zIndex: 10000 }}>
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ zIndex: 10000 }}>
               <h2 className="text-xl font-bold text-gray-800 mb-4">Confirm Resolution</h2>
               <p className="text-gray-600 mb-6">
                 Are you sure you want to mark this infestation as resolved?
@@ -2113,7 +2113,7 @@ const HeatMap = ({ user, onLogout }) => {
                 <p className="text-gray-500">No active infestations reported.</p>
               ) : (
                 (() => {
-                  // Group detections by farm - null/undefined farm_id grouped as 'unassigned'
+                  // Group detections by farm â€” null/undefined farm_id grouped as 'unassigned'
                   const detectionsByFarm = {};
                   activeDetections.forEach(detection => {
                     const farmId = detection.farm_id != null ? detection.farm_id : '__unassigned__';
@@ -2146,7 +2146,7 @@ const HeatMap = ({ user, onLogout }) => {
                                   <h3 className="font-bold text-gray-700">GPS / Field Detections</h3>
                                 </div>
                                 <p className="text-xs text-gray-400 mt-0.5">
-                                  Detected via current location - not linked to a registered farm
+                                  Detected via current location â€” not linked to a registered farm
                                 </p>
                               </>
                             ) : (
@@ -2186,7 +2186,7 @@ const HeatMap = ({ user, onLogout }) => {
                                     Reported by: {detection.user_name || 'Unknown'}
                                     {detection.user_is_verified === false && (
                                       <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300">
-                                          Unverified
+                                        âš  Unverified
                                       </span>
                                     )}
                                   </p>
@@ -2202,7 +2202,7 @@ const HeatMap = ({ user, onLogout }) => {
                                   {/* Show coordinates for unassigned detections so user knows where it was */}
                                   {isUnassigned && detection.lat != null && detection.lng != null && (
                                     <p className="text-xs text-blue-500 mt-0.5">
-                                      {parseFloat(detection.lat).toFixed(4)}, {parseFloat(detection.lng).toFixed(4)}
+                                      ðŸ“ {parseFloat(detection.lat).toFixed(4)}, {parseFloat(detection.lng).toFixed(4)}
                                     </p>
                                   )}
                                   <p className="text-sm text-gray-600 mt-1">

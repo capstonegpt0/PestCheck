@@ -7,10 +7,10 @@ import { PEST_REFERENCE_DATA, getPestsByCrop, searchPests } from '../utils/pestR
 
 // ==================== SEASONAL PEST DATA ====================
 // Based on Philippine tropical climate (Magalang, Pampanga region):
-// Dry Season: November - May (Amihan / cool dry -> hot dry)
-// Wet Season: June - October (Habagat / monsoon rains)
+//   Dry Season: November â€“ May  (Amihan / cool dry â†’ hot dry)
+//   Wet Season: June â€“ October  (Habagat / monsoon rains)
 //
-// Each pest has monthly activity levels (0-5) reflecting real infestation patterns.
+// Each pest has monthly activity levels (0â€“5) reflecting real infestation patterns.
 // Sources: PhilRice, DA-BAR, IRRI pest calendars for Central Luzon.
 
 const PEST_SEASONAL_DATA = {
@@ -18,7 +18,7 @@ const PEST_SEASONAL_DATA = {
     id: 'stem-borer',
     name: 'Stem Borer',
     crop: 'Rice',
-    // Peaks during wet-season crop (Jul-Sep) and late dry-season crop (Mar-Apr)
+    // Peaks during wet-season crop (Julâ€“Sep) and late dry-season crop (Marâ€“Apr)
     monthly: [2, 2, 3, 4, 3, 3, 4, 5, 5, 4, 3, 2],
     peakMonths: ['July', 'August', 'September'],
     season: 'Wet Season',
@@ -68,7 +68,7 @@ const PEST_SEASONAL_DATA = {
     id: 'brown-planthopper',
     name: 'Brown Planthopper',
     crop: 'Rice',
-    // Builds up mid-late wet season, can outbreak
+    // Builds up midâ€“late wet season, can outbreak
     monthly: [1, 1, 2, 2, 2, 3, 4, 5, 5, 5, 3, 2],
     peakMonths: ['August', 'September', 'October'],
     season: 'Wet Season',
@@ -101,7 +101,7 @@ const PEST_SEASONAL_DATA = {
     monthly: [2, 3, 4, 4, 3, 3, 4, 5, 5, 4, 3, 2],
     peakMonths: ['August', 'September', 'March', 'April'],
     season: 'Wet & Dry',
-    note: 'Active during both cropping seasons. Larvae bore into stalks 3-4 weeks after planting.',
+    note: 'Active during both cropping seasons. Larvae bore into stalks 3â€“4 weeks after planting.',
   },
 };
 
@@ -183,9 +183,9 @@ const SeasonalPestWindow = ({ cropFilter }) => {
             <Calendar className="w-5 h-5 text-white" />
           </div>
           <div className="text-left">
-            <h2 className="text-lg font-bold text-gray-800">Seasonal Pest Activity</h2>
-            <p className="text-sm text-gray-500">
-              {currentSeasonLabel} - {FULL_MONTHS[currentMonth]} {new Date().getFullYear()}
+            <h2 className="text-base sm:text-lg font-bold text-gray-800">Seasonal Pest Activity</h2>
+            <p className="text-xs sm:text-sm text-gray-500">
+              {currentSeasonLabel} â€” {FULL_MONTHS[currentMonth]} {new Date().getFullYear()}
             </p>
           </div>
         </div>
@@ -202,16 +202,16 @@ const SeasonalPestWindow = ({ cropFilter }) => {
       {expanded && (
         <div className="border-t border-gray-100">
           {/* Season indicator bar */}
-          <div className="px-5 pt-4 pb-2">
-            <div className="flex items-center space-x-1 text-xs text-gray-500 mb-3">
+          <div className="px-3 sm:px-5 pt-4 pb-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-3">
               <div className="flex items-center space-x-1">
                 <Sun className="w-3.5 h-3.5 text-amber-500" />
-                <span>Dry Season (Nov-May)</span>
+                <span>Dry Season (Novâ€“May)</span>
               </div>
               <span className="mx-2">|</span>
               <div className="flex items-center space-x-1">
                 <CloudRain className="w-3.5 h-3.5 text-blue-500" />
-                <span>Wet Season (Jun-Oct)</span>
+                <span>Wet Season (Junâ€“Oct)</span>
               </div>
             </div>
 
@@ -224,7 +224,7 @@ const SeasonalPestWindow = ({ cropFilter }) => {
                   <div
                     key={m}
                     className={`flex-1 relative ${isWet ? 'bg-blue-200' : 'bg-amber-200'} ${isCurrent ? 'ring-2 ring-green-500 ring-offset-1 z-10 rounded' : ''}`}
-                    title={`${FULL_MONTHS[i]} - ${isWet ? 'Wet' : 'Dry'} Season`}
+                    title={`${FULL_MONTHS[i]} â€” ${isWet ? 'Wet' : 'Dry'} Season`}
                   />
                 );
               })}
@@ -244,7 +244,7 @@ const SeasonalPestWindow = ({ cropFilter }) => {
           </div>
 
           {/* Legend */}
-          <div className="px-5 pb-3 flex flex-wrap items-center gap-2 text-xs">
+          <div className="px-3 sm:px-5 pb-3 flex flex-wrap items-center gap-2 text-xs">
             <span className="text-gray-500 font-medium">Activity:</span>
             {[1, 2, 3, 4, 5].map(level => (
               <span key={level} className={`inline-flex items-center px-2 py-0.5 rounded ${getActivityColor(level)} text-xs font-medium`}>
@@ -254,7 +254,7 @@ const SeasonalPestWindow = ({ cropFilter }) => {
           </div>
 
           {/* Pest rows */}
-          <div className="px-5 pb-5 space-y-2">
+          <div className="px-3 sm:px-5 pb-5 space-y-2">
             {filteredPests.length === 0 ? (
               <div className="text-center py-6 text-gray-400 text-sm">
                 No pest data available for this filter.
@@ -268,14 +268,14 @@ const SeasonalPestWindow = ({ cropFilter }) => {
 
           {/* Current alert */}
           {topPestNow && topPestNow.monthly[currentMonth] >= 4 && (
-            <div className="mx-5 mb-5 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
+            <div className="mx-3 sm:mx-5 mb-5 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 mt-0.5">
                   <Bug className="w-5 h-5 text-red-500" />
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold text-red-800">
-                    High Activity Alert - {FULL_MONTHS[currentMonth]}
+                    High Activity Alert â€” {FULL_MONTHS[currentMonth]}
                   </h4>
                   <p className="text-sm text-red-700 mt-1">
                     <strong>{topPestNow.name}</strong> ({topPestNow.crop}) is currently at <strong>{getActivityLabel(topPestNow.monthly[currentMonth]).toLowerCase()}</strong> activity.{' '}
@@ -299,7 +299,7 @@ const PestSeasonRow = ({ pest, currentMonth }) => {
     <div className="group">
       <div className="flex items-center space-x-3">
         {/* Pest name + crop badge */}
-        <div className="w-36 sm:w-44 flex-shrink-0">
+        <div className="w-24 sm:w-44 flex-shrink-0">
           <button
             onClick={() => setShowNote(!showNote)}
             className="text-left w-full hover:bg-gray-50 rounded px-1 py-0.5 -mx-1 transition-colors"
@@ -361,26 +361,28 @@ const PestDetailModal = ({ pest, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">{pest.name}</h2>
-              <p className="text-lg text-gray-600 italic">{pest.scientific_name}</p>
-              <span className="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
-                {pest.crop_affected}
-              </span>
-            </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-3xl font-bold leading-none">
-              -
-            </button>
+        {/* Sticky header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-start z-10">
+          <div className="min-w-0 flex-1 mr-4">
+            <h2 className="text-xl sm:text-3xl font-bold text-gray-800 mb-1">{pest.name}</h2>
+            <p className="text-sm sm:text-lg text-gray-600 italic">{pest.scientific_name}</p>
+            <span className="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
+              {pest.crop_affected}
+            </span>
           </div>
+          <button onClick={onClose} className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors">
+            <span className="text-xl font-bold leading-none">&times;</span>
+          </button>
+        </div>
+
+        <div className="p-4 sm:p-6">
 
           {/* Seasonal Activity Mini-Chart inside detail modal */}
           {seasonalData && (
             <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
               <div className="flex items-center mb-3">
                 <Calendar className="w-5 h-5 text-amber-600 mr-2" />
-                <h3 className="text-lg font-semibold text-amber-800">Seasonal Activity</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-amber-800">Seasonal Activity</h3>
                 <span className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${
                   seasonalData.season.includes('Wet') ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
                 }`}>
@@ -415,7 +417,7 @@ const PestDetailModal = ({ pest, onClose }) => {
             <div className="mb-6">
               <div className="flex items-center mb-3">
                 <ImageIcon className="w-5 h-5 text-blue-600 mr-2" />
-                <h3 className="text-xl font-semibold text-gray-800">Reference Images</h3>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Reference Images</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {referenceData.referenceImages.map((img, idx) => (
@@ -450,7 +452,7 @@ const PestDetailModal = ({ pest, onClose }) => {
             <div className="mb-6">
               <div className="flex items-center mb-3">
                 <ImageIcon className="w-5 h-5 text-red-600 mr-2" />
-                <h3 className="text-xl font-semibold text-gray-800">Typical Damage Pattern</h3>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Typical Damage Pattern</h3>
               </div>
               <div className="border-2 border-red-400 rounded-lg overflow-hidden bg-gray-50">
                 <div className="aspect-video bg-gray-200 flex items-center justify-center">
@@ -481,7 +483,7 @@ const PestDetailModal = ({ pest, onClose }) => {
             <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center mb-2">
                 <Info className="w-5 h-5 text-blue-600 mr-2" />
-                <h3 className="text-lg font-semibold text-blue-800">Identification Tips</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-blue-800">Identification Tips</h3>
               </div>
               <ul className="list-disc list-inside space-y-1 text-gray-700">
                 {referenceData.identificationTips.map((tip, idx) => (
@@ -493,22 +495,22 @@ const PestDetailModal = ({ pest, onClose }) => {
 
           <div className="space-y-6">
             <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Description</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Description</h3>
               <p className="text-gray-700">{pest.description}</p>
             </div>
 
             <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Symptoms</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Symptoms</h3>
               <p className="text-gray-700">{pest.symptoms || referenceData?.symptoms}</p>
             </div>
 
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-              <h3 className="text-xl font-semibold text-orange-800 mb-2">Control Methods</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-orange-800 mb-2">Control Methods</h3>
               <p className="text-gray-700">{pest.control_methods || referenceData?.controlMethods}</p>
             </div>
 
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h3 className="text-xl font-semibold text-green-800 mb-2">Prevention</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-green-800 mb-2">Prevention</h3>
               <p className="text-gray-700">{pest.prevention || referenceData?.prevention}</p>
             </div>
           </div>
@@ -684,11 +686,11 @@ const PestLibrary = ({ user, onLogout }) => {
       <Navigation user={user} onLogout={onLogout} />
       <PageContent>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">Pest Library</h1>
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-8">Pest Library</h1>
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 items-center">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
+          <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:space-x-4 items-stretch sm:items-center">
             <div className="flex-1 relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -703,7 +705,7 @@ const PestLibrary = ({ user, onLogout }) => {
             <div className="flex-shrink-0 flex space-x-2">
               <button
                 onClick={() => setCropFilter('all')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
                   cropFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -711,7 +713,7 @@ const PestLibrary = ({ user, onLogout }) => {
               </button>
               <button
                 onClick={() => setCropFilter('rice')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
                   cropFilter === 'rice' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -719,7 +721,7 @@ const PestLibrary = ({ user, onLogout }) => {
               </button>
               <button
                 onClick={() => setCropFilter('corn')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
                   cropFilter === 'corn' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -780,7 +782,7 @@ const PestLibrary = ({ user, onLogout }) => {
 
                     <button className="mt-4 text-primary font-semibold hover:underline flex items-center">
                       Learn More 
-                      <span className="ml-1">'</span>
+                      <span className="ml-1">â†’</span>
                     </button>
                   </div>
                 </div>
