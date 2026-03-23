@@ -1,11 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, MapPin, AlertTriangle, Book, Bell, Activity, LogOut, Shield, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, MapPin, AlertTriangle, Book, Bell, Activity, LogOut, Shield, FileText, ClipboardCheck } from 'lucide-react';
 
 const AdminNavigation = ({ user, onLogout }) => {
   const location = useLocation();
-  
-  const navItems = [
+  const isAdmin = user?.role === 'admin';
+  const isMAOStaff = user?.role === 'mao_staff';
+
+  // Full admin nav items
+  const adminNavItems = [
     { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/admin/users', icon: Users, label: 'Users' },
     { path: '/admin/farms', icon: MapPin, label: 'Farms' },
@@ -16,13 +19,34 @@ const AdminNavigation = ({ user, onLogout }) => {
     { path: '/admin/activities', icon: Activity, label: 'Activity Logs' },
   ];
 
+  // MAO staff nav items — restricted to their scope
+  const maoNavItems = [
+    { path: '/admin/farm-requests', icon: FileText, label: 'Farm Requests' },
+    { path: '/admin/alerts', icon: Bell, label: 'Send Alerts' },
+    { path: '/admin/verification', icon: ClipboardCheck, label: 'Verify Farmers' },
+  ];
+
+  const navItems = isAdmin ? adminNavItems : maoNavItems;
+
   return (
     <nav className="bg-gradient-to-r from-gray-800 to-gray-900 shadow-lg">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Shield className="w-8 h-8 text-yellow-400 mr-2" />
-            <span className="text-xl font-bold text-white">PestCheck Admin</span>
+            <div>
+              <span className="text-xl font-bold text-white">PestCheck</span>
+              {isMAOStaff && (
+                <span className="ml-2 text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full font-medium">
+                  MAO Staff
+                </span>
+              )}
+              {isAdmin && (
+                <span className="ml-2 text-xs bg-yellow-500 text-gray-900 px-2 py-0.5 rounded-full font-medium">
+                  Admin
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="hidden md:flex space-x-2">
@@ -50,7 +74,9 @@ const AdminNavigation = ({ user, onLogout }) => {
           <div className="flex items-center space-x-4">
             <div className="text-right">
               <span className="text-gray-300 text-sm">{user.username}</span>
-              <span className="block text-xs text-yellow-400">Administrator</span>
+              <span className="block text-xs text-yellow-400">
+                {isAdmin ? 'Administrator' : 'MAO Staff'}
+              </span>
             </div>
             <button
               onClick={onLogout}

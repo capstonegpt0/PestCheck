@@ -63,9 +63,10 @@ const AdminDashboard = ({ user, onLogout }) => {
   };
 
   const userRoleData = [
-    { name: 'Farmers', value: stats.users.farmers },
-    { name: 'Admins', value: stats.users.admins }
-  ];
+    { name: 'Farmers', value: stats.users.farmers || 0 },
+    { name: 'Admins', value: stats.users.admins || 0 },
+    { name: 'MAO Staff', value: stats.users.mao_staff || 0 },
+  ].filter(d => d.value > 0);
 
   const detectionStatusData = [
     { name: 'Pending', value: stats.detections.pending },

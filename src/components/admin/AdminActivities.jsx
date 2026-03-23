@@ -249,9 +249,10 @@ const AdminActivities = ({ user, onLogout }) => {
  <span className="font-semibold text-gray-900">{activity.user_name}</span>
  <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
  activity.user_role === 'admin' ? 'bg-purple-100 text-purple-800' :
+ activity.user_role === 'mao_staff' ? 'bg-blue-100 text-blue-800' :
  'bg-green-100 text-green-800'
  }`}>
- {activity.user_role}
+ {activity.user_role === 'mao_staff' ? 'MAO Staff' : activity.user_role}
  </span>
  </div>
  <p className="text-sm text-gray-700">
@@ -264,11 +265,11 @@ const AdminActivities = ({ user, onLogout }) => {
  )}
  <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
  <span>
-  {new Date(activity.timestamp).toLocaleString()}
+ ðŸ {new Date(activity.timestamp).toLocaleString()}
  </span>
  {activity.ip_address && (
  <span>
-  {activity.ip_address}
+ ðŸŒ {activity.ip_address}
  </span>
  )}
  </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Circle, Popup, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Circle, Popup, Marker, useMapEvents, GeoJSON } from 'react-leaflet';
 import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity, Camera, Upload, Loader, ThumbsUp, ThumbsDown, AlertCircle, Shield, Bug, Leaf } from 'lucide-react';
 import Navigation from './Navigation';
 import PageContent from './PageContent';
@@ -113,7 +113,19 @@ const HeatMap = ({ user, onLogout }) => {
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
-  const center = [15.2047, 120.5947];
+  const center = [15.2139, 120.6619];
+
+  // Inverted mask: covers entire world, cuts out only Magalang
+  const magalangMask = {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]],
+        [[120.60, 15.16], [120.72, 15.16], [120.72, 15.27], [120.60, 15.27], [120.60, 15.16]]
+      ]
+    }
+  };
 
   // Group detections by farm AND pest type - same pest merges, different pests offset
   const getGroupedAndOffsetDetections = (detections) => {
@@ -232,16 +244,16 @@ const HeatMap = ({ user, onLogout }) => {
         (error) => {
           console.error('Error getting location:', error);
           setLocation({
-            latitude: 15.2047,
-            longitude: 120.5947
+            latitude: 15.2139,
+            longitude: 120.6619
           });
           setLocationLoading(false);
         }
       );
     } else {
       setLocation({
-        latitude: 15.2047,
-        longitude: 120.5947
+        latitude: 15.2139,
+        longitude: 120.6619
       });
       setLocationLoading(false);
     }
@@ -881,9 +893,38 @@ const HeatMap = ({ user, onLogout }) => {
               <span className="text-gray-600">Loading map data...</span>
             </div>
           ) : (
-            <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }} attributionControl={false}>
+            <MapContainer
+              center={center}
+              zoom={14}
+              minZoom={12}
+              maxZoom={19}
+              style={{ height: '100%', width: '100%' }}
+              attributionControl={false}
+              maxBounds={[
+                [15.16, 120.60],
+                [15.27, 120.72]
+              ]}
+              maxBoundsViscosity={1.0}
+            >
               <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+              />
+              {/* Satellite labels overlay */}
+              <TileLayer
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                opacity={0.7}
+              />
+              {/* Grey mask covering everything outside Magalang */}
+              <GeoJSON
+                data={magalangMask}
+                style={{
+                  fillColor: '#e5e7eb',
+                  fillOpacity: 1,
+                  color: '#9ca3af',
+                  weight: 2,
+                  opacity: 1,
+                }}
               />
               <MapClickHandler onMapClick={handleMapClick} isAddingFarm={isAddingFarm} />
 

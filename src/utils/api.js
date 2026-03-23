@@ -2,166 +2,38 @@
 import axios from 'axios';
 
 // ---------------------------------------------------------------
-// BASE URL RESOLUTION - ENHANCED FOR CAPACITOR
+// BASE URL RESOLUTION
 // ---------------------------------------------------------------
 function getBaseURL() {
   const origin = window.location.origin;
   const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  
-  console.log('" Environment Detection:');
-  console.log(' Origin:', origin);
-  console.log(' Protocol:', protocol);
-  console.log(' Hostname:', hostname);
-  console.log(' User Agent:', navigator.userAgent);
-  
-  // Detect if running in Capacitor
-  const isCapacitor = 
+
+  // Detect if running in Capacitor (native mobile app)
+  const isCapacitor =
     origin === 'capacitor://localhost' ||
     origin === 'ionic://localhost' ||
-    origin === 'http://localhost' ||
     origin === 'null' ||
     protocol === 'capacitor:' ||
     protocol === 'ionic:' ||
     protocol === 'file:' ||
     (typeof window.Capacitor !== 'undefined');
-  
+
   if (isCapacitor) {
-    const renderURL = 'https://pestcheck.onrender.com/api';
-    console.log('" CAPACITOR MODE DETECTED');
-    console.log(' Using Render URL:', renderURL);
-    return renderURL;
+    // Capacitor always hits the deployed Render backend
+    return 'https://pestcheck.onrender.com/api';
   }
 
-  // Web app mode
+  // Web app: use VITE_API_URL if set, otherwise default to LOCAL backend
   if (import.meta.env.VITE_API_URL) {
-    console.log(' WEB MODE - Using VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
 
-  const defaultURL = 'https://pestcheck.onrender.com/api';
-  console.log(' WEB MODE - Using default URL:', defaultURL);
-  return defaultURL;
+  // Default to local Django server — change this if you deploy elsewhere
+  return 'http://localhost:8000/api';
 }
 
 const API_BASE_URL = getBaseURL();
-console.log('... FINAL API BASE URL:', API_BASE_URL);
-
-// ---------------------------------------------------------------
-// NETWORK TEST FUNCTION
-// ---------------------------------------------------------------
-export async function testNetworkConnectivity() {
-  console.log('" === NETWORK CONNECTIVITY TEST ===');
-  
-  const results = {
-    internetAccess: false,
-    backendReachable: false,
-    corsConfigured: false,
-    details: [],
-    errors: []
-  };
-  
-  try {
-    // Test 1: Check internet connectivity
-    console.log('Test 1: Checking internet access...');
-    try {
-      const response = await fetch('https://www.google.com', { 
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-cache'
-      });
-      results.internetAccess = true;
-      results.details.push('... Internet access confirmed');
-      console.log('... Internet access: OK');
-    } catch (err) {
-      results.errors.push('[ERROR] No internet access - Check WiFi/cellular');
-      console.error('[ERROR] Internet test failed:', err.message);
-    }
-    
-    // Test 2: Check if backend is reachable
-    console.log('Test 2: Checking backend reachability...');
-    try {
-      const backendURL = API_BASE_URL.replace('/api', '');
-      console.log(' Testing:', backendURL);
-      
-      const response = await fetch(backendURL, {
-        method: 'GET',
-        headers: {
-          'Accept': 'text/html,application/json',
-        },
-        // Don't use mode: 'no-cors' here as we need to see the response
-      });
-      
-      results.backendReachable = response.ok || response.status === 404;
-      results.details.push(`... Backend reachable (${response.status})`);
-      console.log('... Backend reachable:', response.status);
-    } catch (err) {
-      results.errors.push(`[ERROR] Cannot reach backend: ${err.message}`);
-      console.error('[ERROR] Backend test failed:', err.message);
-      
-      if (err.message.includes('Failed to fetch')) {
-        results.errors.push(' - Possible causes:');
-        results.errors.push(' - Backend is down/sleeping (Render free tier)');
-        results.errors.push(' - Wrong backend URL');
-        results.errors.push(' - Network firewall blocking requests');
-      }
-    }
-    
-    // Test 3: Check CORS
-    console.log('Test 3: Checking CORS configuration...');
-    try {
-      const loginURL = `${API_BASE_URL}/auth/login/`;
-      console.log(' Testing:', loginURL);
-      
-      const response = await fetch(loginURL, {
-        method: 'OPTIONS',
-        headers: {
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'content-type,authorization',
-        },
-      });
-      
-      const allowOrigin = response.headers.get('Access-Control-Allow-Origin');
-      const allowMethods = response.headers.get('Access-Control-Allow-Methods');
-      
-      results.corsConfigured = allowOrigin === '*' || allowOrigin !== null;
-      results.details.push(`... CORS configured: ${allowOrigin || 'Not set'}`);
-      console.log('... CORS Allow-Origin:', allowOrigin);
-      console.log('... CORS Allow-Methods:', allowMethods);
-    } catch (err) {
-      results.errors.push(`[ERROR] CORS check failed: ${err.message}`);
-      console.error('[ERROR] CORS test failed:', err.message);
-    }
-    
-    // Test 4: Try actual API call
-    console.log('Test 4: Testing actual API endpoint...');
-    try {
-      const response = await axios.get(`${API_BASE_URL}/pests/`, {
-        timeout: 10000,
-        validateStatus: () => true, // Accept any status
-      });
-      
-      results.details.push(`... API endpoint accessible (${response.status})`);
-      console.log('... API test:', response.status);
-    } catch (err) {
-      results.errors.push(`[ERROR] API call failed: ${err.message}`);
-      console.error('[ERROR] API test failed:', err);
-    }
-    
-  } catch (err) {
-    results.errors.push(`[ERROR] Test suite error: ${err.message}`);
-    console.error('[ERROR] Test suite error:', err);
-  }
-  
-  console.log('" === TEST RESULTS ===');
-  console.log('Internet:', results.internetAccess ? '...' : '');
-  console.log('Backend:', results.backendReachable ? '...' : '');
-  console.log('CORS:', results.corsConfigured ? '...' : '');
-  console.log('Details:', results.details);
-  console.log('Errors:', results.errors);
-  
-  return results;
-}
+console.log('API BASE URL:', API_BASE_URL);
 
 // ---------------------------------------------------------------
 // CSRF HELPER
@@ -172,7 +44,7 @@ function getCsrfToken() {
 }
 
 // ---------------------------------------------------------------
-// Auth endpoints
+// Auth endpoints (skip token refresh on these)
 // ---------------------------------------------------------------
 const AUTH_ENDPOINTS = [
   '/auth/login/',
@@ -186,141 +58,93 @@ function isAuthEndpoint(url) {
 }
 
 // ---------------------------------------------------------------
-// AXIOS INSTANCE - ENHANCED
+// AXIOS INSTANCE
 // ---------------------------------------------------------------
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 120000, // 2 minutes for cold starts
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  // CRITICAL: No credentials for Capacitor
   withCredentials: false,
-  
-  // Enhanced error messages
   validateStatus: function (status) {
-    return status >= 200 && status < 500; // Accept 4xx errors
+    return status >= 200 && status < 500;
   },
 });
 
 // ---------------------------------------------------------------
-// REQUEST INTERCEPTOR - ENHANCED
+// REQUEST INTERCEPTOR
 // ---------------------------------------------------------------
 api.interceptors.request.use(
   (config) => {
-    console.log('" API Request:', {
-      method: config.method?.toUpperCase(),
-      url: config.url,
-      fullURL: `${config.baseURL}${config.url}`,
-      timeout: config.timeout,
-      timestamp: new Date().toISOString(),
-    });
-
-    // 1) JWT token
+    // Attach JWT token
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('" Authorization header added');
     }
 
-    // 2) Skip CSRF for Capacitor
-    const isCapacitor = 
+    // CSRF token for non-Capacitor, non-safe methods
+    const isCapacitor =
       window.location.protocol === 'capacitor:' ||
       window.location.protocol === 'ionic:' ||
       window.location.protocol === 'file:' ||
       window.location.origin === 'capacitor://localhost' ||
       window.location.origin === 'ionic://localhost' ||
       (typeof window.Capacitor !== 'undefined');
-    
+
     if (!isCapacitor) {
       const unsafeMethods = ['post', 'put', 'patch', 'delete'];
       if (unsafeMethods.includes(config.method)) {
         const csrfToken = getCsrfToken();
         if (csrfToken) {
           config.headers['X-CSRFToken'] = csrfToken;
-          console.log('[CSRF] CSRF token added');
         }
       }
-    } else {
-      console.log('" Capacitor mode - CSRF skipped');
     }
 
-    // 3) FormData handling
+    // Let browser set Content-Type for FormData
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
-      console.log('" FormData detected - Content-Type removed');
     }
 
     return config;
   },
   (error) => {
-    console.error('[ERROR] Request interceptor error:', error);
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
 // ---------------------------------------------------------------
-// RESPONSE INTERCEPTOR - ENHANCED ERROR HANDLING
+// RESPONSE INTERCEPTOR
 // ---------------------------------------------------------------
 api.interceptors.response.use(
   (response) => {
-    console.log('... API Response:', {
-      status: response.status,
-      statusText: response.statusText,
-      url: response.config.url,
-      dataSize: JSON.stringify(response.data || {}).length,
-      timestamp: new Date().toISOString(),
-    });
     return response;
   },
   async (error) => {
-    // Enhanced error logging
-    console.error('[ERROR] === API ERROR DETAILS ===');
-    console.error('Message:', error.message);
-    console.error('Code:', error.code);
-    console.error('Status:', error.response?.status);
-    console.error('URL:', error.config?.url);
-    console.error('Full URL:', `${error.config?.baseURL}${error.config?.url}`);
-    console.error('Method:', error.config?.method?.toUpperCase());
-    console.error('Response Data:', error.response?.data);
-    console.error('Network Error:', !error.response);
-    console.error('Timestamp:', new Date().toISOString());
-    
-    // Categorize error
-    if (!error.response) {
-      console.error('" NETWORK ERROR - No response from server');
-      console.error('Possible causes:');
-      console.error(' 1. No internet connection');
-      console.error(' 2. Backend is down/sleeping');
-      console.error(' 3. CORS blocking the request');
-      console.error(' 4. Request timeout');
-      console.error(' 5. Wrong backend URL');
-    } else if (error.response.status >= 500) {
-      console.error('" SERVER ERROR -', error.response.status);
-    } else if (error.response.status >= 400) {
-      console.error('" CLIENT ERROR -', error.response.status);
-    }
-    console.error('========================');
+    console.error('[API ERROR]', {
+      message: error.message,
+      status: error.response?.status,
+      url: error.config?.url,
+      fullURL: `${error.config?.baseURL}${error.config?.url}`,
+    });
 
     const originalRequest = error.config;
 
-    // Skip auth endpoints
+    // Don't retry auth endpoints
     if (isAuthEndpoint(originalRequest.url)) {
-      console.log('[WARN] Auth endpoint failed - not retrying');
       return Promise.reject(error);
     }
 
-    // Token refresh on 401
+    // Refresh JWT on 401
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      console.log('"" Attempting token refresh...');
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        if (!refreshToken) {
-          throw new Error('No refresh token');
-        }
+        if (!refreshToken) throw new Error('No refresh token');
 
         const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
           refresh: refreshToken,
@@ -328,16 +152,13 @@ api.interceptors.response.use(
 
         const { access } = response.data;
         localStorage.setItem('access_token', access);
-        console.log('... Token refreshed successfully');
-
         originalRequest.headers.Authorization = `Bearer ${access}`;
         return api(originalRequest);
       } catch (refreshError) {
-        console.error('[ERROR] Token refresh failed:', refreshError);
+        console.error('Token refresh failed:', refreshError);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
-        
         if (!window.location.hash.includes('/login')) {
           window.location.href = '/#/login';
         }

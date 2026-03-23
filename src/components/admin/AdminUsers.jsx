@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
  Search, CheckCircle, XCircle, Edit, Trash2, UserCheck, Shield,
- ShieldCheck, ShieldAlert, FileText, Eye, Clock, X, AlertTriangle
+ ShieldCheck, ShieldAlert, FileText, Eye, Clock, X, AlertTriangle, Plus
 } from 'lucide-react';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
@@ -234,9 +234,289 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
 };
 
 
+// ==================== CREATE MAO STAFF MODAL ====================
+const CreateMAOStaffModal = ({ onClose, onSuccess }) => {
+ const [formData, setFormData] = useState({
+   username: '',
+   first_name: '',
+   last_name: '',
+   email: '',
+   phone: '',
+   password: '',
+   password_confirm: '',
+ });
+ const [loading, setLoading] = useState(false);
+ const [error, setError] = useState('');
+ const [showPassword, setShowPassword] = useState(false);
+
+ const handleChange = (e) => {
+   setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+   if (error) setError('');
+ };
+
+ const validate = () => {
+   if (!formData.username.trim()) return 'Username is required.';
+   if (!formData.first_name.trim()) return 'First name is required.';
+   if (!formData.last_name.trim()) return 'Last name is required.';
+   if (!formData.email.trim()) return 'Email is required.';
+   if (!/\S+@\S+\.\S+/.test(formData.email)) return 'Enter a valid email address.';
+   if (formData.password.length < 8) return 'Password must be at least 8 characters.';
+   if (formData.password !== formData.password_confirm) return 'Passwords do not match.';
+   return null;
+ };
+
+ const handleSubmit = async (e) => {
+   e.preventDefault();
+   const validationError = validate();
+   if (validationError) { setError(validationError); return; }
+
+   setLoading(true);
+   setError('');
+   try {
+     await api.post('/admin/users/create_staff/', {
+       username: formData.username.trim(),
+       first_name: formData.first_name.trim(),
+       last_name: formData.last_name.trim(),
+       email: formData.email.trim(),
+       phone: formData.phone.trim(),
+       password: formData.password,
+       role: 'mao_staff',
+     });
+     onSuccess();
+   } catch (err) {
+     const data = err.response?.data;
+     if (data && typeof data === 'object') {
+       const msgs = Object.entries(data)
+         .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+         .join(' | ');
+       setError(msgs);
+     } else {
+       setError('Failed to create account. Please try again.');
+     }
+   } finally {
+     setLoading(false);
+   }
+ };
+
+ return (
+   <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
+       {/* Header */}
+       <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-5 flex items-center justify-between rounded-t-2xl">
+         <div className="flex items-center space-x-3">
+           <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+             <UserCheck className="w-5 h-5 text-blue-600" />
+           </div>
+           <div>
+             <h2 className="text-lg font-bold text-gray-900">Create MAO Staff Account</h2>
+             <p className="text-xs text-gray-500 mt-0.5">Magalang Agricultural Office</p>
+           </div>
+         </div>
+         <button
+           onClick={onClose}
+           className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors"
+         >
+           <X className="w-5 h-5" />
+         </button>
+       </div>
+
+       {/* Info Banner */}
+       <div className="mx-6 mt-5 bg-blue-50 border border-blue-200 rounded-xl p-4">
+         <div className="flex items-start space-x-3">
+           <Shield className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+           <div>
+             <p className="text-sm font-semibold text-blue-900">MAO Staff Permissions</p>
+             <ul className="text-xs text-blue-700 mt-1 space-y-0.5 list-disc list-inside">
+               <li>Review &amp; approve farm registration requests</li>
+               <li>Send alerts to farmers</li>
+               <li>Approve or reject farmer verification (RSBSA)</li>
+             </ul>
+           </div>
+         </div>
+       </div>
+
+       {/* Form */}
+       <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+         {error && (
+           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-start space-x-2">
+             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+             <span>{error}</span>
+           </div>
+         )}
+
+         {/* Name row */}
+         <div className="grid grid-cols-2 gap-3">
+           <div>
+             <label className="block text-sm font-medium text-gray-700 mb-1">
+               First Name <span className="text-red-500">*</span>
+             </label>
+             <input
+               name="first_name"
+               type="text"
+               value={formData.first_name}
+               onChange={handleChange}
+               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+               placeholder="Maria"
+               required
+             />
+           </div>
+           <div>
+             <label className="block text-sm font-medium text-gray-700 mb-1">
+               Last Name <span className="text-red-500">*</span>
+             </label>
+             <input
+               name="last_name"
+               type="text"
+               value={formData.last_name}
+               onChange={handleChange}
+               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+               placeholder="Santos"
+               required
+             />
+           </div>
+         </div>
+
+         {/* Username */}
+         <div>
+           <label className="block text-sm font-medium text-gray-700 mb-1">
+             Username <span className="text-red-500">*</span>
+           </label>
+           <input
+             name="username"
+             type="text"
+             value={formData.username}
+             onChange={handleChange}
+             autoCapitalize="none"
+             autoCorrect="off"
+             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+             placeholder="mao.santos"
+             required
+           />
+           <p className="text-xs text-gray-400 mt-1">Used to log in. No spaces allowed.</p>
+         </div>
+
+         {/* Email */}
+         <div>
+           <label className="block text-sm font-medium text-gray-700 mb-1">
+             Email Address <span className="text-red-500">*</span>
+           </label>
+           <input
+             name="email"
+             type="email"
+             value={formData.email}
+             onChange={handleChange}
+             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+             placeholder="santos@magalang.gov.ph"
+             required
+           />
+         </div>
+
+         {/* Phone */}
+         <div>
+           <label className="block text-sm font-medium text-gray-700 mb-1">
+             Phone Number
+           </label>
+           <input
+             name="phone"
+             type="tel"
+             value={formData.phone}
+             onChange={handleChange}
+             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+             placeholder="+63 9XX XXX XXXX"
+           />
+         </div>
+
+         {/* Password */}
+         <div>
+           <label className="block text-sm font-medium text-gray-700 mb-1">
+             Password <span className="text-red-500">*</span>
+           </label>
+           <div className="relative">
+             <input
+               name="password"
+               type={showPassword ? 'text' : 'password'}
+               value={formData.password}
+               onChange={handleChange}
+               className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+               placeholder="Minimum 8 characters"
+               minLength={8}
+               required
+             />
+             <button
+               type="button"
+               onClick={() => setShowPassword(p => !p)}
+               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+             >
+               {showPassword
+                 ? <XCircle className="w-4 h-4" />
+                 : <Eye className="w-4 h-4" />}
+             </button>
+           </div>
+         </div>
+
+         {/* Confirm Password */}
+         <div>
+           <label className="block text-sm font-medium text-gray-700 mb-1">
+             Confirm Password <span className="text-red-500">*</span>
+           </label>
+           <input
+             name="password_confirm"
+             type={showPassword ? 'text' : 'password'}
+             value={formData.password_confirm}
+             onChange={handleChange}
+             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+             placeholder="Re-enter password"
+             minLength={8}
+             required
+           />
+           {formData.password && formData.password_confirm && (
+             <p className={`text-xs mt-1 ${formData.password === formData.password_confirm ? 'text-green-600' : 'text-red-500'}`}>
+               {formData.password === formData.password_confirm ? '✓ Passwords match' : '✗ Passwords do not match'}
+             </p>
+           )}
+         </div>
+
+         {/* Actions */}
+         <div className="flex space-x-3 pt-2">
+           <button
+             type="submit"
+             disabled={loading}
+             className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+           >
+             {loading ? (
+               <>
+                 <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                 </svg>
+                 Creating...
+               </>
+             ) : (
+               <>
+                 <UserCheck className="w-4 h-4 mr-2" />
+                 Create MAO Staff Account
+               </>
+             )}
+           </button>
+           <button
+             type="button"
+             onClick={onClose}
+             disabled={loading}
+             className="px-5 bg-gray-100 text-gray-700 py-2.5 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+           >
+             Cancel
+           </button>
+         </div>
+       </form>
+     </div>
+   </div>
+ );
+};
+
+
 // ==================== MAIN ADMIN USERS COMPONENT ====================
-const AdminUsers = ({ user, onLogout }) => {
- const [activeTab, setActiveTab] = useState('users');
+const AdminUsers = ({ user, onLogout, initialTab }) => {
+ const [activeTab, setActiveTab] = useState(initialTab || 'users');
 
  // Users state
  const [users, setUsers] = useState([]);
@@ -247,6 +527,7 @@ const AdminUsers = ({ user, onLogout }) => {
  const [selectedUser, setSelectedUser] = useState(null);
  const [showRoleModal, setShowRoleModal] = useState(false);
  const [newRole, setNewRole] = useState('');
+ const [showCreateStaffModal, setShowCreateStaffModal] = useState(false);
 
  // Verification requests state
  const [verificationRequests, setVerificationRequests] = useState([]);
@@ -333,7 +614,11 @@ const AdminUsers = ({ user, onLogout }) => {
  };
 
  const getRoleBadgeColor = (role) => {
- const colors = { admin: 'bg-purple-100 text-purple-800', farmer: 'bg-green-100 text-green-800' };
+ const colors = {
+   admin: 'bg-purple-100 text-purple-800',
+   mao_staff: 'bg-blue-100 text-blue-800',
+   farmer: 'bg-green-100 text-green-800'
+ };
  return colors[role] || 'bg-gray-100 text-gray-800';
  };
 
@@ -379,10 +664,22 @@ const AdminUsers = ({ user, onLogout }) => {
  <AdminNavigation user={user} onLogout={onLogout} />
 
  <div className="max-w-7xl mx-auto px-4 py-8">
- <h1 className="text-3xl font-bold text-gray-800 mb-6">User Management</h1>
+ <div className="flex items-center justify-between mb-6">
+ <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
+ {user?.role === 'admin' && (
+   <button
+     onClick={() => setShowCreateStaffModal(true)}
+     className="flex items-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+   >
+     <UserCheck className="w-5 h-5 mr-2" />
+     Create MAO Staff Account
+   </button>
+ )}
+ </div>
 
  {/* Tab Navigation */}
  <div className="flex space-x-1 bg-white rounded-lg shadow p-1 mb-6 w-fit">
+ {user?.role === 'admin' && (
  <button
  onClick={() => setActiveTab('users')}
  className={`px-5 py-2.5 rounded-md font-medium text-sm transition-colors flex items-center ${
@@ -394,6 +691,7 @@ const AdminUsers = ({ user, onLogout }) => {
  <UserCheck className="w-4 h-4 mr-2" />
  All Users
  </button>
+ )}
  <button
  onClick={() => setActiveTab('verification')}
  className={`px-5 py-2.5 rounded-md font-medium text-sm transition-colors flex items-center ${
@@ -431,20 +729,23 @@ const AdminUsers = ({ user, onLogout }) => {
  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
  />
  </div>
- <div className="flex space-x-2">
- {['all', 'farmer', 'admin'].map((filter) => (
+ <div className="flex space-x-2 flex-wrap gap-y-2">
+ {['all', 'farmer', 'mao_staff', 'admin'].map((filter) => (
  <button
  key={filter}
  onClick={() => setRoleFilter(filter)}
- className={`px-5 py-3 rounded-lg font-semibold text-sm transition-colors capitalize ${
+ className={`px-5 py-3 rounded-lg font-semibold text-sm transition-colors ${
  roleFilter === filter
  ? filter === 'all' ? 'bg-blue-600 text-white'
  : filter === 'farmer' ? 'bg-green-600 text-white'
+ : filter === 'mao_staff' ? 'bg-blue-500 text-white'
  : 'bg-purple-600 text-white'
  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
  }`}
  >
- {filter === 'all' ? 'All Users' : `${filter.charAt(0).toUpperCase() + filter.slice(1)}s`}
+ {filter === 'all' ? 'All Users'
+   : filter === 'mao_staff' ? 'MAO Staff'
+   : `${filter.charAt(0).toUpperCase() + filter.slice(1)}s`}
  </button>
  ))}
  </div>
@@ -678,6 +979,7 @@ const AdminUsers = ({ user, onLogout }) => {
  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
  >
  <option value="farmer">Farmer</option>
+ <option value="mao_staff">MAO Staff</option>
  <option value="admin">Admin</option>
  </select>
  </div>
@@ -709,6 +1011,14 @@ const AdminUsers = ({ user, onLogout }) => {
  fetchUsers();
  }}
  />
+ )}
+
+ {/* Create MAO Staff Modal */}
+ {showCreateStaffModal && (
+   <CreateMAOStaffModal
+     onClose={() => setShowCreateStaffModal(false)}
+     onSuccess={() => { setShowCreateStaffModal(false); fetchUsers(); }}
+   />
  )}
  </div>
  );
