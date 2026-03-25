@@ -17,6 +17,7 @@ const AdminNavigation = ({ user, onLogout }) => {
     { path: '/admin/pests', icon: Book, label: 'Pest Info' },
     { path: '/admin/alerts', icon: Bell, label: 'Alerts' },
     { path: '/admin/activities', icon: Activity, label: 'Activity Logs' },
+    { path: '/admin/monthly-report', icon: FileText, label: 'Monthly Report' },
   ];
 
   // MAO staff nav items — restricted to their scope
@@ -24,6 +25,7 @@ const AdminNavigation = ({ user, onLogout }) => {
     { path: '/admin/farm-requests', icon: FileText, label: 'Farm Requests' },
     { path: '/admin/alerts', icon: Bell, label: 'Send Alerts' },
     { path: '/admin/verification', icon: ClipboardCheck, label: 'Verify Farmers' },
+    { path: '/admin/monthly-report', icon: FileText, label: 'Monthly Report' },
   ];
 
   const navItems = isAdmin ? adminNavItems : maoNavItems;

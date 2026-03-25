@@ -18,6 +18,7 @@ import AdminPests from './components/admin/AdminPests';
 import AdminAlerts from './components/admin/AdminAlerts';
 import AdminActivities from './components/admin/AdminActivities';
 import AdminFarmRequests from './components/admin/AdminFarmrequests';
+import AdminMonthlyReport from './components/admin/AdminMonthlyreports';
 
 // PWA Components
 import PWAInstallPrompt from './components/PWAInstallPrompt'
@@ -247,6 +248,15 @@ function App() {
           element={
             <ProtectedRoute requireStaff={true}>
               <AdminUsers user={user} onLogout={handleLogout} initialTab="verification" />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/monthly-report"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminMonthlyReport user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
         />
