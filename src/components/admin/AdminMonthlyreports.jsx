@@ -51,13 +51,13 @@ function exportToExcel(detections, farms, month, year) {
   // Header block (matches the official format)
   aoa.push(['Republic of the Philippines']);
   aoa.push(['Province of Pampanga']);
-  aoa.push(['OFFICE OF THE PROVINCIAL AGRICULTURIST']);
-  aoa.push(['Capitol Compound, Sto. Niño, City of San Fernando']);
+  aoa.push(['OFFICE OF THE MUNICIPAL AGRICULTURIST']);
+  aoa.push(['Municipality of Magalang, Pampanga']);
   aoa.push([]);
   aoa.push(['PEST MONITORING ON RICE, CORN, CASSAVA & HIGH VALUE CROPS']);
   aoa.push([`as of ${reportDate}`]);
   aoa.push([]);
-  aoa.push(['Province: PAMPANGA']);
+  aoa.push(['Municipality: MAGALANG, PAMPANGA']);
 
   // Column headers (row 10 → index 9)
   const COL_HEADERS = [
@@ -174,7 +174,7 @@ function exportToExcel(detections, farms, month, year) {
   ['Low','Medium','High','Critical'].forEach(s => aoa.push([s, sevMap[s] || 0]));
 
   aoa.push([]);
-  aoa.push([`Generated from PestCheck System — ${reportDate} — Province of Pampanga`]);
+  aoa.push([`Generated from PestCheck System — ${reportDate} — Magalang Agriculture Office, Municipality of Magalang, Pampanga`]);
 
   // ── Create workbook ────────────────────────────────────────────────────────
 
@@ -369,12 +369,13 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
             <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
               <div className="bg-blue-900 text-white px-6 py-4">
                 <p className="text-xs uppercase tracking-widest opacity-70 mb-0.5">
-                  Republic of the Philippines — Province of Pampanga
+                  Republic of the Philippines — Municipality of Magalang, Pampanga
                 </p>
                 <p className="font-bold">
                   PEST MONITORING ON RICE, CORN, CASSAVA &amp; HIGH VALUE CROPS
                 </p>
                 <p className="text-sm opacity-80">as of {reportDate}</p>
+                <p className="text-xs opacity-60 mt-0.5">Office of the Municipal Agriculturist — Magalang Agriculture Office</p>
               </div>
 
               <div className="overflow-x-auto">
