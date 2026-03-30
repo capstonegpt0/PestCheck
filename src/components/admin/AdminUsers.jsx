@@ -8,12 +8,19 @@ import api from '../../utils/api';
 
 
 // Helper to get full image URL
+// VITE_API_URL ends with /api (e.g. https://pestcheck-api.onrender.com/api)
+// Media files are served at /media/ on the backend root, not under /api/
 const getImageUrl = (imagePath) => {
  if (!imagePath) return null;
- if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
- const backendUrl = import.meta.env.VITE_API_URL || 'https://pestcheck-api.onrender.com';
- const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
- return `${backendUrl}/${cleanPath}`;
+ // Already a full URL — force https in case Django built it as http behind proxy
+ if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+   return imagePath.replace(/^http:\/\//, 'https://');
+ }
+ // Strip trailing /api (or /api/) from the base URL to get the backend root
+ const apiUrl = import.meta.env.VITE_API_URL || 'https://pestcheck-api.onrender.com/api';
+ const backendRoot = apiUrl.replace(/\/api\/?$/, '');
+ const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+ return `${backendRoot}${cleanPath}`;
 };
 
 
@@ -117,14 +124,23 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
  e.target.nextSibling.style.display = 'block';
  }}
  />
- <div style={{ display: 'none' }} className="p-4 text-center text-gray-500 text-sm">
- Image could not be loaded.
+ <div style={{ display: 'none' }} className="p-4 text-center text-sm">
+ <p className="text-gray-500 mb-2">Image failed to load.</p>
+ <a
+ href={idImageUrl}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="text-blue-600 underline"
+ >
+ Open image in new tab ↗
+ </a>
  </div>
  </div>
  ) : (
  <div className="bg-gray-50 p-8 text-center">
  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
  <p className="text-sm text-gray-600 mb-3">ID image is hidden for privacy</p>
+ <div className="flex justify-center gap-3 flex-wrap">
  <button
  onClick={() => setShowIdImage(true)}
  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
@@ -132,6 +148,15 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
  <Eye className="w-4 h-4 mr-2" />
  View ID Image
  </button>
+ <a
+ href={idImageUrl}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+ >
+ Open in New Tab ↗
+ </a>
+ </div>
  </div>
  )}
  </div>
