@@ -400,34 +400,36 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const saveFarm = async () => {
-    if (!selectedLocation || !farmForm.name) {
-      alert('Please fill in all required fields');
-      return;
-    }
+  if (!selectedLocation || !farmForm.name) {
+    alert('Please fill in all required fields');
+    return;
+  }
+  
+  try {
+    const farmData = { 
+      name: farmForm.name,
+      size: farmForm.size ? parseFloat(farmForm.size) : 5,  // ← Parse to number
+      crop_type: farmForm.crop_type || 'Rice',
+      address: farmForm.address || '',
+      lat: parseFloat(selectedLocation.lat),   // ← Explicit float
+      lng: parseFloat(selectedLocation.lng)    // ← Explicit float
+    };
     
-    try {
-      const farmData = { 
-        name: farmForm.name,
-        size: farmForm.size || '5',
-        crop_type: farmForm.crop_type || 'Rice',
-        address: farmForm.address || '',
-        lat: selectedLocation.lat, 
-        lng: selectedLocation.lng
-        // NOTE: No status field - farms start with no status by default
-      };
-      
-      const response = await api.post('/farm-requests/', farmData);
-      
-      resetFarmForm();
-      alert('Farm request submitted successfully! An admin will review your request soon.');
-      
-      fetchInitialData();
-    } catch (error) {
-      console.error('Error saving farm request:', error);
-      alert('Failed to submit farm request: ' + (error.response?.data?.error || error.message));
-    }
-  };
-
+    const response = await api.post('/farm-requests/', farmData);
+    
+    resetFarmForm();
+    alert('Farm request submitted successfully! An admin will review your request soon.');
+    
+    fetchInitialData();
+  } catch (error) {
+    console.error('Error saving farm request:', error);
+    // More detailed error message to help debug further if needed
+    const detail = error.response?.data 
+      ? JSON.stringify(error.response.data) 
+      : error.message;
+    alert('Failed to submit farm request: ' + detail);
+  }
+};
   /**
    * Calculate farm status based on active detection count
    * Returns null/empty status until threshold is reached
