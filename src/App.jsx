@@ -95,7 +95,7 @@ function App() {
     }
 
     if (user.role === 'mao_staff') {
-      return <Navigate to="/admin/farm-requests" />;
+      return <Navigate to="/admin/users" />;
     }
     
     return <Navigate to="/dashboard" />;
@@ -187,7 +187,7 @@ function App() {
         <Route
           path="/admin/users"
           element={
-            <ProtectedRoute requireAdmin={true}>
+            <ProtectedRoute requireStaff={true}>
               <AdminUsers user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -195,7 +195,7 @@ function App() {
         <Route
           path="/admin/farms"
           element={
-            <ProtectedRoute requireAdmin={true}>
+            <ProtectedRoute requireStaff={true}>
               <AdminFarms user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -211,7 +211,7 @@ function App() {
         <Route
           path="/admin/pests"
           element={
-            <ProtectedRoute requireAdmin={true}>
+            <ProtectedRoute requireStaff={true}>
               <AdminPests user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -239,15 +239,6 @@ function App() {
           element={
             <ProtectedRoute requireStaff={true}>
               <AdminFarmRequests user={user} onLogout={handleLogout} />
-             </ProtectedRoute>
-          }
-        />
-        {/* MAO staff verification review — reuses AdminUsers with verification tab */}
-        <Route
-          path="/admin/verification"
-          element={
-            <ProtectedRoute requireStaff={true}>
-              <AdminUsers user={user} onLogout={handleLogout} initialTab="verification" />
             </ProtectedRoute>
           }
         />
@@ -255,7 +246,7 @@ function App() {
         <Route
           path="/admin/monthly-report"
           element={
-            <ProtectedRoute requireAdmin={true}>
+            <ProtectedRoute requireStaff={true}>
               <AdminMonthlyReport user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
