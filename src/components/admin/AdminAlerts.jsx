@@ -154,9 +154,9 @@ const AdminAlerts = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gray-50">
       <AdminNavigation user={user} onLogout={onLogout} />
       
-      <div className="max-w-screen-2xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">Alert Management</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Alert Management</h1>
           <button
             onClick={() => {
               resetForm();
