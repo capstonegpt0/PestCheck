@@ -1,7 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, XCircle, Eye, X, MapPin, Map } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, X, MapPin, Map, ExternalLink } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
+import L from 'leaflet';
+
+// Fix default Leaflet marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// Green farm pin icon
+const farmPinIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSI0MiIgdmlld0JveD0iMCAwIDMyIDQyIj48ZWxsaXBzZSBjeD0iMTYiIGN5PSI0MCIgcng9IjYiIHJ5PSIyIiBmaWxsPSJyZ2JhKDAsMCwwLDAuMikiLz48cGF0aCBkPSJNMTYgMEM3LjE2NCAwIDAgNy4xNjQgMCAxNmMwIDEyIDE2IDI2IDE2IDI2czE2LTE0IDE2LTI2QzMyIDcuMTY0IDI0LjgzNiAwIDE2IDB6IiBmaWxsPSIjMTZhMzRhIi8+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iNyIgZmlsbD0id2hpdGUiLz48L3N2Zz4=',
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
+  popupAnchor: [0, -42],
+});
+
+// Reusable satellite map component for a single farm pin
+const FarmLocationMap = ({ lat, lng, farmName, height = 280 }) => {
+  return (
+    <div style={{ height, borderRadius: '0.5rem', overflow: 'hidden' }}>
+      <MapContainer
+        center={[lat, lng]}
+        zoom={17}
+        style={{ height: '100%', width: '100%' }}
+        attributionControl={false}
+        zoomControl={true}
+        scrollWheelZoom={false}
+      >
+        {/* Esri satellite imagery */}
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          attribution="Tiles &copy; Esri"
+        />
+        {/* Labels overlay */}
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+          opacity={0.7}
+        />
+        <Marker position={[lat, lng]} icon={farmPinIcon}>
+          <Popup>
+            <div className="text-sm font-semibold">{farmName}</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {lat.toFixed(6)}, {lng.toFixed(6)}
+            </div>
+          </Popup>
+        </Marker>
+      </MapContainer>
+    </div>
+  );
+};
 
 const AdminFarmRequests = ({ user, onLogout }) => {
   const [requests, setRequests] = useState([]);
@@ -12,7 +65,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewAction, setReviewAction] = useState(''); // 'approve' or 'reject'
+  const [reviewAction, setReviewAction] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
 
   useEffect(() => {
@@ -26,10 +79,9 @@ const AdminFarmRequests = ({ user, onLogout }) => {
   const fetchRequests = async () => {
     try {
       const response = await api.get('/admin/farm-requests/');
-      const requestData = Array.isArray(response.data) 
-        ? response.data 
+      const requestData = Array.isArray(response.data)
+        ? response.data
         : (response.data.results || []);
-      
       setRequests(requestData);
       setFilteredRequests(requestData);
     } catch (error) {
@@ -43,11 +95,9 @@ const AdminFarmRequests = ({ user, onLogout }) => {
 
   const filterRequests = () => {
     let filtered = requests;
-
     if (statusFilter !== 'all') {
       filtered = filtered.filter(r => r.status === statusFilter);
     }
-
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(r =>
@@ -57,13 +107,11 @@ const AdminFarmRequests = ({ user, onLogout }) => {
         (r.address && r.address.toLowerCase().includes(query))
       );
     }
-
     setFilteredRequests(filtered);
   };
 
   const handleApprove = async () => {
     if (!selectedRequest) return;
-
     try {
       await api.post(`/admin/farm-requests/${selectedRequest.id}/approve/`, {
         review_notes: reviewNotes
@@ -78,10 +126,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
   };
 
   const handleReject = async () => {
-    if (!selectedRequest || !reviewNotes) {
-      return;
-    }
-
+    if (!selectedRequest || !reviewNotes) return;
     try {
       await api.post(`/admin/farm-requests/${selectedRequest.id}/reject/`, {
         review_notes: reviewNotes
@@ -111,25 +156,13 @@ const AdminFarmRequests = ({ user, onLogout }) => {
     return badges[status] || 'bg-gray-100 text-gray-800';
   };
 
-  // Build an OpenStreetMap static-style embed URL using iframe (no API key needed)
-  const getMapEmbedUrl = (lat, lng) => {
-    const zoom = 16;
-    const bbox_offset = 0.004;
-    const left = lng - bbox_offset;
-    const bottom = lat - bbox_offset;
-    const right = lng + bbox_offset;
-    const top = lat + bbox_offset;
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${left},${bottom},${right},${top}&layer=mapnik&marker=${lat},${lng}`;
-  };
-
-  const getOpenStreetMapLink = (lat, lng) => {
-    return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`;
-  };
+  const getGoogleMapsLink = (lat, lng) =>
+    `https://www.google.com/maps?q=${lat},${lng}`;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavigation user={user} onLogout={onLogout} />
-      
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">Farm Registration Requests</h1>
 
@@ -146,40 +179,23 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-
             <div className="flex space-x-2">
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setStatusFilter('pending')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  statusFilter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Pending
-              </button>
-              <button
-                onClick={() => setStatusFilter('approved')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  statusFilter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Approved
-              </button>
-              <button
-                onClick={() => setStatusFilter('rejected')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  statusFilter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Rejected
-              </button>
+              {['all', 'pending', 'approved', 'rejected'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setStatusFilter(f)}
+                  className={`px-5 py-3 rounded-lg font-semibold transition-colors capitalize ${
+                    statusFilter === f
+                      ? f === 'all' ? 'bg-blue-600 text-white'
+                        : f === 'pending' ? 'bg-yellow-600 text-white'
+                        : f === 'approved' ? 'bg-green-600 text-white'
+                        : 'bg-red-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -200,39 +216,26 @@ const AdminFarmRequests = ({ user, onLogout }) => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farmer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Crop Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size (ha)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    {['ID', 'Farm Name', 'Farmer', 'Crop Type', 'Size (ha)', 'Address', 'Location', 'Status', 'Requested', 'Actions'].map(h => (
+                      <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredRequests.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{request.id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{request.name}</div>
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{request.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.user_name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.crop_type || 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.size || 'N/A'}</td>
                       <td className="px-6 py-4 text-sm text-gray-700 max-w-xs">
-                        {request.address ? (
-                          <span className="line-clamp-2">{request.address}</span>
-                        ) : (
-                          <span className="text-gray-400 italic">No address</span>
-                        )}
+                        {request.address
+                          ? <span className="line-clamp-2">{request.address}</span>
+                          : <span className="text-gray-400 italic">No address</span>}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="text-xs text-gray-500">
-                          {request.lat.toFixed(4)}, {request.lng.toFixed(4)}
-                        </div>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
+                        {request.lat.toFixed(4)}, {request.lng.toFixed(4)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(request.status)}`}>
@@ -244,29 +247,19 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                         <button
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setShowDetailModal(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-800"
-                          title="View details"
+                          onClick={() => { setSelectedRequest(request); setShowDetailModal(true); }}
+                          className="text-blue-600 hover:text-blue-800" title="View details"
                         >
                           <Eye className="w-5 h-5" />
                         </button>
                         {request.status === 'pending' && (
                           <>
-                            <button
-                              onClick={() => openReviewModal(request, 'approve')}
-                              className="text-green-600 hover:text-green-800"
-                              title="Approve"
-                            >
+                            <button onClick={() => openReviewModal(request, 'approve')}
+                              className="text-green-600 hover:text-green-800" title="Approve">
                               <CheckCircle className="w-5 h-5" />
                             </button>
-                            <button
-                              onClick={() => openReviewModal(request, 'reject')}
-                              className="text-red-600 hover:text-red-800"
-                              title="Reject"
-                            >
+                            <button onClick={() => openReviewModal(request, 'reject')}
+                              className="text-red-600 hover:text-red-800" title="Reject">
                               <XCircle className="w-5 h-5" />
                             </button>
                           </>
@@ -288,17 +281,12 @@ const AdminFarmRequests = ({ user, onLogout }) => {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800">Farm Request Details</h2>
-                <button
-                  onClick={() => {
-                    setShowDetailModal(false);
-                    setSelectedRequest(null);
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
-                >
+                <button onClick={() => { setShowDetailModal(false); setSelectedRequest(null); }}
+                  className="text-gray-500 hover:text-gray-700">
                   <X className="w-6 h-6" />
                 </button>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <p className="text-sm text-gray-600">Request ID</p>
@@ -349,35 +337,33 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                 </div>
               </div>
 
-              {/* Map Preview */}
+              {/* Satellite Map Preview */}
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-2">
                     <Map className="w-4 h-4 text-blue-600" />
-                    <p className="text-sm font-semibold text-gray-700">Farm Location on Map</p>
+                    <p className="text-sm font-semibold text-gray-700">Farm Location — Satellite View</p>
                   </div>
                   <a
-                    href={getOpenStreetMapLink(selectedRequest.lat, selectedRequest.lng)}
+                    href={getGoogleMapsLink(selectedRequest.lat, selectedRequest.lng)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                    className="flex items-center space-x-1 text-xs text-blue-600 hover:text-blue-800 underline"
                   >
-                    Open in OpenStreetMap ↗
+                    <ExternalLink className="w-3 h-3" />
+                    <span>Open in Google Maps</span>
                   </a>
                 </div>
-                <div className="rounded-lg overflow-hidden border border-gray-200 shadow-sm" style={{ height: '280px' }}>
-                  <iframe
-                    title="Farm Location"
-                    src={getMapEmbedUrl(selectedRequest.lat, selectedRequest.lng)}
-                    width="100%"
-                    height="280"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
+                <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                  <FarmLocationMap
+                    lat={selectedRequest.lat}
+                    lng={selectedRequest.lng}
+                    farmName={selectedRequest.name}
+                    height={300}
                   />
                 </div>
                 <p className="text-xs text-gray-400 mt-1 text-center">
-                  Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap</a> contributors
+                  Satellite imagery © Esri · Scroll to zoom, drag to pan
                 </p>
               </div>
 
@@ -400,7 +386,9 @@ const AdminFarmRequests = ({ user, onLogout }) => {
               {selectedRequest.reviewed_by_name && (
                 <div className="mb-4">
                   <p className="text-sm text-gray-600">Reviewed By</p>
-                  <p className="font-semibold">{selectedRequest.reviewed_by_name} on {new Date(selectedRequest.reviewed_at).toLocaleString()}</p>
+                  <p className="font-semibold">
+                    {selectedRequest.reviewed_by_name} on {new Date(selectedRequest.reviewed_at).toLocaleString()}
+                  </p>
                 </div>
               )}
 
@@ -416,32 +404,21 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                 {selectedRequest.status === 'pending' && (
                   <>
                     <button
-                      onClick={() => {
-                        setShowDetailModal(false);
-                        openReviewModal(selectedRequest, 'approve');
-                      }}
+                      onClick={() => { setShowDetailModal(false); openReviewModal(selectedRequest, 'approve'); }}
                       className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center"
                     >
-                      <CheckCircle className="w-5 h-5 mr-2" />
-                      Approve
+                      <CheckCircle className="w-5 h-5 mr-2" />Approve
                     </button>
                     <button
-                      onClick={() => {
-                        setShowDetailModal(false);
-                        openReviewModal(selectedRequest, 'reject');
-                      }}
+                      onClick={() => { setShowDetailModal(false); openReviewModal(selectedRequest, 'reject'); }}
                       className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 font-medium flex items-center justify-center"
                     >
-                      <XCircle className="w-5 h-5 mr-2" />
-                      Reject
+                      <XCircle className="w-5 h-5 mr-2" />Reject
                     </button>
                   </>
                 )}
                 <button
-                  onClick={() => {
-                    setShowDetailModal(false);
-                    setSelectedRequest(null);
-                  }}
+                  onClick={() => { setShowDetailModal(false); setSelectedRequest(null); }}
                   className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
                 >
                   Close
@@ -460,7 +437,6 @@ const AdminFarmRequests = ({ user, onLogout }) => {
               <h2 className="text-2xl font-bold text-gray-800 mb-4">
                 {reviewAction === 'approve' ? 'Approve Farm Request' : 'Reject Farm Request'}
               </h2>
-              
               <p className="text-sm text-gray-600 mb-2">
                 Request: <span className="font-semibold">#{selectedRequest.id} - {selectedRequest.name}</span>
               </p>
@@ -473,6 +449,16 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                 </p>
               )}
 
+              {/* Mini satellite map in review modal too */}
+              <div className="mb-4 rounded-lg overflow-hidden border border-gray-200">
+                <FarmLocationMap
+                  lat={selectedRequest.lat}
+                  lng={selectedRequest.lng}
+                  farmName={selectedRequest.name}
+                  height={180}
+                />
+              </div>
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {reviewAction === 'approve' ? 'Approval Notes (Optional)' : 'Rejection Reason *'}
@@ -481,7 +467,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  rows="4"
+                  rows="3"
                   placeholder={reviewAction === 'approve' ? 'Farm location verified...' : 'Reason for rejection...'}
                   required={reviewAction === 'reject'}
                 />
@@ -491,19 +477,13 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                 <button
                   onClick={reviewAction === 'approve' ? handleApprove : handleReject}
                   className={`flex-1 text-white py-2 px-4 rounded-lg font-medium ${
-                    reviewAction === 'approve' 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-red-600 hover:bg-red-700'
+                    reviewAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
                   }`}
                 >
                   {reviewAction === 'approve' ? 'Approve & Create Farm' : 'Reject Request'}
                 </button>
                 <button
-                  onClick={() => {
-                    setShowReviewModal(false);
-                    setSelectedRequest(null);
-                    setReviewNotes('');
-                  }}
+                  onClick={() => { setShowReviewModal(false); setSelectedRequest(null); setReviewNotes(''); }}
                   className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
                 >
                   Cancel
