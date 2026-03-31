@@ -124,12 +124,12 @@ const AdminFarms = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gray-50">
       <AdminNavigation user={user} onLogout={onLogout} />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">Farm Management</h1>
+      <div className="max-w-screen-2xl mx-auto px-6 py-6">
+        <h1 className="text-2xl font-bold text-gray-800 mb-8">Farm Management</h1>
 
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+          <div className="flex items-center gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input

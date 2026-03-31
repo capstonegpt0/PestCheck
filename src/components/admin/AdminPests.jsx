@@ -160,9 +160,9 @@ const AdminPests = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gray-50">
       <AdminNavigation user={user} onLogout={onLogout} />
       
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-screen-2xl mx-auto px-6 py-6">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Pest Information Management</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Pest Information Management</h1>
           <button
             onClick={() => {
               resetForm();
@@ -177,7 +177,7 @@ const AdminPests = ({ user, onLogout }) => {
 
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+          <div className="flex items-center gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -503,7 +503,7 @@ const AdminPests = ({ user, onLogout }) => {
           <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-3xl font-bold text-gray-800">{selectedPest.name}</h2>
+                <h2 className="text-2xl font-bold text-gray-800">{selectedPest.name}</h2>
                 <button
                   onClick={() => {
                     setShowDetailModal(false);

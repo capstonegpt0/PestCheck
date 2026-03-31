@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Users, MapPin, AlertTriangle, Book, Activity, CheckCircle, XCircle, Clock } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell
+} from 'recharts';
+import { Users, MapPin, AlertTriangle, Activity, CheckCircle, XCircle, Clock } from 'lucide-react';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 
 const AdminDashboard = ({ user, onLogout }) => {
   const [stats, setStats] = useState({
-    users: { total: 0, farmers: 0, verified: 0, unverified: 0 },
-    farms: { total: 0, verified: 0, unverified: 0, by_crop: {} },
-    detections: { total: 0, pending: 0, verified: 0, rejected: 0, resolved: 0, by_severity: {} }
+    users: { total_users: 0, farmers: 0, admins: 0, mao_staff: 0, verified_users: 0, unverified_users: 0 },
+    farms: { total_farms: 0, verified_farms: 0, unverified_farms: 0, by_crop: {} },
+    detections: { total_detections: 0, pending: 0, verified: 0, rejected: 0, resolved: 0, by_severity: {} }
   });
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingDetections, setPendingDetections] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  useEffect(() => { fetchDashboardData(); }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -33,60 +34,71 @@ const AdminDashboard = ({ user, onLogout }) => {
         farms: farmStats.data,
         detections: detectionStats.data
       });
-      
-      const activityData = Array.isArray(activities.data) 
-        ? activities.data 
-        : (activities.data.results || []);
-      
-      const pendingData = Array.isArray(pending.data) 
-        ? pending.data 
-        : (pending.data.results || []);
-      
+
+      const activityData = Array.isArray(activities.data)
+        ? activities.data : (activities.data.results || []);
+      const pendingData = Array.isArray(pending.data)
+        ? pending.data : (pending.data.results || []);
+
       setRecentActivities(activityData.slice(0, 10));
       setPendingDetections(pendingData.slice(0, 5));
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      setRecentActivities([]);
-      setPendingDetections([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const COLORS = {
-    primary: '#10b981',
-    blue: '#3b82f6',
-    yellow: '#f59e0b',
-    red: '#ef4444',
-    purple: '#8b5cf6',
-    gray: '#6b7280'
-  };
+  const COLORS = ['#10b981', '#8b5cf6', '#3b82f6', '#f59e0b', '#ef4444', '#7f1d1d'];
 
   const userRoleData = [
-    { name: 'Farmers', value: stats.users.farmers || 0 },
-    { name: 'Admins', value: stats.users.admins || 0 },
-    { name: 'MAO Staff', value: stats.users.mao_staff || 0 },
+    { name: 'Farmers',   value: stats.users.farmers   || 0 },
+    { name: 'Admins',    value: stats.users.admins     || 0 },
+    { name: 'MAO Staff', value: stats.users.mao_staff  || 0 },
   ].filter(d => d.value > 0);
 
   const detectionStatusData = [
-    { name: 'Pending', value: stats.detections.pending },
-    { name: 'Verified', value: stats.detections.verified },
-    { name: 'Rejected', value: stats.detections.rejected },
-    { name: 'Resolved', value: stats.detections.resolved }
+    { name: 'Pending',  value: stats.detections.pending  || 0 },
+    { name: 'Verified', value: stats.detections.verified  || 0 },
+    { name: 'Rejected', value: stats.detections.rejected  || 0 },
+    { name: 'Resolved', value: stats.detections.resolved  || 0 },
   ];
 
-  const severityData = stats.detections.by_severity ? 
-    Object.entries(stats.detections.by_severity).map(([name, value]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      value
-    })) : [];
+  const severityData = stats.detections.by_severity
+    ? Object.entries(stats.detections.by_severity).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1), value
+      }))
+    : [];
+
+  const summaryCards = [
+    {
+      label: 'Total Users', value: stats.users.total_users,
+      sub: `${stats.users.verified_users ?? 0} verified`,
+      icon: Users, color: 'text-blue-500'
+    },
+    {
+      label: 'Total Farms', value: stats.farms.total_farms,
+      sub: `${stats.farms.verified_farms ?? 0} verified`,
+      icon: MapPin, color: 'text-green-500'
+    },
+    {
+      label: 'Detections', value: stats.detections.total_detections,
+      sub: `${stats.detections.verified ?? 0} verified`,
+      icon: AlertTriangle, color: 'text-yellow-500'
+    },
+    {
+      label: 'Pending Reviews', value: stats.detections.pending,
+      sub: 'Requires attention', subColor: 'text-red-500',
+      icon: Clock, color: 'text-red-500'
+    },
+  ];
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <AdminNavigation user={user} onLogout={onLogout} />
         <div className="flex items-center justify-center h-96">
-          <div className="text-xl">Loading admin dashboard...</div>
+          <p className="text-gray-600 text-lg">Loading admin dashboard...</p>
         </div>
       </div>
     );
@@ -95,86 +107,48 @@ const AdminDashboard = ({ user, onLogout }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavigation user={user} onLogout={onLogout} />
-      
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-          <div className="text-sm text-gray-600">
+
+      <div className="max-w-screen-2xl mx-auto px-6 py-6">
+
+        {/* Page header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+          <span className="text-sm text-gray-500">
             Last updated: {new Date().toLocaleString()}
-          </div>
+          </span>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
+        {/* Summary cards — always 4 columns on desktop */}
+        <div className="grid grid-cols-4 gap-5 mb-6">
+          {summaryCards.map(({ label, value, sub, subColor, icon: Icon, color }) => (
+            <div key={label} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm">Total Users</p>
-                <p className="text-3xl font-bold text-gray-800">{stats.users.total_users}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {stats.users.verified_users} verified
-                </p>
+                <p className="text-sm text-gray-500 mb-1">{label}</p>
+                <p className="text-3xl font-bold text-gray-800">{value ?? 0}</p>
+                <p className={`text-xs mt-1 ${subColor ?? 'text-gray-500'}`}>{sub}</p>
               </div>
-              <Users className="w-12 h-12 text-blue-500" />
+              <Icon className={`w-12 h-12 ${color} opacity-80`} />
             </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Total Farms</p>
-                <p className="text-3xl font-bold text-gray-800">{stats.farms.total_farms}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {stats.farms.verified_farms} verified
-                </p>
-              </div>
-              <MapPin className="w-12 h-12 text-green-500" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Detections</p>
-                <p className="text-3xl font-bold text-gray-800">{stats.detections.total_detections}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {stats.detections.verified} verified
-                </p>
-              </div>
-              <AlertTriangle className="w-12 h-12 text-yellow-500" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Pending Reviews</p>
-                <p className="text-3xl font-bold text-gray-800">{stats.detections.pending}</p>
-                <p className="text-xs text-red-500 mt-1">Requires attention</p>
-              </div>
-              <Clock className="w-12 h-12 text-red-500" />
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">User Distribution</h2>
-            <ResponsiveContainer width="100%" height={300}>
+        {/* Charts row */}
+        <div className="grid grid-cols-3 gap-5 mb-6">
+          {/* User distribution pie */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h2 className="text-base font-semibold text-gray-800 mb-4">User Distribution</h2>
+            <ResponsiveContainer width="100%" height={240}>
               <PieChart>
                 <Pie
                   data={userRoleData}
-                  cx="50%"
-                  cy="50%"
+                  cx="50%" cy="50%"
+                  outerRadius={90}
+                  dataKey="value"
                   labelLine={false}
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
                 >
-                  {userRoleData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={[COLORS.primary, COLORS.purple][index]} />
+                  {userRoleData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -182,146 +156,126 @@ const AdminDashboard = ({ user, onLogout }) => {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Detection Status</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={detectionStatusData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
+          {/* Detection status bar */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h2 className="text-base font-semibold text-gray-800 mb-4">Detection Status</h2>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={detectionStatusData} barCategoryGap="35%">
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Bar dataKey="value" fill={COLORS.blue} />
+                <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Severity Distribution</h2>
-            <ResponsiveContainer width="100%" height={300}>
+          {/* Severity distribution pie */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h2 className="text-base font-semibold text-gray-800 mb-4">Severity Distribution</h2>
+            <ResponsiveContainer width="100%" height={240}>
               <PieChart>
                 <Pie
                   data={severityData}
-                  cx="50%"
-                  cy="50%"
+                  cx="50%" cy="50%"
+                  outerRadius={90}
+                  dataKey="value"
                   labelLine={false}
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
                 >
-                  {severityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={[COLORS.primary, COLORS.yellow, COLORS.red, '#7f1d1d'][index]} />
+                  {severityData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
           </div>
+        </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Verification Status</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <div className="flex items-center">
-                  <Users className="w-5 h-5 text-blue-600 mr-3" />
-                  <span className="text-sm font-medium text-gray-700">Users</span>
+        {/* Verification status summary */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+          <h2 className="text-base font-semibold text-gray-800 mb-4">Verification Status</h2>
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              {
+                label: 'Users', icon: Users, bg: 'bg-blue-50', iconColor: 'text-blue-600',
+                pending: stats.users.unverified_users,
+                ratio: `${stats.users.verified_users ?? 0} / ${stats.users.total_users ?? 0}`
+              },
+              {
+                label: 'Farms', icon: MapPin, bg: 'bg-green-50', iconColor: 'text-green-600',
+                pending: stats.farms.unverified_farms,
+                ratio: `${stats.farms.verified_farms ?? 0} / ${stats.farms.total_farms ?? 0}`
+              },
+              {
+                label: 'Detections', icon: AlertTriangle, bg: 'bg-yellow-50', iconColor: 'text-yellow-600',
+                pending: stats.detections.pending,
+                ratio: `${stats.detections.verified ?? 0} / ${stats.detections.total_detections ?? 0}`
+              },
+            ].map(({ label, icon: Icon, bg, iconColor, pending, ratio }) => (
+              <div key={label} className={`flex items-center justify-between ${bg} rounded-lg px-4 py-3`}>
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-5 h-5 ${iconColor}`} />
+                  <span className="text-sm font-medium text-gray-700">{label}</span>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm text-gray-600">
-                    {stats.users.unverified_users} pending
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {stats.users.verified_users} / {stats.users.total_users} verified
-                  </div>
+                  <p className="text-sm font-semibold text-gray-800">{pending ?? 0} pending</p>
+                  <p className="text-xs text-gray-500">{ratio} verified</p>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <div className="flex items-center">
-                  <MapPin className="w-5 h-5 text-green-600 mr-3" />
-                  <span className="text-sm font-medium text-gray-700">Farms</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-600">
-                    {stats.farms.unverified_farms} pending
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {stats.farms.verified_farms} / {stats.farms.total_farms} verified
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                <div className="flex items-center">
-                  <AlertTriangle className="w-5 h-5 text-yellow-600 mr-3" />
-                  <span className="text-sm font-medium text-gray-700">Detections</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-600">
-                    {stats.detections.pending} pending
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {stats.detections.verified} / {stats.detections.total_detections} verified
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Pending Detections */}
+        {/* Pending Detections table */}
         {pendingDetections.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">Pending Detections</h2>
-              <a href="/admin/detections" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              <h2 className="text-base font-semibold text-gray-800">Pending Detections</h2>
+              <a href="/admin/detections" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
                 View All →
               </a>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pest</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Severity</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    {['ID', 'Pest', 'User', 'Severity', 'Date', 'Actions'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {pendingDetections.map((detection) => (
-                    <tr key={detection.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        #{detection.id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {detection.pest_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {detection.user_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          detection.severity === 'critical' ? 'bg-red-100 text-red-800' :
-                          detection.severity === 'high' ? 'bg-orange-100 text-orange-800' :
-                          detection.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
+                <tbody className="divide-y divide-gray-100">
+                  {pendingDetections.map((d) => (
+                    <tr key={d.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-gray-600">#{d.id}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900">{d.pest_name}</td>
+                      <td className="px-4 py-3 text-gray-600">{d.user_name}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          d.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                          d.severity === 'high'     ? 'bg-orange-100 text-orange-800' :
+                          d.severity === 'medium'   ? 'bg-yellow-100 text-yellow-800' :
+                                                      'bg-green-100 text-green-800'
                         }`}>
-                          {detection.severity}
+                          {d.severity}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(detection.detected_at).toLocaleDateString()}
+                      <td className="px-4 py-3 text-gray-600">
+                        {new Date(d.detected_at).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button className="text-green-600 hover:text-green-800 mr-3">
-                          <CheckCircle className="w-5 h-5" />
-                        </button>
-                        <button className="text-red-600 hover:text-red-800">
-                          <XCircle className="w-5 h-5" />
-                        </button>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button className="text-green-600 hover:text-green-800">
+                            <CheckCircle className="w-5 h-5" />
+                          </button>
+                          <button className="text-red-600 hover:text-red-800">
+                            <XCircle className="w-5 h-5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -332,36 +286,42 @@ const AdminDashboard = ({ user, onLogout }) => {
         )}
 
         {/* Recent Activities */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Recent Activities</h2>
-            <a href="/admin/activities" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+            <h2 className="text-base font-semibold text-gray-800">Recent Activities</h2>
+            <a href="/admin/activities" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
               View All →
             </a>
           </div>
-          <div className="space-y-3">
+          <div className="divide-y divide-gray-100">
             {recentActivities.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No recent activities</p>
+              <p className="text-gray-500 text-sm py-4 text-center">No recent activities</p>
             ) : (
-              recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <div className="flex items-center space-x-3">
-                    <Activity className="w-5 h-5 text-gray-500" />
+              recentActivities.map((a) => (
+                <div key={a.id} className="flex items-center justify-between py-3">
+                  <div className="flex items-center gap-3">
+                    <Activity className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        {activity.user_name} <span className="text-gray-600">- {activity.action.replace(/_/g, ' ')}</span>
+                        {a.user_name}{' '}
+                        <span className="text-gray-500 font-normal">
+                          — {a.action.replace(/_/g, ' ')}
+                        </span>
                       </p>
-                      <p className="text-xs text-gray-500">{activity.details}</p>
+                      {a.details && (
+                        <p className="text-xs text-gray-500">{a.details}</p>
+                      )}
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {new Date(activity.timestamp).toLocaleString()}
-                  </div>
+                  <span className="text-xs text-gray-400 whitespace-nowrap ml-4">
+                    {new Date(a.timestamp).toLocaleString()}
+                  </span>
                 </div>
               ))
             )}
           </div>
         </div>
+
       </div>
     </div>
   );

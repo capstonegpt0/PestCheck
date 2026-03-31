@@ -126,9 +126,9 @@ const AdminActivities = ({ user, onLogout }) => {
  <div className="min-h-screen bg-gray-50">
  <AdminNavigation user={user} onLogout={onLogout} />
  
- <div className="max-w-7xl mx-auto px-4 py-8">
+ <div className="max-w-screen-2xl mx-auto px-6 py-6">
  <div className="flex justify-between items-center mb-8">
- <h1 className="text-3xl font-bold text-gray-800">Activity Logs</h1>
+ <h1 className="text-2xl font-bold text-gray-800">Activity Logs</h1>
  <button
  onClick={exportToCSV}
  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -264,12 +264,12 @@ const AdminActivities = ({ user, onLogout }) => {
  <p className="text-sm text-gray-600 mt-1">{activity.details}</p>
  )}
  <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
- <span>
- ðŸ {new Date(activity.timestamp).toLocaleString()}
+                 <span>
+                 {new Date(activity.timestamp).toLocaleString()}
  </span>
  {activity.ip_address && (
  <span>
- ðŸŒ {activity.ip_address}
+ 🌐 {activity.ip_address}
  </span>
  )}
  </div>
