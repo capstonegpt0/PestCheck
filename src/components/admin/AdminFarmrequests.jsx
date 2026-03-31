@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, XCircle, Eye, X, MapPin, Map, ExternalLink } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, X, MapPin, Map, ExternalLink, AlertCircle, Loader } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
@@ -22,39 +22,37 @@ const farmPinIcon = new L.Icon({
 });
 
 // Reusable satellite map component for a single farm pin
-const FarmLocationMap = ({ lat, lng, farmName, height = 280 }) => {
-  return (
-    <div style={{ height, borderRadius: '0.5rem', overflow: 'hidden' }}>
-      <MapContainer
-        center={[lat, lng]}
-        zoom={17}
-        style={{ height: '100%', width: '100%' }}
-        attributionControl={false}
-        zoomControl={true}
-        scrollWheelZoom={false}
-      >
-        {/* Esri satellite imagery */}
-        <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          attribution="Tiles &copy; Esri"
-        />
-        {/* Labels overlay */}
-        <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-          opacity={0.7}
-        />
-        <Marker position={[lat, lng]} icon={farmPinIcon}>
-          <Popup>
-            <div className="text-sm font-semibold">{farmName}</div>
-            <div className="text-xs text-gray-500 mt-1">
-              {lat.toFixed(6)}, {lng.toFixed(6)}
-            </div>
-          </Popup>
-        </Marker>
-      </MapContainer>
-    </div>
-  );
-};
+const FarmLocationMap = ({ lat, lng, farmName, height = 280 }) => (
+  <div style={{ height, borderRadius: '0.5rem', overflow: 'hidden' }}>
+    <MapContainer
+      center={[lat, lng]}
+      zoom={17}
+      style={{ height: '100%', width: '100%' }}
+      attributionControl={false}
+      zoomControl={true}
+      scrollWheelZoom={false}
+    >
+      {/* Esri satellite imagery */}
+      <TileLayer
+        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        attribution="Tiles &copy; Esri"
+      />
+      {/* Labels overlay */}
+      <TileLayer
+        url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+        opacity={0.7}
+      />
+      <Marker position={[lat, lng]} icon={farmPinIcon}>
+        <Popup>
+          <div className="text-sm font-semibold">{farmName}</div>
+          <div className="text-xs text-gray-500 mt-1">
+            {lat.toFixed(6)}, {lng.toFixed(6)}
+          </div>
+        </Popup>
+      </Marker>
+    </MapContainer>
+  </div>
+);
 
 const AdminFarmRequests = ({ user, onLogout }) => {
   const [requests, setRequests] = useState([]);
@@ -67,6 +65,8 @@ const AdminFarmRequests = ({ user, onLogout }) => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewAction, setReviewAction] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     fetchRequests();
@@ -110,8 +110,24 @@ const AdminFarmRequests = ({ user, onLogout }) => {
     setFilteredRequests(filtered);
   };
 
+  // Extract a human-readable error message from an Axios error
+  const extractErrorMessage = (error) => {
+    // Server returned a JSON error body  e.g. { error: "column does not exist" }
+    if (error.response?.data) {
+      const data = error.response.data;
+      if (typeof data === 'string') return data;
+      if (data.error) return data.error;
+      if (data.detail) return data.detail;
+      if (data.non_field_errors) return data.non_field_errors.join(' ');
+      return JSON.stringify(data);
+    }
+    return error.message || 'An unexpected error occurred.';
+  };
+
   const handleApprove = async () => {
     if (!selectedRequest) return;
+    setActionLoading(true);
+    setActionError('');
     try {
       await api.post(`/admin/farm-requests/${selectedRequest.id}/approve/`, {
         review_notes: reviewNotes
@@ -122,11 +138,17 @@ const AdminFarmRequests = ({ user, onLogout }) => {
       fetchRequests();
     } catch (error) {
       console.error('Error approving request:', error);
+      console.error('Server response:', error.response?.data);
+      setActionError(extractErrorMessage(error));
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleReject = async () => {
     if (!selectedRequest || !reviewNotes) return;
+    setActionLoading(true);
+    setActionError('');
     try {
       await api.post(`/admin/farm-requests/${selectedRequest.id}/reject/`, {
         review_notes: reviewNotes
@@ -137,6 +159,10 @@ const AdminFarmRequests = ({ user, onLogout }) => {
       fetchRequests();
     } catch (error) {
       console.error('Error rejecting request:', error);
+      console.error('Server response:', error.response?.data);
+      setActionError(extractErrorMessage(error));
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -144,7 +170,15 @@ const AdminFarmRequests = ({ user, onLogout }) => {
     setSelectedRequest(request);
     setReviewAction(action);
     setReviewNotes(request.review_notes || '');
+    setActionError('');
     setShowReviewModal(true);
+  };
+
+  const closeReviewModal = () => {
+    setShowReviewModal(false);
+    setSelectedRequest(null);
+    setReviewNotes('');
+    setActionError('');
   };
 
   const getStatusBadge = (status) => {
@@ -449,7 +483,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                 </p>
               )}
 
-              {/* Mini satellite map in review modal too */}
+              {/* Mini satellite map in review modal */}
               <div className="mb-4 rounded-lg overflow-hidden border border-gray-200">
                 <FarmLocationMap
                   lat={selectedRequest.lat}
@@ -473,18 +507,48 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                 />
               </div>
 
+              {/* Error message from server */}
+              {actionError && (
+                <div className="mb-4 flex items-start space-x-2 bg-red-50 border border-red-200 rounded-lg p-3">
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-800">Action failed</p>
+                    <p className="text-xs text-red-700 mt-0.5 font-mono break-all">{actionError}</p>
+                    {actionError.toLowerCase().includes('column') && (
+                      <p className="text-xs text-red-600 mt-1">
+                        💡 Run <code className="bg-red-100 px-1 rounded">python manage.py migrate</code> on the server — a database column is missing.
+                      </p>
+                    )}
+                    {actionError.toLowerCase().includes('isadminormaostaff') && (
+                      <p className="text-xs text-red-600 mt-1">
+                        💡 Replace <code className="bg-red-100 px-1 rounded">permissions.py</code> with the updated version that includes <code className="bg-red-100 px-1 rounded">IsAdminOrMAOStaff</code>.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex space-x-3">
                 <button
                   onClick={reviewAction === 'approve' ? handleApprove : handleReject}
-                  className={`flex-1 text-white py-2 px-4 rounded-lg font-medium ${
+                  disabled={actionLoading}
+                  className={`flex-1 text-white py-2 px-4 rounded-lg font-medium flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed ${
                     reviewAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
                   }`}
                 >
-                  {reviewAction === 'approve' ? 'Approve & Create Farm' : 'Reject Request'}
+                  {actionLoading ? (
+                    <>
+                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                      {reviewAction === 'approve' ? 'Approving...' : 'Rejecting...'}
+                    </>
+                  ) : (
+                    reviewAction === 'approve' ? 'Approve & Create Farm' : 'Reject Request'
+                  )}
                 </button>
                 <button
-                  onClick={() => { setShowReviewModal(false); setSelectedRequest(null); setReviewNotes(''); }}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
+                  onClick={closeReviewModal}
+                  disabled={actionLoading}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-60"
                 >
                   Cancel
                 </button>
