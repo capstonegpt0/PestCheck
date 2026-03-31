@@ -33,7 +33,6 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
     const token = localStorage.getItem('access_token');
     const userData = localStorage.getItem('user');
     
@@ -71,12 +70,15 @@ function App() {
       return <Navigate to="/login" />;
     }
 
-    // requireAdmin: only full admins
+    // requireAdmin: only full admins — redirect MAO staff to their landing page
     if (requireAdmin && user.role !== 'admin') {
+      if (user.role === 'mao_staff') {
+        return <Navigate to="/admin/farm-requests" />;
+      }
       return <Navigate to="/dashboard" />;
     }
 
-    // requireStaff: admin or mao_staff
+    // requireStaff: admin or mao_staff — redirect farmers to farmer dashboard
     if (requireStaff && !['admin', 'mao_staff'].includes(user.role)) {
       return <Navigate to="/dashboard" />;
     }
@@ -111,7 +113,6 @@ function App() {
 
   return (
     <Router>
-      {/* PWA Components - Add these at the top level */}
       <OfflineIndicator />
       <PWAInstallPrompt />
       
@@ -122,26 +123,14 @@ function App() {
         {/* Public Routes */}
         <Route
           path="/login"
-          element={
-            user ? (
-              <RoleBasedRedirect />
-            ) : (
-              <Login onLogin={handleLogin} />
-            )
-          }
+          element={user ? <RoleBasedRedirect /> : <Login onLogin={handleLogin} />}
         />
         <Route
           path="/register"
-          element={
-            user ? (
-              <RoleBasedRedirect />
-            ) : (
-              <Register onRegister={handleLogin} />
-            )
-          }
+          element={user ? <RoleBasedRedirect /> : <Register onRegister={handleLogin} />}
         />
 
-        {/* User/Farmer Routes */}
+        {/* ==================== FARMER ROUTES ==================== */}
         <Route
           path="/dashboard"
           element={
@@ -175,7 +164,7 @@ function App() {
           }
         />
 
-        {/* Admin Routes — full admin only */}
+        {/* ==================== ADMIN-ONLY ROUTES ==================== */}
         <Route
           path="/admin/dashboard"
           element={
@@ -185,9 +174,19 @@ function App() {
           }
         />
         <Route
-          path="/admin/users"
+          path="/admin/activities"
           element={
             <ProtectedRoute requireAdmin={true}>
+              <AdminActivities user={user} onLogout={handleLogout} />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ==================== SHARED ROUTES (admin + MAO staff) ==================== */}
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute requireStaff={true}>
               <AdminUsers user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -195,8 +194,16 @@ function App() {
         <Route
           path="/admin/farms"
           element={
-            <ProtectedRoute requireAdmin={true}>
+            <ProtectedRoute requireStaff={true}>
               <AdminFarms user={user} onLogout={handleLogout} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/farm-requests"
+          element={
+            <ProtectedRoute requireStaff={true}>
+              <AdminFarmRequests user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
         />
@@ -211,21 +218,11 @@ function App() {
         <Route
           path="/admin/pests"
           element={
-            <ProtectedRoute requireAdmin={true}>
+            <ProtectedRoute requireStaff={true}>
               <AdminPests user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/admin/activities"
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <AdminActivities user={user} onLogout={handleLogout} />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Shared routes — admin or MAO staff */}
         <Route
           path="/admin/alerts"
           element={
@@ -234,15 +231,16 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route 
-          path="/admin/farm-requests" 
+        <Route
+          path="/admin/monthly-report"
           element={
             <ProtectedRoute requireStaff={true}>
-              <AdminFarmRequests user={user} onLogout={handleLogout} />
-             </ProtectedRoute>
+              <AdminMonthlyReport user={user} onLogout={handleLogout} />
+            </ProtectedRoute>
           }
         />
-        {/* MAO staff verification review — reuses AdminUsers with verification tab */}
+
+        {/* MAO staff verification review */}
         <Route
           path="/admin/verification"
           element={
@@ -252,19 +250,8 @@ function App() {
           }
         />
 
-        <Route
-          path="/admin/monthly-report"
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <AdminMonthlyReport user={user} onLogout={handleLogout} />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Default Route */}
+        {/* Default / 404 */}
         <Route path="/" element={<RoleBasedRedirect />} />
-        
-        {/* 404 Route */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
