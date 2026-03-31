@@ -91,7 +91,7 @@ const HeatMap = ({ user, onLogout }) => {
   const [showFarmModal, setShowFarmModal] = useState(false);
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
   const [selectedInfestationToResolve, setSelectedInfestationToResolve] = useState(null);
-  const [farmForm, setFarmForm] = useState({ name: '', size: '', crop_type: '' });
+  const [farmForm, setFarmForm] = useState({ name: '', size: '', crop_type: '', address: '' });
 
   // Farm list sorting: 'all' = default, 'mine' = my farms first
   const [farmSortMode, setFarmSortMode] = useState('mine');
@@ -410,6 +410,7 @@ const HeatMap = ({ user, onLogout }) => {
         name: farmForm.name,
         size: farmForm.size || '5',
         crop_type: farmForm.crop_type || 'Rice',
+        address: farmForm.address || '',
         lat: selectedLocation.lat, 
         lng: selectedLocation.lng
         // NOTE: No status field - farms start with no status by default
@@ -813,7 +814,7 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const resetFarmForm = () => {
-    setFarmForm({ name: '', size: '', crop_type: '' });
+    setFarmForm({ name: '', size: '', crop_type: '', address: '' });
     setSelectedLocation(null);
     setShowFarmModal(false);
   };
@@ -1257,6 +1258,20 @@ const HeatMap = ({ user, onLogout }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="e.g., Northern Rice Field"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Address / Location Description
+                  </label>
+                  <input
+                    type="text"
+                    value={farmForm.address}
+                    onChange={(e) => setFarmForm({...farmForm, address: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="e.g., Brgy. San Nicolas, Magalang, Pampanga"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter a general address or landmark near your farm</p>
                 </div>
 
                 <div>

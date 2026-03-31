@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, XCircle, Eye, X, MapPin } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, X, MapPin, Map } from 'lucide-react';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 
@@ -53,7 +53,8 @@ const AdminFarmRequests = ({ user, onLogout }) => {
       filtered = filtered.filter(r =>
         r.name.toLowerCase().includes(query) ||
         r.user_name.toLowerCase().includes(query) ||
-        (r.crop_type && r.crop_type.toLowerCase().includes(query))
+        (r.crop_type && r.crop_type.toLowerCase().includes(query)) ||
+        (r.address && r.address.toLowerCase().includes(query))
       );
     }
 
@@ -110,6 +111,21 @@ const AdminFarmRequests = ({ user, onLogout }) => {
     return badges[status] || 'bg-gray-100 text-gray-800';
   };
 
+  // Build an OpenStreetMap static-style embed URL using iframe (no API key needed)
+  const getMapEmbedUrl = (lat, lng) => {
+    const zoom = 16;
+    const bbox_offset = 0.004;
+    const left = lng - bbox_offset;
+    const bottom = lat - bbox_offset;
+    const right = lng + bbox_offset;
+    const top = lat + bbox_offset;
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${left},${bottom},${right},${top}&layer=mapnik&marker=${lat},${lng}`;
+  };
+
+  const getOpenStreetMapLink = (lat, lng) => {
+    return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavigation user={user} onLogout={onLogout} />
@@ -124,7 +140,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by farm name, owner, or crop type..."
+                placeholder="Search by farm name, owner, crop type, or address..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -184,55 +200,37 @@ const AdminFarmRequests = ({ user, onLogout }) => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Farm Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Farmer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Crop Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Size (ha)
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Location
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Requested
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farmer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Crop Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size (ha)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredRequests.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        #{request.id}
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{request.id}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{request.name}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {request.user_name}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.user_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.crop_type || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.size || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700 max-w-xs">
+                        {request.address ? (
+                          <span className="line-clamp-2">{request.address}</span>
+                        ) : (
+                          <span className="text-gray-400 italic">No address</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {request.crop_type || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {request.size || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="text-xs">
+                        <div className="text-xs text-gray-500">
                           {request.lat.toFixed(4)}, {request.lng.toFixed(4)}
                         </div>
                       </td>
@@ -286,7 +284,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
       {/* Detail Modal */}
       {showDetailModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800">Farm Request Details</h2>
@@ -328,6 +326,15 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                   <p className="text-sm text-gray-600">Size</p>
                   <p className="font-semibold">{selectedRequest.size || 'N/A'} hectares</p>
                 </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-gray-600">Address / Location Description</p>
+                  <div className="flex items-start space-x-2 mt-1">
+                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <p className="font-semibold text-gray-800">
+                      {selectedRequest.address || <span className="text-gray-400 italic font-normal">No address provided</span>}
+                    </p>
+                  </div>
+                </div>
                 <div>
                   <p className="text-sm text-gray-600">Latitude</p>
                   <p className="font-semibold">{selectedRequest.lat.toFixed(6)}</p>
@@ -340,6 +347,38 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                   <p className="text-sm text-gray-600">Requested On</p>
                   <p className="font-semibold">{new Date(selectedRequest.created_at).toLocaleString()}</p>
                 </div>
+              </div>
+
+              {/* Map Preview */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <Map className="w-4 h-4 text-blue-600" />
+                    <p className="text-sm font-semibold text-gray-700">Farm Location on Map</p>
+                  </div>
+                  <a
+                    href={getOpenStreetMapLink(selectedRequest.lat, selectedRequest.lng)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Open in OpenStreetMap ↗
+                  </a>
+                </div>
+                <div className="rounded-lg overflow-hidden border border-gray-200 shadow-sm" style={{ height: '280px' }}>
+                  <iframe
+                    title="Farm Location"
+                    src={getMapEmbedUrl(selectedRequest.lat, selectedRequest.lng)}
+                    width="100%"
+                    height="280"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1 text-center">
+                  Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap</a> contributors
+                </p>
               </div>
 
               {selectedRequest.description && (
@@ -368,7 +407,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
               {selectedRequest.approved_farm_id && (
                 <div className="mb-4 bg-green-50 p-3 rounded border border-green-200">
                   <p className="text-sm text-green-800">
-                    OK - Farm created (ID: #{selectedRequest.approved_farm_id})
+                    ✓ Farm created (ID: #{selectedRequest.approved_farm_id})
                   </p>
                 </div>
               )}
@@ -422,12 +461,17 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                 {reviewAction === 'approve' ? 'Approve Farm Request' : 'Reject Farm Request'}
               </h2>
               
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 mb-2">
                 Request: <span className="font-semibold">#{selectedRequest.id} - {selectedRequest.name}</span>
               </p>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 mb-2">
                 Farmer: <span className="font-semibold">{selectedRequest.user_name}</span>
               </p>
+              {selectedRequest.address && (
+                <p className="text-sm text-gray-600 mb-4">
+                  Address: <span className="font-semibold">{selectedRequest.address}</span>
+                </p>
+              )}
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
