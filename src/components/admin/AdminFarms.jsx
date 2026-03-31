@@ -53,6 +53,7 @@ const FarmLocationMap = ({ lat, lng, farmName, height = 280 }) => (
 );
 
 const AdminFarms = ({ user, onLogout }) => {
+  const isAdmin = user?.role === 'admin';
   const [farms, setFarms] = useState([]);
   const [filteredFarms, setFilteredFarms] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -216,10 +217,12 @@ const AdminFarms = ({ user, onLogout }) => {
                             <CheckCircle className="w-5 h-5" />
                           </button>
                         )}
-                        <button onClick={() => handleDeleteFarm(farm.id)}
-                          className="text-red-600 hover:text-red-800" title="Delete farm">
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        {isAdmin && (
+                          <button onClick={() => handleDeleteFarm(farm.id)}
+                            className="text-red-600 hover:text-red-800" title="Delete farm">
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

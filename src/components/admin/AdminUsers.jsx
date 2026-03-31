@@ -541,7 +541,9 @@ const CreateMAOStaffModal = ({ onClose, onSuccess }) => {
 
 // ==================== MAIN ADMIN USERS COMPONENT ====================
 const AdminUsers = ({ user, onLogout, initialTab }) => {
- const [activeTab, setActiveTab] = useState(initialTab || 'users');
+ const isAdmin = user?.role === 'admin';
+ const isMAOStaff = user?.role === 'mao_staff';
+ const [activeTab, setActiveTab] = useState(initialTab || (isMAOStaff ? 'verification' : 'users'));
 
  // Users state
  const [users, setUsers] = useState([]);
@@ -838,6 +840,8 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  <UserCheck className="w-5 h-5" />
  </button>
  )}
+ {isAdmin && (
+ <>
  <button
  onClick={() => { setSelectedUser(u); setNewRole(u.role); setShowRoleModal(true); }}
  className="text-blue-600 hover:text-blue-800 transition-colors"
@@ -852,6 +856,8 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  >
  <Trash2 className="w-5 h-5" />
  </button>
+ </>
+ )}
  </div>
  </td>
  </tr>

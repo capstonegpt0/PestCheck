@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, MapPin, AlertTriangle, Book, Bell, Activity, LogOut, Shield, FileText, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Users, MapPin, AlertTriangle, Book, Bell, Activity, LogOut, Shield, FileText, ClipboardCheck, UserCheck } from 'lucide-react';
 
 const AdminNavigation = ({ user, onLogout }) => {
   const location = useLocation();
@@ -22,9 +22,11 @@ const AdminNavigation = ({ user, onLogout }) => {
 
   // MAO staff nav items — restricted to their scope
   const maoNavItems = [
+    { path: '/admin/users', icon: UserCheck, label: 'Farmer Verification' },
+    { path: '/admin/farms', icon: MapPin, label: 'Farms' },
     { path: '/admin/farm-requests', icon: FileText, label: 'Farm Requests' },
+    { path: '/admin/pests', icon: Book, label: 'Pest Info' },
     { path: '/admin/alerts', icon: Bell, label: 'Send Alerts' },
-    { path: '/admin/verification', icon: ClipboardCheck, label: 'Verify Farmers' },
     { path: '/admin/monthly-report', icon: FileText, label: 'Monthly Report' },
   ];
 

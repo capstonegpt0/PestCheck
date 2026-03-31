@@ -4,6 +4,7 @@ import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 
 const AdminPests = ({ user, onLogout }) => {
+  const isAdmin = user?.role === 'admin';
   const [pests, setPests] = useState([]);
   const [filteredPests, setFilteredPests] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -306,6 +307,7 @@ const AdminPests = ({ user, onLogout }) => {
                   >
                     {pest.is_published ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                   </button>
+                  {isAdmin && (
                   <button
                     onClick={() => handleDelete(pest.id)}
                     className="p-2 text-red-600 hover:text-red-800 border border-red-300 rounded-lg hover:bg-red-50"
@@ -313,6 +315,7 @@ const AdminPests = ({ user, onLogout }) => {
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
+                  )}
                 </div>
               </div>
             ))
