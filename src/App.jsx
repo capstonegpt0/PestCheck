@@ -65,20 +65,32 @@ function App() {
     window.location.href = '/#/login';
   };
 
+  // Where each role belongs when redirected away from a forbidden page
+  const roleHome = (role) => {
+    if (role === 'admin') return '/admin/dashboard';
+    if (role === 'mao_staff') return '/admin/users';
+    return '/dashboard';
+  };
+
   // Protected Route Component
-  const ProtectedRoute = ({ children, requireAdmin = false, requireStaff = false }) => {
+  const ProtectedRoute = ({ children, requireAdmin = false, requireStaff = false, farmerOnly = false }) => {
     if (!user) {
       return <Navigate to="/login" />;
     }
 
-    // requireAdmin: only full admins
+    // Admin-only pages
     if (requireAdmin && user.role !== 'admin') {
-      return <Navigate to="/dashboard" />;
+      return <Navigate to={roleHome(user.role)} />;
     }
 
-    // requireStaff: admin or mao_staff
+    // Staff pages (admin or mao_staff)
     if (requireStaff && !['admin', 'mao_staff'].includes(user.role)) {
-      return <Navigate to="/dashboard" />;
+      return <Navigate to={roleHome(user.role)} />;
+    }
+
+    // Farmer-only pages — block admin/staff from landing on farmer UI
+    if (farmerOnly && user.role !== 'farmer') {
+      return <Navigate to={roleHome(user.role)} />;
     }
 
     return children;
@@ -145,7 +157,7 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute farmerOnly={true}>
               <Dashboard user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -153,7 +165,7 @@ function App() {
         <Route
           path="/heatmap"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute farmerOnly={true}>
               <HeatMap user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -161,7 +173,7 @@ function App() {
         <Route
           path="/pests"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute farmerOnly={true}>
               <PestLibrary user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -169,7 +181,7 @@ function App() {
         <Route
           path="/profile"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute farmerOnly={true}>
               <Profile user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -239,6 +251,15 @@ function App() {
           element={
             <ProtectedRoute requireStaff={true}>
               <AdminFarmRequests user={user} onLogout={handleLogout} />
+             </ProtectedRoute>
+          }
+        />
+        {/* MAO staff verification review — reuses AdminUsers with verification tab */}
+        <Route
+          path="/admin/verification"
+          element={
+            <ProtectedRoute requireStaff={true}>
+              <AdminUsers user={user} onLogout={handleLogout} initialTab="verification" />
             </ProtectedRoute>
           }
         />
