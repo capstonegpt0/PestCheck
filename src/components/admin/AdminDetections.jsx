@@ -4,6 +4,7 @@ import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 
 const AdminDetections = ({ user, onLogout }) => {
+  const isAdmin = user?.role === 'admin';
   const [detections, setDetections] = useState([]);
   const [filteredDetections, setFilteredDetections] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -300,13 +301,15 @@ const AdminDetections = ({ user, onLogout }) => {
                             </button>
                           </>
                         )}
-                        <button
-                          onClick={() => handleDelete(detection.id)}
-                          className="text-red-600 hover:text-red-800"
-                          title="Delete detection"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDelete(detection.id)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Delete detection"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

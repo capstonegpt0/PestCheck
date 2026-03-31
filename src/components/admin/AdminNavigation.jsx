@@ -25,6 +25,7 @@ const AdminNavigation = ({ user, onLogout }) => {
     { path: '/admin/users', icon: UserCheck, label: 'Farmer Verification' },
     { path: '/admin/farms', icon: MapPin, label: 'Farms' },
     { path: '/admin/farm-requests', icon: FileText, label: 'Farm Requests' },
+    { path: '/admin/detections', icon: AlertTriangle, label: 'Detections' },
     { path: '/admin/pests', icon: Book, label: 'Pest Info' },
     { path: '/admin/alerts', icon: Bell, label: 'Send Alerts' },
     { path: '/admin/monthly-report', icon: FileText, label: 'Monthly Report' },

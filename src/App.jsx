@@ -65,32 +65,20 @@ function App() {
     window.location.href = '/#/login';
   };
 
-  // Where each role belongs when redirected away from a forbidden page
-  const roleHome = (role) => {
-    if (role === 'admin') return '/admin/dashboard';
-    if (role === 'mao_staff') return '/admin/users';
-    return '/dashboard';
-  };
-
   // Protected Route Component
-  const ProtectedRoute = ({ children, requireAdmin = false, requireStaff = false, farmerOnly = false }) => {
+  const ProtectedRoute = ({ children, requireAdmin = false, requireStaff = false }) => {
     if (!user) {
       return <Navigate to="/login" />;
     }
 
-    // Admin-only pages
+    // requireAdmin: only full admins
     if (requireAdmin && user.role !== 'admin') {
-      return <Navigate to={roleHome(user.role)} />;
+      return <Navigate to="/dashboard" />;
     }
 
-    // Staff pages (admin or mao_staff)
+    // requireStaff: admin or mao_staff
     if (requireStaff && !['admin', 'mao_staff'].includes(user.role)) {
-      return <Navigate to={roleHome(user.role)} />;
-    }
-
-    // Farmer-only pages — block admin/staff from landing on farmer UI
-    if (farmerOnly && user.role !== 'farmer') {
-      return <Navigate to={roleHome(user.role)} />;
+      return <Navigate to="/dashboard" />;
     }
 
     return children;
@@ -107,7 +95,7 @@ function App() {
     }
 
     if (user.role === 'mao_staff') {
-      return <Navigate to="/admin/users" />;
+      return <Navigate to="/admin/farm-requests" />;
     }
     
     return <Navigate to="/dashboard" />;
@@ -157,7 +145,7 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute farmerOnly={true}>
+            <ProtectedRoute>
               <Dashboard user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -165,7 +153,7 @@ function App() {
         <Route
           path="/heatmap"
           element={
-            <ProtectedRoute farmerOnly={true}>
+            <ProtectedRoute>
               <HeatMap user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -173,7 +161,7 @@ function App() {
         <Route
           path="/pests"
           element={
-            <ProtectedRoute farmerOnly={true}>
+            <ProtectedRoute>
               <PestLibrary user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -181,7 +169,7 @@ function App() {
         <Route
           path="/profile"
           element={
-            <ProtectedRoute farmerOnly={true}>
+            <ProtectedRoute>
               <Profile user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -199,7 +187,7 @@ function App() {
         <Route
           path="/admin/users"
           element={
-            <ProtectedRoute requireStaff={true}>
+            <ProtectedRoute requireAdmin={true}>
               <AdminUsers user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -207,7 +195,7 @@ function App() {
         <Route
           path="/admin/farms"
           element={
-            <ProtectedRoute requireStaff={true}>
+            <ProtectedRoute requireAdmin={true}>
               <AdminFarms user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -215,7 +203,7 @@ function App() {
         <Route
           path="/admin/detections"
           element={
-            <ProtectedRoute requireAdmin={true}>
+            <ProtectedRoute requireStaff={true}>
               <AdminDetections user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -223,7 +211,7 @@ function App() {
         <Route
           path="/admin/pests"
           element={
-            <ProtectedRoute requireStaff={true}>
+            <ProtectedRoute requireAdmin={true}>
               <AdminPests user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
@@ -267,7 +255,7 @@ function App() {
         <Route
           path="/admin/monthly-report"
           element={
-            <ProtectedRoute requireStaff={true}>
+            <ProtectedRoute requireAdmin={true}>
               <AdminMonthlyReport user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
