@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, CheckCircle, XCircle, Eye, X, MapPin, Map, ExternalLink, AlertCircle, Loader } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 import L from 'leaflet';
@@ -21,23 +21,47 @@ const farmPinIcon = new L.Icon({
   popupAnchor: [0, -42],
 });
 
-// Reusable satellite map component for a single farm pin
+/**
+ * Inner component: keeps the map view perfectly centred on the pin.
+ * Runs every render so re-centring also works when the modal opens.
+ */
+const CenterOnMarker = ({ lat, lng }) => {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([lat, lng], map.getZoom(), { animate: false });
+  }, [lat, lng, map]);
+  return null;
+};
+
+/**
+ * Fully static satellite map — no dragging, no zoom controls, no scroll.
+ * The farm pin is always centred in the viewport.
+ */
 const FarmLocationMap = ({ lat, lng, farmName, height = 280 }) => (
-  <div style={{ height, borderRadius: '0.5rem', overflow: 'hidden' }}>
+  <div style={{ height, borderRadius: '0.5rem', overflow: 'hidden', position: 'relative' }}>
     <MapContainer
       center={[lat, lng]}
       zoom={17}
       style={{ height: '100%', width: '100%' }}
       attributionControl={false}
-      zoomControl={true}
+      // ── Disable ALL interaction ──
+      dragging={false}
+      touchZoom={false}
+      doubleClickZoom={false}
       scrollWheelZoom={false}
+      boxZoom={false}
+      keyboard={false}
+      zoomControl={false}
     >
+      {/* Re-centre whenever lat/lng change */}
+      <CenterOnMarker lat={lat} lng={lng} />
+
       {/* Esri satellite imagery */}
       <TileLayer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         attribution="Tiles &copy; Esri"
       />
-      {/* Labels overlay */}
+      {/* Place labels overlay */}
       <TileLayer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
         opacity={0.7}
@@ -51,6 +75,17 @@ const FarmLocationMap = ({ lat, lng, farmName, height = 280 }) => (
         </Popup>
       </Marker>
     </MapContainer>
+
+    {/* Transparent overlay blocks any accidental pointer interaction */}
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 400,
+        cursor: 'default',
+        pointerEvents: 'none',
+      }}
+    />
   </div>
 );
 
@@ -110,9 +145,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
     setFilteredRequests(filtered);
   };
 
-  // Extract a human-readable error message from an Axios error
   const extractErrorMessage = (error) => {
-    // Server returned a JSON error body  e.g. { error: "column does not exist" }
     if (error.response?.data) {
       const data = error.response.data;
       if (typeof data === 'string') return data;
@@ -138,7 +171,6 @@ const AdminFarmRequests = ({ user, onLogout }) => {
       fetchRequests();
     } catch (error) {
       console.error('Error approving request:', error);
-      console.error('Server response:', error.response?.data);
       setActionError(extractErrorMessage(error));
     } finally {
       setActionLoading(false);
@@ -159,7 +191,6 @@ const AdminFarmRequests = ({ user, onLogout }) => {
       fetchRequests();
     } catch (error) {
       console.error('Error rejecting request:', error);
-      console.error('Server response:', error.response?.data);
       setActionError(extractErrorMessage(error));
     } finally {
       setActionLoading(false);
@@ -220,10 +251,10 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                   onClick={() => setStatusFilter(f)}
                   className={`px-5 py-3 rounded-lg font-semibold transition-colors capitalize ${
                     statusFilter === f
-                      ? f === 'all' ? 'bg-blue-600 text-white'
-                        : f === 'pending' ? 'bg-yellow-600 text-white'
-                        : f === 'approved' ? 'bg-green-600 text-white'
-                        : 'bg-red-600 text-white'
+                      ? f === 'all'      ? 'bg-blue-600 text-white'
+                      : f === 'pending'  ? 'bg-yellow-600 text-white'
+                      : f === 'approved' ? 'bg-green-600 text-white'
+                      : 'bg-red-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -308,7 +339,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* Detail Modal */}
+      {/* ==================== DETAIL MODAL ==================== */}
       {showDetailModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -397,7 +428,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                   />
                 </div>
                 <p className="text-xs text-gray-400 mt-1 text-center">
-                  Satellite imagery © Esri · Scroll to zoom, drag to pan
+                  Satellite imagery © Esri · Map is fixed — pin marks the exact requested location
                 </p>
               </div>
 
@@ -463,7 +494,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
         </div>
       )}
 
-      {/* Review Modal */}
+      {/* ==================== REVIEW MODAL ==================== */}
       {showReviewModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
@@ -507,7 +538,6 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                 />
               </div>
 
-              {/* Error message from server */}
               {actionError && (
                 <div className="mb-4 flex items-start space-x-2 bg-red-50 border border-red-200 rounded-lg p-3">
                   <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -517,11 +547,6 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                     {actionError.toLowerCase().includes('column') && (
                       <p className="text-xs text-red-600 mt-1">
                         💡 Run <code className="bg-red-100 px-1 rounded">python manage.py migrate</code> on the server — a database column is missing.
-                      </p>
-                    )}
-                    {actionError.toLowerCase().includes('isadminormaostaff') && (
-                      <p className="text-xs text-red-600 mt-1">
-                        💡 Replace <code className="bg-red-100 px-1 rounded">permissions.py</code> with the updated version that includes <code className="bg-red-100 px-1 rounded">IsAdminOrMAOStaff</code>.
                       </p>
                     )}
                   </div>
