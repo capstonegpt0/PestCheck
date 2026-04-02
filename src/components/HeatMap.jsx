@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMapEvents, GeoJSON } from 'react-leaflet';
-import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity, Camera, Upload, Loader, ThumbsUp, ThumbsDown, AlertCircle, Shield, Bug, Leaf } from 'lucide-react';
+import { Filter, MapPin, AlertTriangle, Save, X, CheckCircle, Activity, Camera, Upload, Loader, ThumbsUp, ThumbsDown, AlertCircle, Shield, Bug, Leaf, History, ChevronDown, Image as ImageIcon, Clock, SlidersHorizontal } from 'lucide-react';
 import Navigation from './Navigation';
 import PageContent from './PageContent';
 import api from '../utils/api';
@@ -111,6 +111,19 @@ const HeatMap = ({ user, onLogout }) => {
   const [locationLoading, setLocationLoading] = useState(true);
 
   const [selectedDotKey, setSelectedDotKey] = useState(null);
+
+  // Detection History Panel states
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  const [historyDetections, setHistoryDetections] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState('all');
+  const [historySeverity, setHistorySeverity] = useState('all');
+  const [historyStatus, setHistoryStatus] = useState('all');
+  const [historyCrop, setHistoryCrop] = useState('all');
+  const [historySearch, setHistorySearch] = useState('');
+  const [selectedHistoryDetection, setSelectedHistoryDetection] = useState(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_PAGE_SIZE = 10;
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -822,6 +835,74 @@ const HeatMap = ({ user, onLogout }) => {
 
   const activeDetections = detections.filter(d => d.active !== false);
 
+  // ==================== HISTORY PANEL HELPERS ====================
+  const fetchHistoryDetections = async () => {
+    setHistoryLoading(true);
+    try {
+      const params = new URLSearchParams({ page_size: 200 });
+      if (historyFilter === 'mine') params.append('my_detections', 'true');
+      const res = await api.get(`/detections/?${params.toString()}`);
+      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      setHistoryDetections(data);
+      setHistoryPage(1);
+    } catch (err) {
+      console.error('Error fetching history:', err);
+      setHistoryDetections([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const openHistoryPanel = () => {
+    setShowHistoryPanel(true);
+    fetchHistoryDetections();
+  };
+
+  const getFilteredHistory = () => {
+    let list = historyDetections;
+    if (historyFilter === 'mine') list = list.filter(d => d.user_name === user.username);
+    if (historySeverity !== 'all') list = list.filter(d => d.severity === historySeverity);
+    if (historyStatus === 'active') list = list.filter(d => d.active !== false && d.status !== 'resolved');
+    if (historyStatus === 'resolved') list = list.filter(d => !d.active || d.status === 'resolved');
+    if (historyCrop !== 'all') list = list.filter(d => d.crop_type === historyCrop);
+    if (historySearch.trim()) {
+      const q = historySearch.toLowerCase();
+      list = list.filter(d =>
+        (d.pest_name || d.pest || '').toLowerCase().includes(q) ||
+        (d.farm_name || '').toLowerCase().includes(q) ||
+        (d.user_name || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  };
+
+  const getSeverityBadgeClass = (severity) => {
+    const map = {
+      critical: 'bg-red-100 text-red-800 border border-red-300',
+      high: 'bg-orange-100 text-orange-800 border border-orange-300',
+      medium: 'bg-yellow-100 text-yellow-800 border border-yellow-300',
+      low: 'bg-green-100 text-green-800 border border-green-300',
+    };
+    return map[severity] || 'bg-gray-100 text-gray-700';
+  };
+
+  const getSeverityDot = (severity) => {
+    const map = {
+      critical: 'bg-red-900',
+      high: 'bg-red-500',
+      medium: 'bg-yellow-500',
+      low: 'bg-green-500',
+    };
+    return map[severity] || 'bg-gray-400';
+  };
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace('/api', '');
+    return `${base}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
@@ -869,6 +950,15 @@ const HeatMap = ({ user, onLogout }) => {
           >
             <Camera className="w-4 h-4 mr-1 sm:mr-2" />
             Detect Pest
+          </button>
+
+          <button
+            onClick={openHistoryPanel}
+            className="flex items-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+          >
+            <History className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">My Reports</span>
+            <span className="sm:hidden">Reports</span>
           </button>
 
           {user.is_verified && (
@@ -2243,6 +2333,331 @@ const HeatMap = ({ user, onLogout }) => {
           </div>
         </div>
       </div>
+
+      {/* ==================== DETECTION HISTORY PANEL ==================== */}
+      {showHistoryPanel && (() => {
+        const filteredHistory = getFilteredHistory();
+        const totalPages = Math.ceil(filteredHistory.length / HISTORY_PAGE_SIZE);
+        const pagedHistory = filteredHistory.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col" style={{ maxHeight: '90vh' }}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <History className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-800">Detection History</h2>
+                    <p className="text-xs text-gray-500">{filteredHistory.length} record{filteredHistory.length !== 1 ? 's' : ''} found</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowHistoryPanel(false)} className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Filters */}
+              <div className="px-6 py-3 border-b border-gray-100 flex-shrink-0 space-y-3">
+                {/* Search */}
+                <div className="relative">
+                  <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by pest name, farm, or reporter..."
+                    value={historySearch}
+                    onChange={(e) => { setHistorySearch(e.target.value); setHistoryPage(1); }}
+                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                  />
+                </div>
+                {/* Filter pills */}
+                <div className="flex flex-wrap gap-2">
+                  {/* Who */}
+                  <div className="flex bg-gray-100 rounded-lg p-0.5">
+                    {[['all', 'All Reports'], ['mine', 'My Reports']].map(([val, label]) => (
+                      <button key={val} onClick={() => { setHistoryFilter(val); setHistoryPage(1); fetchHistoryDetections(); }}
+                        className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${historyFilter === val ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Status */}
+                  <div className="flex bg-gray-100 rounded-lg p-0.5">
+                    {[['all', 'All Status'], ['active', 'Active'], ['resolved', 'Resolved']].map(([val, label]) => (
+                      <button key={val} onClick={() => { setHistoryStatus(val); setHistoryPage(1); }}
+                        className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${historyStatus === val ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Severity */}
+                  <select value={historySeverity} onChange={(e) => { setHistorySeverity(e.target.value); setHistoryPage(1); }}
+                    className="px-3 py-1 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 focus:ring-2 focus:ring-indigo-400 bg-white">
+                    <option value="all">All Severity</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                  {/* Crop */}
+                  <select value={historyCrop} onChange={(e) => { setHistoryCrop(e.target.value); setHistoryPage(1); }}
+                    className="px-3 py-1 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 focus:ring-2 focus:ring-indigo-400 bg-white">
+                    <option value="all">All Crops</option>
+                    <option value="rice">Rice</option>
+                    <option value="corn">Corn</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+                {historyLoading ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                    <Loader className="w-8 h-8 animate-spin mb-3" />
+                    <p className="text-sm">Loading detections...</p>
+                  </div>
+                ) : pagedHistory.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                    <Bug className="w-12 h-12 mb-3 opacity-30" />
+                    <p className="text-sm font-medium">No detections found</p>
+                    <p className="text-xs mt-1">Try adjusting your filters</p>
+                  </div>
+                ) : (
+                  pagedHistory.map((detection) => {
+                    const pestName = detection.pest_name || detection.pest || 'Unknown Pest';
+                    const imgUrl = getImageUrl(detection.image);
+                    const isOwn = detection.user_name === user.username;
+                    const date = new Date(detection.detected_at || detection.reported_at);
+                    const isActive = detection.active !== false && detection.status !== 'resolved';
+                    return (
+                      <div key={detection.id}
+                        onClick={() => setSelectedHistoryDetection(detection)}
+                        className="flex items-start gap-4 p-4 border border-gray-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer transition-all group">
+                        {/* Image thumbnail */}
+                        <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200">
+                          {imgUrl ? (
+                            <img src={imgUrl} alt={pestName} className="w-full h-full object-cover group-hover:scale-105 transition-transform" onError={(e) => { e.target.style.display='none'; }} />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Bug className="w-7 h-7 text-gray-300" />
+                            </div>
+                          )}
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-semibold text-gray-800 truncate">{pestName}</p>
+                              <p className="text-xs text-gray-500 capitalize">{detection.crop_type || '—'} · {detection.farm_name || 'No farm'}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getSeverityBadgeClass(detection.severity)}`}>
+                                {detection.severity}
+                              </span>
+                              <span className={`text-xs font-medium ${isActive ? 'text-green-600' : 'text-gray-400'}`}>
+                                {isActive ? '● Active' : '○ Resolved'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="flex items-center gap-1 text-xs text-gray-400">
+                              <Clock className="w-3 h-3" />
+                              {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                            {isOwn ? (
+                              <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">My Report</span>
+                            ) : (
+                              <span className="text-xs text-gray-400">by {detection.user_name}</span>
+                            )}
+                            {detection.confidence > 0 && (
+                              <span className="text-xs text-gray-400">
+                                {(detection.confidence * 100).toFixed(0)}% confidence
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-gray-300 group-hover:text-indigo-400 -rotate-90 flex-shrink-0 mt-2" />
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Pagination footer */}
+              {!historyLoading && filteredHistory.length > HISTORY_PAGE_SIZE && (
+                <div className="px-6 py-3 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
+                  <p className="text-xs text-gray-500">
+                    Page {historyPage} of {totalPages} · {filteredHistory.length} total
+                  </p>
+                  <div className="flex gap-2">
+                    <button disabled={historyPage === 1} onClick={() => setHistoryPage(p => p - 1)}
+                      className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 font-medium">
+                      Previous
+                    </button>
+                    <button disabled={historyPage >= totalPages} onClick={() => setHistoryPage(p => p + 1)}
+                      className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 font-medium">
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ==================== HISTORY DETAIL MODAL ==================== */}
+      {selectedHistoryDetection && (() => {
+        const d = selectedHistoryDetection;
+        const pestName = d.pest_name || d.pest || 'Unknown Pest';
+        const imgUrl = getImageUrl(d.image);
+        const isOwn = d.user_name === user.username;
+        const isActive = d.active !== false && d.status !== 'resolved';
+        const date = new Date(d.detected_at || d.reported_at);
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col" style={{ maxHeight: '92vh' }}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${getSeverityDot(d.severity)}`}></div>
+                  <h2 className="text-lg font-bold text-gray-800">{pestName}</h2>
+                </div>
+                <button onClick={() => setSelectedHistoryDetection(null)} className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto">
+                {/* Detection Image */}
+                <div className="relative bg-gray-900" style={{ minHeight: imgUrl ? 220 : 0 }}>
+                  {imgUrl ? (
+                    <img src={imgUrl} alt={pestName}
+                      className="w-full object-cover"
+                      style={{ maxHeight: 260 }}
+                      onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10 bg-gray-50 border-b border-gray-100">
+                      <ImageIcon className="w-12 h-12 text-gray-300 mb-2" />
+                      <p className="text-sm text-gray-400">No image available</p>
+                    </div>
+                  )}
+                  {imgUrl && (
+                    <div className="absolute bottom-3 left-3 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-lg">
+                      Detection Photo
+                    </div>
+                  )}
+                </div>
+
+                {/* Details */}
+                <div className="px-6 py-5 space-y-4">
+                  {/* Status + badges */}
+                  <div className="flex flex-wrap gap-2">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${getSeverityBadgeClass(d.severity)}`}>
+                      {d.severity?.toUpperCase()} severity
+                    </span>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${isActive ? 'bg-green-50 text-green-700 border-green-300' : 'bg-gray-100 text-gray-500 border-gray-300'}`}>
+                      {isActive ? '● Active' : '○ Resolved'}
+                    </span>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200 capitalize`}>
+                      {d.status || 'pending'}
+                    </span>
+                    {isOwn && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                        My Report
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Core info grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Pest</p>
+                      <p className="text-sm font-semibold text-gray-800">{pestName}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Crop Type</p>
+                      <p className="text-sm font-semibold text-gray-800 capitalize">{d.crop_type || '—'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Farm</p>
+                      <p className="text-sm font-semibold text-gray-800">{d.farm_name || 'No farm assigned'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Reported By</p>
+                      <p className="text-sm font-semibold text-gray-800">{d.user_name || '—'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Detected On</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Confidence</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {d.confidence > 0 ? `${(d.confidence * 100).toFixed(1)}%` : 'N/A'}
+                      </p>
+                    </div>
+                    {d.latitude && (
+                      <div className="bg-gray-50 rounded-lg p-3 col-span-2">
+                        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Location</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {parseFloat(d.latitude).toFixed(5)}, {parseFloat(d.longitude).toFixed(5)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  {d.description && (
+                    <div className="bg-amber-50 border border-amber-100 rounded-lg p-4">
+                      <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">Symptoms / Notes</p>
+                      <p className="text-sm text-gray-700 leading-relaxed">{d.description}</p>
+                    </div>
+                  )}
+
+                  {/* Confirmation status */}
+                  <div className="flex items-center gap-2">
+                    {d.confirmed ? (
+                      <span className="flex items-center gap-1.5 text-sm text-green-700 font-medium">
+                        <CheckCircle className="w-4 h-4" /> User-confirmed detection
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-sm text-gray-400">
+                        <AlertCircle className="w-4 h-4" /> Not yet confirmed by user
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Resolve action for own active detections */}
+                  {isOwn && isActive && (
+                    <button
+                      onClick={() => {
+                        setSelectedHistoryDetection(null);
+                        confirmResolveInfestation(d.id);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold text-sm transition-colors"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Mark as Resolved
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+                <button onClick={() => setSelectedHistoryDetection(null)}
+                  className="w-full py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-semibold text-sm transition-colors">
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     
       </PageContent>
       </div>
