@@ -91,7 +91,7 @@ const HeatMap = ({ user, onLogout }) => {
   const [showFarmModal, setShowFarmModal] = useState(false);
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
   const [selectedInfestationToResolve, setSelectedInfestationToResolve] = useState(null);
-  const [farmForm, setFarmForm] = useState({ name: '', size: '', crop_type: '', address: '' });
+  const [farmForm, setFarmForm] = useState({ name: '', size: '', crop_type: '' });
 
   // Farm list sorting: 'all' = default, 'mine' = my farms first
   const [farmSortMode, setFarmSortMode] = useState('mine');
@@ -109,6 +109,8 @@ const HeatMap = ({ user, onLogout }) => {
   const [locationChoice, setLocationChoice] = useState(user?.is_verified ? 'farm' : 'current'); // 'farm' or 'current'
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
+
+  const [selectedDotKey, setSelectedDotKey] = useState(null);
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -400,36 +402,33 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const saveFarm = async () => {
-  if (!selectedLocation || !farmForm.name) {
-    alert('Please fill in all required fields');
-    return;
-  }
-  
-  try {
-    const farmData = { 
-      name: farmForm.name,
-      size: farmForm.size ? parseFloat(farmForm.size) : 5,  // ← Parse to number
-      crop_type: farmForm.crop_type || 'Rice',
-      address: farmForm.address || '',
-      lat: parseFloat(selectedLocation.lat),   // ← Explicit float
-      lng: parseFloat(selectedLocation.lng)    // ← Explicit float
-    };
+    if (!selectedLocation || !farmForm.name) {
+      alert('Please fill in all required fields');
+      return;
+    }
     
-    const response = await api.post('/farm-requests/', farmData);
-    
-    resetFarmForm();
-    alert('Farm request submitted successfully! An admin will review your request soon.');
-    
-    fetchInitialData();
-  } catch (error) {
-    console.error('Error saving farm request:', error);
-    // More detailed error message to help debug further if needed
-    const detail = error.response?.data 
-      ? JSON.stringify(error.response.data) 
-      : error.message;
-    alert('Failed to submit farm request: ' + detail);
-  }
-};
+    try {
+      const farmData = { 
+        name: farmForm.name,
+        size: farmForm.size || '5',
+        crop_type: farmForm.crop_type || 'Rice',
+        lat: selectedLocation.lat, 
+        lng: selectedLocation.lng
+        // NOTE: No status field - farms start with no status by default
+      };
+      
+      const response = await api.post('/farm-requests/', farmData);
+      
+      resetFarmForm();
+      alert('Farm request submitted successfully! An admin will review your request soon.');
+      
+      fetchInitialData();
+    } catch (error) {
+      console.error('Error saving farm request:', error);
+      alert('Failed to submit farm request: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
   /**
    * Calculate farm status based on active detection count
    * Returns null/empty status until threshold is reached
@@ -816,7 +815,7 @@ const HeatMap = ({ user, onLogout }) => {
   };
 
   const resetFarmForm = () => {
-    setFarmForm({ name: '', size: '', crop_type: '', address: '' });
+    setFarmForm({ name: '', size: '', crop_type: '' });
     setSelectedLocation(null);
     setShowFarmModal(false);
   };
@@ -1038,200 +1037,149 @@ const HeatMap = ({ user, onLogout }) => {
                 .filter(marker => marker !== null)
               }
 
-              {/* Detection Circles - Grouped by Farm and Pest Type */}
+              {/* Detection Dots - Grouped by location, dot per location, heat circle only when selected */}
               {(() => {
-                // Get grouped detections
-                const validDetections = activeDetections.filter(detection => {
-                  const lat = detection.lat || detection.latitude;
-                  const lng = detection.lng || detection.longitude;
-                  
-                  const hasValidLat = lat !== null && 
-                                     lat !== undefined && 
-                                     lat !== '' && 
-                                     !isNaN(parseFloat(lat)) &&
-                                     isFinite(parseFloat(lat));
-                  const hasValidLng = lng !== null && 
-                                     lng !== undefined && 
-                                     lng !== '' && 
-                                     !isNaN(parseFloat(lng)) &&
-                                     isFinite(parseFloat(lng));
-                  
-                  if (!hasValidLat || !hasValidLng) {
-                    return false;
-                  }
-                  return true;
+                // Validate coords helper
+                const isValidCoord = (v) => v !== null && v !== undefined && v !== '' && !isNaN(parseFloat(v)) && isFinite(parseFloat(v));
+
+                const validDetections = activeDetections.filter(d => {
+                  const lat = d.lat || d.latitude;
+                  const lng = d.lng || d.longitude;
+                  return isValidCoord(lat) && isValidCoord(lng);
                 });
 
-                // Separate verified and unverified detections
-                const verifiedDetections = validDetections.filter(d => d.user_is_verified !== false);
-                const unverifiedDetections = validDetections.filter(d => d.user_is_verified === false);
-
-                const groupedDetections = getGroupedAndOffsetDetections(verifiedDetections);
-
-                const verifiedCircles = groupedDetections.map((item, index) => {
-                  const { position, detection, isGroup, count, allDetections } = item;
-                  
-                  if (isNaN(position.lat) || isNaN(position.lng) || !isFinite(position.lat) || !isFinite(position.lng)) {
-                    return null;
+                // Group ALL detections by rounded location (4 decimal places ≈ 11m precision)
+                const locationGroups = {};
+                validDetections.forEach(d => {
+                  const lat = parseFloat(d.lat || d.latitude);
+                  const lng = parseFloat(d.lng || d.longitude);
+                  const key = `${lat.toFixed(4)}_${lng.toFixed(4)}`;
+                  if (!locationGroups[key]) {
+                    locationGroups[key] = { lat, lng, detections: [], key };
                   }
-                  
-                  let displaySeverity = detection.severity;
-                  if (isGroup && allDetections && allDetections.length > 0) {
-                    const severityOrder = { low: 1, medium: 2, high: 3, critical: 4 };
-                    displaySeverity = allDetections.reduce((highest, d) => {
-                      const currentLevel = severityOrder[d.severity] || 0;
-                      const highestLevel = severityOrder[highest] || 0;
-                      return currentLevel > highestLevel ? d.severity : highest;
-                    }, 'low');
-                  }
-                  
-                  const radius = displaySeverity === 'critical' ? 300 :
-                              displaySeverity === 'high' ? 200 :
-                              displaySeverity === 'medium' ? 150 : 100;
-                
-                  const color = displaySeverity === 'critical' ? '#7f1d1d' :
-                             displaySeverity === 'high' ? '#ef4444' :
-                             displaySeverity === 'medium' ? '#f97316' : '#fbbf24';
+                  locationGroups[key].detections.push(d);
+                });
 
-                  return (
-                    <Circle
-                      key={`detection-group-${index}-${detection.id}`}
-                      center={[position.lat, position.lng]}
-                      radius={radius}
-                      pathOptions={{
-                        fillColor: color,
-                        fillOpacity: 0.3,
-                        color: color,
-                        weight: 2
-                      }}
-                    >
-                      <Popup>
-                        <div className="p-2">
-                          <h3 className="font-bold text-lg">{detection.pest}</h3>
-                          
-                          {isGroup && count > 1 ? (
-                            <>
-                              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold inline-block mb-2">
-                                {count} Reports Merged
-                              </div>
-                              <p className="text-sm font-medium">Highest Severity: {displaySeverity}</p>
-                              
-                              <div className="mt-2 border-t pt-2">
-                                <p className="text-xs font-semibold text-gray-700 mb-1">All Reports:</p>
-                                <div className="space-y-1 max-h-32 overflow-y-auto">
-                                  {allDetections.map((det, idx) => (
-                                    <div key={det.id} className="text-xs bg-gray-50 p-1 rounded">
-                                      <span className="font-medium">#{idx + 1}</span> - 
-                                      Severity: <span className={`font-medium ${
-                                        det.severity === 'critical' ? 'text-red-900' : 
-                                        det.severity === 'high' ? 'text-red-500' : 
-                                        det.severity === 'medium' ? 'text-yellow-600' : 
-                                        'text-green-600'
-                                      }`}>{det.severity}</span>
-                                      <br/>
-                                      <span className="text-gray-500">
-                                        {new Date(det.detected_at || det.reported_at).toLocaleDateString()} - {det.user_name || 'Unknown'}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <p className="text-sm">Severity: {displaySeverity}</p>
-                              <p className="text-xs text-gray-600">
-                                {new Date(detection.detected_at || detection.reported_at).toLocaleDateString()}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                Reported by: {detection.user_name || 'Unknown'}
-                              </p>
-                            </>
-                          )}
-                          
-                          {detection.farm_id && (
-                            <p className="text-xs text-blue-600 mt-2 italic">
-                              {isGroup && count === 1 ? 'Farm detection' : `Merged ${count} same-pest reports`}
-                            </p>
-                          )}
-                        </div>
-                      </Popup>
-                    </Circle>
-                  );
-                }).filter(circle => circle !== null);
+                const severityOrder = { low: 1, medium: 2, high: 3, critical: 4 };
+                const getHighestSeverity = (dets) => dets.reduce((highest, d) => {
+                  return (severityOrder[d.severity] || 0) > (severityOrder[highest] || 0) ? d.severity : highest;
+                }, 'low');
 
-                // Render unverified detections as small dot markers with caution
-                const unverifiedMarkers = unverifiedDetections.map((detection, index) => {
-                  const lat = parseFloat(detection.lat || detection.latitude);
-                  const lng = parseFloat(detection.lng || detection.longitude);
-                  
-                  if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-                    return null;
-                  }
+                const severityColor = (sev) => sev === 'critical' ? '#7f1d1d' : sev === 'high' ? '#ef4444' : sev === 'medium' ? '#f97316' : '#fbbf24';
+                const severityRadius = (sev) => sev === 'critical' ? 300 : sev === 'high' ? 200 : sev === 'medium' ? 150 : 100;
 
-                  const unverifiedDotIcon = L.divIcon({
-                    className: 'unverified-detection-marker',
-                    html: `
-                      <div style="position: relative; text-align: center;">
-                        <div style="
-                          width: 16px;
-                          height: 16px;
-                          background-color: #9ca3af;
-                          border: 2px solid #6b7280;
-                          border-radius: 50%;
-                          margin: 0 auto;
-                          box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-                        "></div>
-                        <div style="
-                          background: #fef3c7;
-                          border: 1px solid #f59e0b;
-                          padding: 1px 4px;
-                          border-radius: 3px;
-                          font-size: 8px;
-                          font-weight: 600;
-                          color: #92400e;
-                          white-space: nowrap;
-                          margin-top: 2px;
-                        "> Unverified</div>
-                      </div>
-                    `,
-                    iconSize: [60, 36],
-                    iconAnchor: [30, 8],
-                    popupAnchor: [0, -8]
+                return Object.values(locationGroups).map((group) => {
+                  const { lat, lng, detections: groupDets, key } = group;
+                  const isSelected = selectedDotKey === key;
+                  const highestSeverity = getHighestSeverity(groupDets);
+                  const color = severityColor(highestSeverity);
+                  const isVerified = groupDets.some(d => d.user_is_verified !== false);
+                  const count = groupDets.length;
+
+                  // Unique pests at this location
+                  const uniquePests = [...new Map(groupDets.map(d => [d.pest || d.pest_name || 'Unknown', d])).values()];
+
+                  // Dot color: green if any verified farmer, grey if all unverified
+                  const dotColor = isVerified ? '#16a34a' : '#9ca3af';
+                  const dotBorder = isVerified ? '#15803d' : '#6b7280';
+
+                  const dotIcon = L.divIcon({
+                    className: '',
+                    html: `<div style="
+                      width: ${count > 1 ? 20 : 14}px;
+                      height: ${count > 1 ? 20 : 14}px;
+                      background-color: ${dotColor};
+                      border: 2.5px solid ${dotBorder};
+                      border-radius: 50%;
+                      box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      color: white;
+                      font-size: 9px;
+                      font-weight: 700;
+                      cursor: pointer;
+                    ">${count > 1 ? count : ''}</div>`,
+                    iconSize: [count > 1 ? 20 : 14, count > 1 ? 20 : 14],
+                    iconAnchor: [count > 1 ? 10 : 7, count > 1 ? 10 : 7],
+                    popupAnchor: [0, -(count > 1 ? 12 : 9)],
                   });
 
                   return (
-                    <Marker
-                      key={`unverified-${detection.id}-${index}`}
-                      position={[lat, lng]}
-                      icon={unverifiedDotIcon}
-                    >
-                      <Popup>
-                        <div className="p-2">
-                          <div className="bg-amber-50 border border-amber-300 rounded-lg p-2 mb-2">
-                            <div className="flex items-center space-x-1 mb-1">
-                              <span className="text-amber-600 text-sm"></span>
-                              <span className="text-xs font-bold text-amber-800">Unverified Detection</span>
-                            </div>
-                            <p className="text-xs text-amber-700">
-                              This detection was submitted by an unverified user. Data may not be reliable.
-                            </p>
-                          </div>
-                          <h3 className="font-bold text-lg text-gray-700">{detection.pest}</h3>
-                          <p className="text-sm text-gray-600">Severity: {detection.severity}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(detection.detected_at || detection.reported_at).toLocaleDateString()}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            Reported by: {detection.user_name || 'Unknown'} (unverified)
-                          </p>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  );
-                }).filter(marker => marker !== null);
+                    <React.Fragment key={key}>
+                      {/* Heat circle - only shown when this dot is selected */}
+                      {isSelected && (
+                        <Circle
+                          center={[lat, lng]}
+                          radius={severityRadius(highestSeverity)}
+                          pathOptions={{
+                            fillColor: color,
+                            fillOpacity: 0.25,
+                            color: color,
+                            weight: 2,
+                          }}
+                        />
+                      )}
 
-                return [...verifiedCircles, ...unverifiedMarkers];
+                      {/* Dot marker */}
+                      <Marker
+                        position={[lat, lng]}
+                        icon={dotIcon}
+                        eventHandlers={{
+                          click: () => setSelectedDotKey(prev => prev === key ? null : key),
+                        }}
+                      >
+                        <Popup>
+                          <div style={{ minWidth: '200px', maxWidth: '280px' }}>
+                            {/* Header */}
+                            <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', marginBottom: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: dotColor, flexShrink: 0 }}></div>
+                                <span style={{ fontWeight: '700', fontSize: '13px', color: '#111827' }}>
+                                  {count === 1 ? (groupDets[0].pest || groupDets[0].pest_name || 'Unknown Pest') : `${count} Detection${count > 1 ? 's' : ''} at this location`}
+                                </span>
+                              </div>
+                              {!isVerified && (
+                                <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '4px', padding: '3px 6px', fontSize: '10px', color: '#92400e', fontWeight: '600' }}>
+                                  ⚠ Unverified user data
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Pest list */}
+                            <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {groupDets.map((det, idx) => {
+                                const pestName = det.pest || det.pest_name || 'Unknown';
+                                const sc = severityColor(det.severity);
+                                return (
+                                  <div key={det.id} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                      <span style={{ fontWeight: '600', fontSize: '12px', color: '#1f2937', flex: 1 }}>
+                                        {count > 1 ? `${idx + 1}. ` : ''}{pestName}
+                                      </span>
+                                      <span style={{ background: sc, color: 'white', borderRadius: '3px', padding: '1px 5px', fontSize: '10px', fontWeight: '700', marginLeft: '4px', flexShrink: 0 }}>
+                                        {det.severity}
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
+                                      {det.user_name || 'Unknown'} · {new Date(det.detected_at || det.reported_at).toLocaleDateString()}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {count > 1 && (
+                              <div style={{ marginTop: '8px', fontSize: '10px', color: '#6b7280', borderTop: '1px solid #e5e7eb', paddingTop: '6px' }}>
+                                Highest severity: <strong style={{ color: severityColor(highestSeverity) }}>{highestSeverity}</strong>
+                              </div>
+                            )}
+                          </div>
+                        </Popup>
+                      </Marker>
+                    </React.Fragment>
+                  );
+                });
               })()}
             </MapContainer>
           )}
@@ -1260,20 +1208,6 @@ const HeatMap = ({ user, onLogout }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="e.g., Northern Rice Field"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address / Location Description
-                  </label>
-                  <input
-                    type="text"
-                    value={farmForm.address}
-                    onChange={(e) => setFarmForm({...farmForm, address: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="e.g., Brgy. San Nicolas, Magalang, Pampanga"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Enter a general address or landmark near your farm</p>
                 </div>
 
                 <div>
