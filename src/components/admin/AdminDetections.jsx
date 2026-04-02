@@ -21,53 +21,48 @@ const AdminDetections = ({ user, onLogout }) => {
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
 
+  // Re-fetch from server whenever page, pageSize, search, or status changes
   useEffect(() => {
     fetchDetections();
-  }, []);
+  }, [currentPage, itemsPerPage, searchQuery, statusFilter]);
 
+  // Reset to page 1 whenever filters change (separate effect so fetch above sees updated page)
   useEffect(() => {
-    filterDetections();
-  }, [searchQuery, statusFilter, detections]);
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, itemsPerPage]);
 
   const fetchDetections = async () => {
+    setLoading(true);
     try {
-      // Request a large page size to get all detections
-      const response = await api.get('/admin/detections/?page_size=1000');
-      const detectionData = Array.isArray(response.data) 
-        ? response.data 
-        : (response.data.results || []);
-      
-      setDetections(detectionData);
-      setFilteredDetections(detectionData);
-      setTotalItems(response.data.count || detectionData.length);
+      const params = new URLSearchParams({
+        page: currentPage,
+        page_size: itemsPerPage,
+      });
+      if (searchQuery) params.append('search', searchQuery);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+
+      const response = await api.get(`/admin/detections/?${params.toString()}`);
+
+      if (response.data && response.data.results !== undefined) {
+        // Standard DRF paginated response: { count, next, previous, results }
+        setDetections(response.data.results);
+        setFilteredDetections(response.data.results);
+        setTotalItems(response.data.count || 0);
+      } else {
+        // Fallback: plain array
+        const data = Array.isArray(response.data) ? response.data : [];
+        setDetections(data);
+        setFilteredDetections(data);
+        setTotalItems(data.length);
+      }
     } catch (error) {
       console.error('Error fetching detections:', error);
       setDetections([]);
       setFilteredDetections([]);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterDetections = () => {
-    let filtered = detections;
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(d => d.status === statusFilter);
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(d =>
-        d.pest_name.toLowerCase().includes(query) ||
-        d.user_name.toLowerCase().includes(query) ||
-        (d.farm_name && d.farm_name.toLowerCase().includes(query))
-      );
-    }
-
-    setFilteredDetections(filtered);
-    setTotalItems(filtered.length);
-    setCurrentPage(1); // Reset to first page when filtering
   };
 
   const handleVerify = async () => {
@@ -140,6 +135,15 @@ const AdminDetections = ({ user, onLogout }) => {
       critical: 'bg-red-100 text-red-800'
     };
     return badges[severity] || 'bg-gray-100 text-gray-800';
+  };
+
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const getPageNumbers = () => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (currentPage <= 3) return [1, 2, 3, 4, 5];
+    if (currentPage >= totalPages - 2) return [totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
   };
 
   return (
@@ -215,36 +219,18 @@ const AdminDetections = ({ user, onLogout }) => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Pest
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Farm
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Severity
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pest</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredDetections
-                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                    .map((detection) => (
+                  {filteredDetections.map((detection) => (
                     <tr key={detection.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         #{detection.id}
@@ -301,15 +287,13 @@ const AdminDetections = ({ user, onLogout }) => {
                             </button>
                           </>
                         )}
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleDelete(detection.id)}
-                            className="text-red-600 hover:text-red-800"
-                            title="Delete detection"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleDelete(detection.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete detection"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -320,7 +304,7 @@ const AdminDetections = ({ user, onLogout }) => {
         </div>
 
         {/* Pagination Controls */}
-        {!loading && filteredDetections.length > 0 && (
+        {!loading && totalItems > 0 && (
           <div className="bg-white rounded-lg shadow mt-4 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -358,48 +342,33 @@ const AdminDetections = ({ user, onLogout }) => {
                 >
                   Previous
                 </button>
-                
+
                 <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, Math.ceil(totalItems / itemsPerPage)) }, (_, i) => {
-                    const totalPages = Math.ceil(totalItems / itemsPerPage);
-                    let pageNum;
-                    
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-1 border rounded text-sm ${
-                          currentPage === pageNum
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+                  {getPageNumbers().map((pageNum, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 border rounded text-sm ${
+                        currentPage === pageNum
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
                 </div>
 
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalItems / itemsPerPage), prev + 1))}
-                  disabled={currentPage >= Math.ceil(totalItems / itemsPerPage)}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage >= totalPages}
                   className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   Next
                 </button>
                 <button
-                  onClick={() => setCurrentPage(Math.ceil(totalItems / itemsPerPage))}
-                  disabled={currentPage >= Math.ceil(totalItems / itemsPerPage)}
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage >= totalPages}
                   className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   Last
