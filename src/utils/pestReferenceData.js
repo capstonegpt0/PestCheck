@@ -92,7 +92,7 @@ export const PEST_REFERENCE_DATA = {
     crop: 'Rice',
     referenceImages: [
       {
-        url: `${PEST_IMAGES_BASE}/ricebug.jpg`,
+        url: `${PEST_IMAGES_BASE}/ricebug2.jpg`,
         stage: 'adult',
         description: 'Small gray-brown weevil with a prominent snout (rostrum) and dark marking along the back'
       }
