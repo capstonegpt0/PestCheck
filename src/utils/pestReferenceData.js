@@ -87,27 +87,27 @@ export const PEST_REFERENCE_DATA = {
 
   'rice-bug': {
     id: 'rice-bug',
-    name: 'Rice Bug',
-    scientificName: 'Leptocorisa oratorius',
+    name: 'Rice bug',
+    scientificName: 'Lissorhoptrus oryzophilus',
     crop: 'Rice',
     referenceImages: [
       {
         url: `${PEST_IMAGES_BASE}/ricebug.jpg`,
         stage: 'adult',
-        description: 'Long slender bug, brown to reddish-brown'
+        description: 'Small gray-brown weevil with a prominent snout (rostrum) and dark marking along the back'
       }
     ],
     damageImage: `${DAMAGE_IMAGES_BASE}/ricebugdamage.jpg`,
     identificationTips: [
-      'Long slender body (15-20mm)',
-      'Brown to reddish-brown color',
-      'Very long antennae (longer than body)',
-      'Narrow head',
-      'Feeds on developing grains causing discoloration'
+      'Small beetle-like insect (3.3–4mm) with a prominent beak/snout',
+      'Gray to dark brown with an elongated dark mark along the center of wing covers',
+      'Adults leave distinctive narrow, white feeding scars on leaf surfaces',
+      'Larvae are aquatic, creamy white with brown head, found on submerged roots',
+      'Middle legs have hydrophobic hairs adapted for swimming'
     ],
-    symptoms: 'Discolored or empty grains, "buggy" grains with dark spots, reduced grain weight, unfilled grains',
-    controlMethods: 'Spray with malathion or fenitrothion during milk to dough stage, hand collection in small fields',
-    prevention: 'Synchronous planting in area, remove weedy grasses around fields, use pheromone traps'
+    symptoms: 'White longitudinal feeding scars on leaves (from adults), stunted growth and reduced tillering, pruned and damaged root systems, yellowing and lodging in severe infestations',
+    controlMethods: 'Apply carbofuran granules to flooded soil as larvicide, foliar spray with lambda-cyhalothrin or neonicotinoids against adults, seed treatment with thiamethoxam or chlorantraniliprole',
+    prevention: 'Delay flooding after transplanting to allow plants to establish, shallow flood management, remove weedy grasses on field borders and levees, use tolerant varieties'
   },
 
   'green-leafhopper': {
