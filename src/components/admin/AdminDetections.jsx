@@ -37,6 +37,7 @@ const AdminDetections = ({ user, onLogout }) => {
       const params = new URLSearchParams({
         page: currentPage,
         page_size: itemsPerPage,
+        confirmed: 'true', // Never show unconfirmed (cancelled/in-progress) detections
       });
       if (searchQuery) params.append('search', searchQuery);
       if (statusFilter !== 'all') params.append('status', statusFilter);
