@@ -759,7 +759,7 @@ const HeatMap = ({ user, onLogout }) => {
       
       setTimeout(() => {
         fetchFilteredDetections();
-        closeDetectionModal();
+        closeDetectionModal(true); // pass true — detection was saved, do NOT delete it
       }, 1500);
     } catch (error) {
       console.error('Error saving detection:', error);
@@ -770,9 +770,11 @@ const HeatMap = ({ user, onLogout }) => {
     }
   };
 
-  const closeDetectionModal = async () => {
-    // If there's an unconfirmed detection, delete it
-    if (detectionResult && detectionResult.id && detectionStep !== 'success') {
+  // wasSuccessful must be passed explicitly — never read detectionStep from state here
+  // because React state is stale inside setTimeout/async closures (stale closure bug).
+  const closeDetectionModal = async (wasSuccessful = false) => {
+    // Only delete the temporary record if the detection was NOT successfully saved
+    if (!wasSuccessful && detectionResult && detectionResult.id) {
       try {
         await api.delete(`/detections/${detectionResult.id}/`);
         console.log(`Deleted unconfirmed detection on modal close ID: ${detectionResult.id}`);
@@ -780,7 +782,7 @@ const HeatMap = ({ user, onLogout }) => {
         console.error('Error deleting unconfirmed detection on close:', error);
       }
     }
-    
+
     setShowDetectionModal(false);
     setDetectionStep('upload');
     setSelectedImage(null);
