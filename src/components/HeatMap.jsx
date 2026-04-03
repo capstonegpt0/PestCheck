@@ -406,6 +406,12 @@ const HeatMap = ({ user, onLogout }) => {
       alert('Please fill in all required fields');
       return;
     }
+
+    const sizeValue = parseFloat(farmForm.size);
+    if (farmForm.size !== '' && (isNaN(sizeValue) || sizeValue <= 0)) {
+      alert('Farm size must be a positive number (e.g. 0.5, 1, 5).');
+      return;
+    }
     
     try {
       const farmData = { 
@@ -1219,10 +1225,19 @@ const HeatMap = ({ user, onLogout }) => {
                   <input
                     type="number"
                     value={farmForm.size}
-                    onChange={(e) => setFarmForm({...farmForm, size: e.target.value})}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Allow empty string (clearing the field) but block negative values
+                      if (val === '' || parseFloat(val) > 0) {
+                        setFarmForm({...farmForm, size: val});
+                      }
+                    }}
+                    min="0.01"
+                    step="0.01"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="5"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Must be greater than 0</p>
                 </div>
 
                 <div>
