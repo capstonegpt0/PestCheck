@@ -24,7 +24,6 @@ const AnimatedModal = ({ isOpen, onClose, children, zIndex = 50, className = '' 
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
-      // Small delay to allow DOM paint before triggering enter animation
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setAnimationClass('modal-enter');
@@ -48,17 +47,20 @@ const AnimatedModal = ({ isOpen, onClose, children, zIndex = 50, className = '' 
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center p-4 ${animationClass}`}
+      // KEY FIX: overflow-y-auto on the outer container + items-start + py-4
+      // This makes the OVERLAY scroll, not the page behind it.
+      // The modal always starts near the top of the visible screen on mobile.
+      className={`fixed inset-0 flex items-start justify-center overflow-y-auto py-4 px-4 ${animationClass}`}
       style={zStyle}
       onAnimationEnd={handleAnimationEnd}
     >
-      {/* Backdrop */}
+      {/* Backdrop - covers the whole overlay including scroll area */}
       <div
-        className="modal-backdrop-layer absolute inset-0 bg-black"
+        className="modal-backdrop-layer fixed inset-0 bg-black"
         onClick={onClose}
       />
-      {/* Content */}
-      <div className={`modal-content-layer relative ${className}`}>
+      {/* Content - relative so it sits above the fixed backdrop */}
+      <div className={`modal-content-layer relative w-full flex justify-center my-auto ${className}`}>
         {children}
       </div>
     </div>

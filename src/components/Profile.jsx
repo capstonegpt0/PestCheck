@@ -82,8 +82,8 @@ const VerificationRequestModal = ({ isOpen, onClose, onSuccess, existingRequest 
   // Show status if there is an existing request
   if (existingRequest) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto z-50 p-4 py-6">
+        <div className="bg-white rounded-xl shadow-xl max-w-lg w-full my-auto">
           <div className="flex justify-between items-center p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-800 flex items-center">
               <ShieldCheck className="w-5 h-5 mr-2 text-primary" />
@@ -145,8 +145,8 @@ const VerificationRequestModal = ({ isOpen, onClose, onSuccess, existingRequest 
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto z-50 p-4 py-6">
+      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full my-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-800 flex items-center">
             <ShieldCheck className="w-5 h-5 mr-2 text-primary" />
@@ -431,8 +431,8 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto z-50 p-4 py-6">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full my-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-800 flex items-center">
             <Settings className="w-6 h-6 mr-2" />

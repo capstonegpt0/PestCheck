@@ -1195,8 +1195,8 @@ const HeatMap = ({ user, onLogout }) => {
 
         {/* Farm Modal */}
         {showFarmModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ zIndex: 10000 }}>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-4 py-6" style={{ zIndex: 9999 }}>
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md my-auto" style={{ zIndex: 10000 }}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800">Request New Farm</h2>
                 <button onClick={resetFarmForm} className="text-gray-500 hover:text-gray-700">
@@ -1287,8 +1287,8 @@ const HeatMap = ({ user, onLogout }) => {
 
         {/* Detection Modal */}
         {showDetectionModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 10000 }}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-4 py-6" style={{ zIndex: 10000 }}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl my-auto">
               <div className="p-6">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
@@ -1974,8 +1974,8 @@ const HeatMap = ({ user, onLogout }) => {
 
         {/* Resolve Confirmation Modal */}
         {showResolveConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ zIndex: 10000 }}>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-4 py-6" style={{ zIndex: 9999 }}>
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md my-auto" style={{ zIndex: 10000 }}>
               <h2 className="text-xl font-bold text-gray-800 mb-4">Confirm Resolution</h2>
               <p className="text-gray-600 mb-6">
                 Are you sure you want to mark this infestation as resolved?

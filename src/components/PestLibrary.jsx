@@ -359,8 +359,8 @@ const PestDetailModal = ({ pest, onClose }) => {
   const seasonalData = PEST_SEASONAL_DATA[pest.id] || PEST_SEASONAL_DATA[pest.name?.toLowerCase().replace(/\s+/g, '-')];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto my-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 py-6 z-50 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full my-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-start z-10">
           <div className="min-w-0 flex-1 mr-4">
             <h2 className="text-xl sm:text-3xl font-bold text-gray-800 mb-1">{pest.name}</h2>
