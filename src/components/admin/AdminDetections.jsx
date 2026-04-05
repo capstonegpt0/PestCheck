@@ -34,10 +34,13 @@ const AdminDetections = ({ user, onLogout }) => {
   const fetchDetections = async () => {
     setLoading(true);
     try {
+      // Rejected detections have confirmed=False (removed from heatmap).
+      // Sending confirmed=all bypasses that filter so they still appear here.
+      const confirmedParam = statusFilter === 'rejected' ? 'all' : 'true';
       const params = new URLSearchParams({
         page: currentPage,
         page_size: itemsPerPage,
-        confirmed: 'true',
+        confirmed: confirmedParam,
       });
       if (searchQuery) params.append('search', searchQuery);
       if (statusFilter !== 'all') params.append('status', statusFilter);
