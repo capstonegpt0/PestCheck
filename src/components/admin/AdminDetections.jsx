@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, XCircle, Eye, MessageSquare, Trash2 } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, Trash2, AlertCircle } from 'lucide-react';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 
@@ -15,18 +15,18 @@ const AdminDetections = ({ user, onLogout }) => {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [actionType, setActionType] = useState(''); // 'verify' or 'reject'
-  
+  const [actionError, setActionError] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
 
-  // Re-fetch from server whenever page, pageSize, search, or status changes
   useEffect(() => {
     fetchDetections();
   }, [currentPage, itemsPerPage, searchQuery, statusFilter]);
 
-  // Reset to page 1 whenever filters change (separate effect so fetch above sees updated page)
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, statusFilter, itemsPerPage]);
@@ -37,7 +37,7 @@ const AdminDetections = ({ user, onLogout }) => {
       const params = new URLSearchParams({
         page: currentPage,
         page_size: itemsPerPage,
-        confirmed: 'true', // Never show unconfirmed (cancelled/in-progress) detections
+        confirmed: 'true',
       });
       if (searchQuery) params.append('search', searchQuery);
       if (statusFilter !== 'all') params.append('status', statusFilter);
@@ -45,12 +45,10 @@ const AdminDetections = ({ user, onLogout }) => {
       const response = await api.get(`/admin/detections/?${params.toString()}`);
 
       if (response.data && response.data.results !== undefined) {
-        // Standard DRF paginated response: { count, next, previous, results }
         setDetections(response.data.results);
         setFilteredDetections(response.data.results);
         setTotalItems(response.data.count || 0);
       } else {
-        // Fallback: plain array
         const data = Array.isArray(response.data) ? response.data : [];
         setDetections(data);
         setFilteredDetections(data);
@@ -68,33 +66,44 @@ const AdminDetections = ({ user, onLogout }) => {
 
   const handleVerify = async () => {
     if (!selectedDetection) return;
-
+    setActionLoading(true);
+    setActionError('');
     try {
       await api.post(`/admin/detections/${selectedDetection.id}/verify_detection/`, {
         notes: adminNotes
       });
-      setShowVerifyModal(false);
-      setSelectedDetection(null);
-      setAdminNotes('');
+      closeVerifyModal();
       fetchDetections();
     } catch (error) {
-      console.error('Error verifying detection:', error);
+      const msg = error.response?.data?.error || 'Failed to verify detection. Please try again.';
+      setActionError(msg);
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleReject = async () => {
     if (!selectedDetection) return;
 
+    // Enforce reason on the frontend as well
+    if (!adminNotes.trim()) {
+      setActionError('Please provide a reason for rejection. The farmer will be notified with this message.');
+      return;
+    }
+
+    setActionLoading(true);
+    setActionError('');
     try {
       await api.post(`/admin/detections/${selectedDetection.id}/reject_detection/`, {
         notes: adminNotes
       });
-      setShowVerifyModal(false);
-      setSelectedDetection(null);
-      setAdminNotes('');
+      closeVerifyModal();
       fetchDetections();
     } catch (error) {
-      console.error('Error rejecting detection:', error);
+      const msg = error.response?.data?.error || 'Failed to reject detection. Please try again.';
+      setActionError(msg);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -102,7 +111,6 @@ const AdminDetections = ({ user, onLogout }) => {
     if (!window.confirm('Are you sure you want to delete this detection? This action cannot be undone.')) {
       return;
     }
-
     try {
       await api.delete(`/admin/detections/${detectionId}/`);
       fetchDetections();
@@ -115,7 +123,16 @@ const AdminDetections = ({ user, onLogout }) => {
     setSelectedDetection(detection);
     setActionType(action);
     setAdminNotes(detection.admin_notes || '');
+    setActionError('');
     setShowVerifyModal(true);
+  };
+
+  const closeVerifyModal = () => {
+    setShowVerifyModal(false);
+    setSelectedDetection(null);
+    setAdminNotes('');
+    setActionError('');
+    setActionLoading(false);
   };
 
   const getStatusBadge = (status) => {
@@ -150,7 +167,7 @@ const AdminDetections = ({ user, onLogout }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavigation user={user} onLogout={onLogout} />
-      
+
       <div className="max-w-screen-2xl mx-auto px-6 py-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-8">Detection Management</h1>
 
@@ -169,38 +186,23 @@ const AdminDetections = ({ user, onLogout }) => {
             </div>
 
             <div className="flex space-x-2">
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setStatusFilter('pending')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  statusFilter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Pending
-              </button>
-              <button
-                onClick={() => setStatusFilter('verified')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  statusFilter === 'verified' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Verified
-              </button>
-              <button
-                onClick={() => setStatusFilter('rejected')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  statusFilter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Rejected
-              </button>
+              {['all', 'pending', 'verified', 'rejected', 'resolved'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`px-6 py-3 rounded-lg font-semibold capitalize transition-colors ${
+                    statusFilter === s
+                      ? s === 'all' ? 'bg-blue-600 text-white'
+                        : s === 'pending' ? 'bg-yellow-600 text-white'
+                        : s === 'verified' ? 'bg-green-600 text-white'
+                        : s === 'rejected' ? 'bg-red-600 text-white'
+                        : 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -261,10 +263,7 @@ const AdminDetections = ({ user, onLogout }) => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                         <button
-                          onClick={() => {
-                            setSelectedDetection(detection);
-                            setShowDetailModal(true);
-                          }}
+                          onClick={() => { setSelectedDetection(detection); setShowDetailModal(true); }}
                           className="text-blue-600 hover:text-blue-800"
                           title="View details"
                         >
@@ -288,13 +287,15 @@ const AdminDetections = ({ user, onLogout }) => {
                             </button>
                           </>
                         )}
-                        <button
-                          onClick={() => handleDelete(detection.id)}
-                          className="text-red-600 hover:text-red-800"
-                          title="Delete detection"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDelete(detection.id)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Delete detection"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -315,10 +316,7 @@ const AdminDetections = ({ user, onLogout }) => {
                 </span>
                 <select
                   value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
+                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                   className="ml-4 px-3 py-1 border border-gray-300 rounded text-sm"
                 >
                   <option value={10}>10 per page</option>
@@ -386,7 +384,7 @@ const AdminDetections = ({ user, onLogout }) => {
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Detection Details</h2>
-              
+
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <p className="text-sm text-gray-600">Detection ID</p>
@@ -427,7 +425,7 @@ const AdminDetections = ({ user, onLogout }) => {
                 <div>
                   <p className="text-sm text-gray-600">Location</p>
                   <p className="font-semibold text-xs">
-                    {selectedDetection.latitude.toFixed(4)}, {selectedDetection.longitude.toFixed(4)}
+                    {selectedDetection.latitude?.toFixed(4)}, {selectedDetection.longitude?.toFixed(4)}
                   </p>
                 </div>
                 <div>
@@ -445,8 +443,14 @@ const AdminDetections = ({ user, onLogout }) => {
 
               {selectedDetection.admin_notes && (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-1">Admin Notes</p>
-                  <p className="text-sm bg-yellow-50 p-3 rounded border border-yellow-200">
+                  <p className="text-sm text-gray-600 mb-1">
+                    {selectedDetection.status === 'rejected' ? 'Rejection Reason' : 'Admin Notes'}
+                  </p>
+                  <p className={`text-sm p-3 rounded border ${
+                    selectedDetection.status === 'rejected'
+                      ? 'bg-red-50 border-red-200 text-red-800'
+                      : 'bg-yellow-50 border-yellow-200'
+                  }`}>
                     {selectedDetection.admin_notes}
                   </p>
                 </div>
@@ -454,7 +458,9 @@ const AdminDetections = ({ user, onLogout }) => {
 
               {selectedDetection.verified_by_name && (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-600">Verified By</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedDetection.status === 'rejected' ? 'Rejected By' : 'Verified By'}
+                  </p>
                   <p className="font-semibold">{selectedDetection.verified_by_name}</p>
                 </div>
               )}
@@ -462,8 +468,8 @@ const AdminDetections = ({ user, onLogout }) => {
               {selectedDetection.image && (
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-2">Detection Image</p>
-                  <img 
-                    src={selectedDetection.image} 
+                  <img
+                    src={selectedDetection.image}
                     alt={selectedDetection.pest_name}
                     className="w-full h-64 object-cover rounded-lg"
                   />
@@ -471,10 +477,7 @@ const AdminDetections = ({ user, onLogout }) => {
               )}
 
               <button
-                onClick={() => {
-                  setShowDetailModal(false);
-                  setSelectedDetection(null);
-                }}
+                onClick={() => { setShowDetailModal(false); setSelectedDetection(null); }}
                 className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
               >
                 Close
@@ -484,50 +487,77 @@ const AdminDetections = ({ user, onLogout }) => {
         </div>
       )}
 
-      {/* Verify/Reject Modal */}
+      {/* Verify / Reject Modal */}
       {showVerifyModal && selectedDetection && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
                 {actionType === 'verify' ? 'Verify Detection' : 'Reject Detection'}
               </h2>
-              
+
               <p className="text-sm text-gray-600 mb-4">
-                Detection: <span className="font-semibold">#{selectedDetection.id} - {selectedDetection.pest_name}</span>
+                Detection: <span className="font-semibold">#{selectedDetection.id} — {selectedDetection.pest_name}</span>
               </p>
 
+              {/* Rejection warning banner */}
+              {actionType === 'reject' && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                  <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-red-700">
+                    The farmer will receive a notification with your reason. This detection will be removed from the map.
+                  </p>
+                </div>
+              )}
+
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Notes
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {actionType === 'reject' ? (
+                    <span>Reason for rejection <span className="text-red-500">*</span></span>
+                  ) : (
+                    'Verification notes (optional)'
+                  )}
                 </label>
                 <textarea
                   value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => { setAdminNotes(e.target.value); setActionError(''); }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    actionError && actionType === 'reject' ? 'border-red-400' : 'border-gray-300'
+                  }`}
                   rows="4"
-                  placeholder={actionType === 'verify' ? 'Add verification notes...' : 'Provide reason for rejection...'}
+                  placeholder={
+                    actionType === 'verify'
+                      ? 'Add verification notes...'
+                      : 'e.g. Image quality too low, pest not clearly visible...'
+                  }
                 />
+                {actionError && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {actionError}
+                  </p>
+                )}
               </div>
 
               <div className="flex space-x-3">
                 <button
                   onClick={actionType === 'verify' ? handleVerify : handleReject}
-                  className={`flex-1 text-white py-2 px-4 rounded-lg font-medium ${
-                    actionType === 'verify' 
-                      ? 'bg-green-600 hover:bg-green-700' 
+                  disabled={actionLoading}
+                  className={`flex-1 text-white py-2 px-4 rounded-lg font-medium disabled:opacity-60 disabled:cursor-not-allowed ${
+                    actionType === 'verify'
+                      ? 'bg-green-600 hover:bg-green-700'
                       : 'bg-red-600 hover:bg-red-700'
                   }`}
                 >
-                  {actionType === 'verify' ? 'Verify' : 'Reject'}
+                  {actionLoading
+                    ? 'Processing...'
+                    : actionType === 'verify' ? 'Verify' : 'Reject'
+                  }
                 </button>
                 <button
-                  onClick={() => {
-                    setShowVerifyModal(false);
-                    setSelectedDetection(null);
-                    setAdminNotes('');
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium"
+                  onClick={closeVerifyModal}
+                  disabled={actionLoading}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-60"
                 >
                   Cancel
                 </button>
