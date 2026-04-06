@@ -87,7 +87,7 @@ export const PEST_REFERENCE_DATA = {
 
   'rice-bug': {
     id: 'rice-bug',
-    name: 'Rice bug',
+    name: 'Rice Weevil',
     scientificName: 'Lissorhoptrus oryzophilus',
     crop: 'Rice',
     referenceImages: [
