@@ -46,7 +46,7 @@ const PEST_SEASONAL_DATA = {
   },
   'rice-bug': {
     id: 'rice-bug',
-    name: 'Rice Bug',
+    name: 'Rice Weevil',
     crop: 'Rice',
     // Active during grain-filling stages (both seasons)
     monthly: [1, 2, 3, 4, 3, 2, 2, 3, 4, 5, 4, 2],
@@ -618,7 +618,7 @@ const PestLibrary = ({ user, onLogout }) => {
     },
     {
       id: 'rice-bug',
-      name: 'Rice Bug',
+      name: 'Rice Weevil',
       scientific_name: 'Leptocorisa oratorius',
       crop_affected: 'Rice',
       description: 'A long slender bug that feeds on developing rice grains causing discoloration.',
