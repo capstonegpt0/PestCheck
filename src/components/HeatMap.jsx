@@ -896,7 +896,7 @@ const HeatMap = ({ user, onLogout }) => {
         </div>
 
         {/* Map */}
-        <div className="bg-white rounded-lg shadow overflow-hidden mb-6 h-64 sm:h-96 md:h-[500px]" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="bg-white rounded-lg shadow overflow-hidden mb-6 h-64 sm:h-96 md:h-[500px]" style={{ position: 'relative', zIndex: 1, isolation: 'isolate' }}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Activity className="w-8 h-8 text-primary animate-spin mr-2" />

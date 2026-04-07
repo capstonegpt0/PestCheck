@@ -364,7 +364,7 @@ const PestDetailModal = ({ pest, onClose }) => {
 
       {/* Backdrop */}
       <div
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50 }}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 10000 }}
         onClick={onClose}
       />
 
@@ -373,7 +373,7 @@ const PestDetailModal = ({ pest, onClose }) => {
         style={{
           position: 'fixed',
           left: 0, right: 0, bottom: 0, top: 0,
-          zIndex: 51,
+          zIndex: 10001,
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'center',
