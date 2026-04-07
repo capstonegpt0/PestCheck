@@ -121,6 +121,58 @@ const HeatMap = ({ user, onLogout }) => {
 
   const center = [15.2139, 120.6619];
 
+  // Barangay label positions (corrected coordinates)
+  const barangays = [
+    { name: 'San Nicolas 1st\n(Poblacion)', lat: 15.2166, lng: 120.6669 },
+    { name: 'San Nicolas 2nd\n(Poblacion)', lat: 15.2155, lng: 120.6657 },
+    { name: 'San Pedro 1st\n(Poblacion)', lat: 15.2131, lng: 120.6651 },
+    { name: 'San Pedro 2nd\n(Poblacion)', lat: 15.2127, lng: 120.6675 },
+    { name: 'San Agustin', lat: 15.2255, lng: 120.6558 },
+    { name: 'San Antonio', lat: 15.2285, lng: 120.6865 },
+    { name: 'San Francisco', lat: 15.2078, lng: 120.6778 },
+    { name: 'San Ildefonso', lat: 15.2343, lng: 120.6521 },
+    { name: 'San Jose', lat: 15.2023, lng: 120.6611 },
+    { name: 'San Juan', lat: 15.1953, lng: 120.6723 },
+    { name: 'San Miguel', lat: 15.2135, lng: 120.6976 },
+    { name: 'San Rafael', lat: 15.2045, lng: 120.6517 },
+    { name: 'San Roque', lat: 15.1965, lng: 120.6554 },
+    { name: 'Santa Cruz', lat: 15.1848, lng: 120.6601 },
+    { name: 'Santa Lucia', lat: 15.2162, lng: 120.6457 },
+    { name: 'Santa Maria', lat: 15.2026, lng: 120.6385 },
+    { name: 'Santa Monica', lat: 15.1912, lng: 120.6657 },
+    { name: 'Santo Rosario', lat: 15.1903, lng: 120.6482 },
+    { name: 'Santo Niño', lat: 15.2057, lng: 120.6288 },
+    { name: 'Alupay', lat: 15.1843, lng: 120.6373 },
+    { name: 'Bucanan', lat: 15.2081, lng: 120.6908 },
+    { name: 'Camuning', lat: 15.2340, lng: 120.6373 },
+    { name: 'Dolores', lat: 15.2066, lng: 120.6174 },
+    { name: 'Escaler', lat: 15.2476, lng: 120.6274 },
+    { name: 'La Paz', lat: 15.2160, lng: 120.6121 },
+    { name: 'Navaling', lat: 15.2289, lng: 120.6277 },
+    { name: 'Paraiso', lat: 15.2208, lng: 120.6793 },
+  ];
+
+  const createBarangayLabelIcon = (name) => L.divIcon({
+    className: '',
+    html: `<div style="
+      background: rgba(255,255,255,0.85);
+      border: 1px solid #6b7280;
+      border-radius: 3px;
+      padding: 2px 5px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #1f2937;
+      white-space: pre-line;
+      text-align: center;
+      line-height: 1.3;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      pointer-events: none;
+    ">${name}</div>`,
+    iconSize: [null, null],
+    iconAnchor: [0, 0],
+    popupAnchor: [0, 0],
+  });
+
   // Inverted mask: covers entire world, cuts out only Magalang
   const magalangMask = {
     type: 'Feature',
@@ -1002,6 +1054,17 @@ const HeatMap = ({ user, onLogout }) => {
                 }}
               />
               <MapClickHandler onMapClick={handleMapClick} isAddingFarm={isAddingFarm} />
+
+              {/* Barangay Labels */}
+              {barangays.map((brgy) => (
+                <Marker
+                  key={brgy.name}
+                  position={[brgy.lat, brgy.lng]}
+                  icon={createBarangayLabelIcon(brgy.name)}
+                  interactive={false}
+                  zIndexOffset={-1000}
+                />
+              ))}
 
               {/* Farm Markers */}
               {farms
