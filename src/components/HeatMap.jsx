@@ -100,7 +100,6 @@ const HeatMap = ({ user, onLogout }) => {
   const [pestFilter, setPestFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
 
-
   // Detection workflow states
   const [showDetectionModal, setShowDetectionModal] = useState(false);
   const [detectionStep, setDetectionStep] = useState('upload');
@@ -835,17 +834,14 @@ const HeatMap = ({ user, onLogout }) => {
 
   const activeDetections = detections.filter(d => d.active !== false);
 
-  // Unique filter options derived from live data
+  // Unique pest names from live data for filter dropdown
   const uniquePests = [...new Set(
     activeDetections.map(d => d.pest || d.pest_name).filter(Boolean)
   )].sort();
 
-  // Apply map filters
+  // Filtered detections for map rendering
   const filteredDetections = activeDetections.filter(d => {
-    if (pestFilter !== 'all') {
-      const name = d.pest || d.pest_name || '';
-      if (name !== pestFilter) return false;
-    }
+    if (pestFilter !== 'all' && (d.pest || d.pest_name || '') !== pestFilter) return false;
     if (severityFilter !== 'all' && d.severity !== severityFilter) return false;
     return true;
   });
@@ -867,73 +863,68 @@ const HeatMap = ({ user, onLogout }) => {
         {/* Map Controls */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
 
-          {/* Row 1 — action buttons */}
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100">
-
-            {/* Detect Pest — primary action, always full label */}
+          {/* Row 1: primary actions */}
+          <div className="flex items-center gap-2 px-3 py-3">
             <button
               onClick={startDetection}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-lg transition-colors flex-shrink-0"
+              className="inline-flex items-center gap-2 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-lg transition-colors"
+              style={{ paddingTop: '8px', paddingBottom: '8px', lineHeight: 1 }}
             >
               <Camera className="w-4 h-4 flex-shrink-0" />
               <span>Detect Pest</span>
             </button>
 
-            {/* Request Farm */}
             {user.is_verified && (
               <button
                 onClick={() => setIsAddingFarm(true)}
                 disabled={isAddingFarm}
-                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg transition-colors flex-shrink-0 ${
+                className={`inline-flex items-center gap-2 px-4 text-sm font-semibold rounded-lg transition-colors ${
                   isAddingFarm
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-primary hover:bg-green-600 active:bg-green-700 text-white'
                 }`}
+                style={{ paddingTop: '8px', paddingBottom: '8px', lineHeight: 1 }}
               >
                 <MapPin className="w-4 h-4 flex-shrink-0" />
-                <span className="hidden xs:inline sm:inline">
-                  {isAddingFarm ? 'Click map to place…' : 'Request Farm'}
-                </span>
-                <span className="xs:hidden sm:hidden">
-                  {isAddingFarm ? '…' : 'Farm'}
-                </span>
+                <span>{isAddingFarm ? 'Click map…' : 'Request Farm'}</span>
               </button>
             )}
 
             <div className="flex-1" />
 
-            {/* Time range + refresh grouped on the right */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <select
-                value={days}
-                onChange={(e) => setDays(parseInt(e.target.value))}
-                className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 focus:ring-2 focus:ring-primary focus:outline-none"
-              >
-                <option value={7}>7 days</option>
-                <option value={14}>14 days</option>
-                <option value={30}>30 days</option>
-                <option value={60}>60 days</option>
-                <option value={90}>90 days</option>
-              </select>
-              <button
-                onClick={fetchInitialData}
-                title="Refresh"
-                className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition-colors flex-shrink-0 border border-gray-200"
-              >
-                <Activity className="w-4 h-4" />
-              </button>
-            </div>
+            <select
+              value={days}
+              onChange={(e) => setDays(parseInt(e.target.value))}
+              className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-primary focus:outline-none"
+            >
+              <option value={7}>7 days</option>
+              <option value={14}>14 days</option>
+              <option value={30}>30 days</option>
+              <option value={60}>60 days</option>
+              <option value={90}>90 days</option>
+            </select>
+
+            <button
+              onClick={fetchInitialData}
+              title="Refresh"
+              className="inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 transition-colors"
+              style={{ padding: '8px', lineHeight: 1 }}
+            >
+              <Activity className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* Row 2 — filters */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 flex-wrap">
+          {/* Divider */}
+          <div className="border-t border-gray-100 mx-3" />
+
+          {/* Row 2: filters */}
+          <div className="flex items-center gap-2 px-3 py-2.5">
             <Filter className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
 
-            {/* Pest filter */}
             <select
               value={pestFilter}
               onChange={e => setPestFilter(e.target.value)}
-              className={`text-sm border rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-primary focus:outline-none transition-colors ${
+              className={`flex-1 min-w-0 text-sm border rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-primary focus:outline-none transition-colors ${
                 pestFilter !== 'all'
                   ? 'border-blue-400 bg-blue-50 text-blue-700 font-medium'
                   : 'border-gray-200 bg-white text-gray-600'
@@ -945,43 +936,40 @@ const HeatMap = ({ user, onLogout }) => {
               ))}
             </select>
 
-            {/* Severity filter */}
             <select
               value={severityFilter}
               onChange={e => setSeverityFilter(e.target.value)}
-              className={`text-sm border rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-primary focus:outline-none transition-colors ${
+              className={`flex-1 min-w-0 text-sm border rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-primary focus:outline-none transition-colors ${
                 severityFilter !== 'all'
                   ? 'border-orange-400 bg-orange-50 text-orange-700 font-medium'
                   : 'border-gray-200 bg-white text-gray-600'
               }`}
             >
               <option value="all">All Severities</option>
-              <option value="low">&#x1F7E2; Low</option>
-              <option value="medium">&#x1F7E1; Medium</option>
-              <option value="high">&#x1F7E0; High</option>
-              <option value="critical">&#x1F534; Critical</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
             </select>
 
-            {/* Clear */}
-            {activeFilterCount > 0 && (
+            {activeFilterCount > 0 ? (
               <button
                 onClick={() => { setPestFilter('all'); setSeverityFilter('all'); }}
-                className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1.5 rounded-lg transition-colors"
+                className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1.5 rounded-lg transition-colors flex-shrink-0"
               >
                 <X className="w-3 h-3" />
                 Clear
               </button>
+            ) : (
+              <span className="text-xs text-gray-400 flex-shrink-0">
+                {filteredDetections.length} shown
+              </span>
             )}
-
-            {/* Count badge */}
-            <span className="ml-auto text-xs font-medium text-gray-400 bg-white border border-gray-200 px-2 py-1 rounded-full flex-shrink-0">
-              {filteredDetections.length} shown
-            </span>
           </div>
         </div>
 
         {/* Map */}
-        <div className="bg-white rounded-lg shadow overflow-hidden mb-6 h-64 sm:h-96 md:h-[500px]" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="bg-white rounded-lg shadow overflow-hidden mb-6 h-64 sm:h-72 md:h-[420px]" style={{ position: 'sticky', top: '64px', zIndex: 10, isolation: 'isolate' }}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Activity className="w-8 h-8 text-primary animate-spin mr-2" />
