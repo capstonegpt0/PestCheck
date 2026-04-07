@@ -35,7 +35,7 @@ body {
   }
 
   .leaflet-container {
-    height: 400px !important;
+    height: 100% !important;
     width: 100% !important;
   }
 
@@ -56,10 +56,6 @@ body {
 
   body {
     overflow-x: hidden;
-  }
-
-  .flex {
-    flex-wrap: wrap;
   }
 
   .truncate {
@@ -238,10 +234,9 @@ button {
     gap: 0.75rem !important;
   }
 
-  .grid-cols-2 {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-  }
-
+  /* Only collapse grids that are 3+ columns — 2-col grids are intentional
+     (upload/camera buttons, side-by-side fields). Those use sm:grid-cols-2
+     at the component level for proper responsive control. */
   .grid-cols-3 {
     grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
   }
@@ -704,5 +699,3 @@ html.large-font-mode .fixed.inset-0 label {
     opacity: 1 !important;
   }
 }
-
-

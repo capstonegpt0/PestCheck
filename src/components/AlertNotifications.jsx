@@ -199,7 +199,7 @@ const AlertNotifications = ({ user }) => {
   // Show a subtle retry indicator if fetch failed and we have nothing to show
   if (fetchError && visibleAlerts.length === 0) {
     return (
-      <div className="fixed top-20 right-4 z-40">
+      <div className="fixed top-20 right-2 sm:right-4 z-40">
         <button
           onClick={fetchAlerts}
           className="flex items-center space-x-1 bg-white border border-gray-200 text-gray-500 text-xs px-3 py-1.5 rounded-full shadow hover:bg-gray-50 transition-colors"
@@ -216,7 +216,7 @@ const AlertNotifications = ({ user }) => {
 
   return (
     <>
-      <div className="fixed top-20 right-4 z-40 w-80 sm:w-96 space-y-3">
+      <div className="fixed top-20 right-2 sm:right-4 z-40 w-[calc(100vw-1rem)] sm:w-96 max-w-sm space-y-3">
         {visibleAlerts.map((alert) => {
           const colors = getAlertColors(alert.alert_type);
 
@@ -290,7 +290,7 @@ const AlertNotifications = ({ user }) => {
       <style>{`
         @keyframes alert-slide-in {
           from {
-            transform: translateX(440px);
+            transform: translateX(110vw);
             opacity: 0;
           }
           to {

@@ -896,7 +896,7 @@ const HeatMap = ({ user, onLogout }) => {
         </div>
 
         {/* Map */}
-        <div className="bg-white rounded-lg shadow overflow-hidden mb-6" style={{ height: '500px', position: 'relative', zIndex: 1 }}>
+        <div className="bg-white rounded-lg shadow overflow-hidden mb-6 h-64 sm:h-96 md:h-[500px]" style={{ position: 'relative', zIndex: 1 }}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Activity className="w-8 h-8 text-primary animate-spin mr-2" />
@@ -1195,8 +1195,8 @@ const HeatMap = ({ user, onLogout }) => {
 
         {/* Farm Modal */}
         {showFarmModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-4 py-6" style={{ zIndex: 9999 }}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md my-auto" style={{ zIndex: 10000 }}>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-3 sm:p-4 py-4 sm:py-6" style={{ zIndex: 9999 }}>
+            <div className="bg-white rounded-lg shadow-xl p-4 sm:p-6 w-full max-w-md my-auto" style={{ zIndex: 10000 }}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800">Request New Farm</h2>
                 <button onClick={resetFarmForm} className="text-gray-500 hover:text-gray-700">
@@ -1287,12 +1287,12 @@ const HeatMap = ({ user, onLogout }) => {
 
         {/* Detection Modal */}
         {showDetectionModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-4 py-6" style={{ zIndex: 10000 }}>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-2 sm:p-4 py-4 sm:py-6" style={{ zIndex: 10000 }}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl my-auto">
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 {/* Header */}
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-800">Pest Detection</h2>
+                <div className="flex justify-between items-center mb-4 sm:mb-6">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Pest Detection</h2>
                   <button onClick={closeDetectionModal} className="text-gray-500 hover:text-gray-700">
                     <X className="w-6 h-6" />
                   </button>
@@ -1305,7 +1305,7 @@ const HeatMap = ({ user, onLogout }) => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Upload or Capture Image
                       </label>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         <button
                           onClick={handleUploadClick}
                           className="flex flex-col items-center justify-center p-6 bg-blue-50 border-2 border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
@@ -1347,7 +1347,7 @@ const HeatMap = ({ user, onLogout }) => {
                         <img
                           src={imagePreview}
                           alt="Preview"
-                          className="w-full h-auto rounded-lg shadow-md border-2 border-gray-200"
+                          className="w-full max-h-48 sm:max-h-64 object-contain rounded-lg shadow-md border-2 border-gray-200"
                         />
                       </div>
                     )}
@@ -1462,7 +1462,7 @@ const HeatMap = ({ user, onLogout }) => {
                             {referenceImages.length > 1 ? 'Reference Images' : 'Reference Pest'}
                           </p>
                           {referenceImages.length > 0 ? (
-                            <div className={`grid ${referenceImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+                            <div className={`grid ${referenceImages.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-3`}>
                               {referenceImages.map((refImg, idx) => (
                                 <div key={idx} className="border-2 border-green-400 rounded-lg overflow-hidden shadow-md bg-white">
                                   <div className="relative">
@@ -1585,7 +1585,7 @@ const HeatMap = ({ user, onLogout }) => {
                         <p className="text-lg font-medium text-gray-800 mb-4">
                           Does your image match the reference pest and damage pattern?
                         </p>
-                        <div className="flex space-x-4">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:space-x-4">
                           <button
                             onClick={() => confirmDetection(true)}
                             className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center transition-colors"

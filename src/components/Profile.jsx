@@ -445,7 +445,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
 
         {/* Tabs */}
         <div className="border-b border-gray-200">
-          <div className="flex space-x-4 px-6">
+          <div className="flex overflow-x-auto scrollbar-hide px-3 sm:px-6 gap-0">
             {[
               { key: 'profile', icon: User, label: 'Profile' },
               { key: 'password', icon: Lock, label: 'Password' },
@@ -455,14 +455,14 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`py-3 px-4 font-medium border-b-2 transition-colors ${
+                className={`flex-shrink-0 flex items-center py-3 px-2 sm:px-4 font-medium border-b-2 transition-colors text-sm whitespace-nowrap ${
                   activeTab === key
                     ? 'border-primary text-primary'
                     : 'border-transparent text-gray-600 hover:text-gray-800'
                 }`}
               >
-                <Icon className="w-4 h-4 inline mr-2" />
-                {label}
+                <Icon className="w-4 h-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
           </div>
@@ -484,7 +484,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
           {/* Profile Tab */}
           {activeTab === 'profile' && (
             <form onSubmit={handleUpdateProfile} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                   <input
@@ -896,8 +896,8 @@ const Profile = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
       <PageContent>
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-8">My Profile</h1>
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-5 sm:mb-8">My Profile</h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Profile Card */}

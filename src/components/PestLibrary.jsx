@@ -359,9 +359,9 @@ const PestDetailModal = ({ pest, onClose }) => {
   const seasonalData = PEST_SEASONAL_DATA[pest.id] || PEST_SEASONAL_DATA[pest.name?.toLowerCase().replace(/\s+/g, '-')];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 py-6 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-2 sm:p-4 py-4 sm:py-6 z-50 overflow-y-auto">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full my-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-start z-10">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-3 sm:p-6 flex justify-between items-start z-10 rounded-t-lg">
           <div className="min-w-0 flex-1 mr-4">
             <h2 className="text-xl sm:text-3xl font-bold text-gray-800 mb-1">{pest.name}</h2>
             <p className="text-sm sm:text-lg text-gray-600 italic">{pest.scientific_name}</p>
@@ -767,7 +767,7 @@ const PestLibrary = ({ user, onLogout }) => {
                     </div>
                   )}
                   
-                  <div className="p-6">
+                  <div className="p-4 sm:p-6">
                     <div className="flex items-start justify-between mb-3">
                       {!thumbnailUrl && <Book className="w-8 h-8 text-primary flex-shrink-0" />}
                       <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full ml-auto">

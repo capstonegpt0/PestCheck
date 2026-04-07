@@ -10,10 +10,10 @@ const Dashboard = ({ user, onLogout }) => {
       <Navigation user={user} onLogout={onLogout} />
       <PageContent>
       
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
         {/* Unverified User Banner */}
         {!user.is_verified && (
-          <div className="bg-amber-50 border-l-4 border-amber-400 rounded-lg shadow p-4 mb-6">
+          <div className="bg-amber-50 border-l-4 border-amber-400 rounded-lg shadow p-4 mb-4 sm:mb-6">
             <div className="flex items-start">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-amber-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -32,26 +32,26 @@ const Dashboard = ({ user, onLogout }) => {
         )}
 
         {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow-lg p-8 mb-8 text-white">
-          <h1 className="text-4xl font-bold mb-2">
+        <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow-lg px-5 py-5 sm:p-8 mb-5 sm:mb-8 text-white">
+          <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">
             Welcome back, {user.first_name || user.username}!
           </h1>
-          <p className="text-lg text-green-100">
+          <p className="text-sm sm:text-lg text-green-100">
             Ready to protect your crops? Choose an option below to get started.
           </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Quick Actions — primary content, shown first */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-8">
           <Link
             to="/heatmap"
-            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
+            className="bg-white rounded-lg shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow group active:bg-gray-50"
           >
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
-                <Map className="w-8 h-8 text-green-600" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-green-200 transition-colors">
+                <Map className="w-7 h-7 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-1 sm:mb-2">
                 Detect & Map
               </h3>
               <p className="text-gray-600 text-sm">
@@ -62,13 +62,13 @@ const Dashboard = ({ user, onLogout }) => {
 
           <Link
             to="/pests"
-            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
+            className="bg-white rounded-lg shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow group active:bg-gray-50"
           >
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-yellow-200 transition-colors">
-                <Book className="w-8 h-8 text-yellow-600" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-yellow-200 transition-colors">
+                <Book className="w-7 h-7 sm:w-8 sm:h-8 text-yellow-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-1 sm:mb-2">
                 Pest Library
               </h3>
               <p className="text-gray-600 text-sm">
@@ -79,13 +79,13 @@ const Dashboard = ({ user, onLogout }) => {
 
           <Link
             to="/profile"
-            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 group"
+            className="bg-white rounded-lg shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow group active:bg-gray-50"
           >
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
-                <User className="w-8 h-8 text-purple-600" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-purple-100 rounded-full flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-purple-200 transition-colors">
+                <User className="w-7 h-7 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-1 sm:mb-2">
                 My Profile
               </h3>
               <p className="text-gray-600 text-sm">
@@ -96,11 +96,11 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
 
         {/* Info Section */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 sm:mb-3">
             How to use PestCheck
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-sm text-blue-800">
             <div>
               <span className="font-semibold">1. Detect:</span> Go to Heat Map and click "Detect Pest" to upload or capture an image
             </div>
@@ -113,13 +113,13 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Feature Highlight */}
-        <div className="mt-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
-          <h3 className="text-xl font-semibold mb-2">New Feature: Integrated Detection</h3>
-          <p className="text-blue-100">
+        {/* Feature Highlight — lower priority, below the fold on mobile is fine */}
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 sm:p-6 text-white">
+          <h3 className="text-base sm:text-xl font-semibold mb-1 sm:mb-2">New Feature: Integrated Detection</h3>
+          <p className="text-blue-100 text-sm sm:text-base">
             Detection is now integrated into the Heat Map! Click the "Detect Pest" button on the Heat Map page to:
           </p>
-          <ul className="mt-3 space-y-1 text-blue-100">
+          <ul className="mt-2 sm:mt-3 space-y-1 text-blue-100 text-sm">
             <li>- Upload or capture pest images directly</li>
             <li>- Confirm AI detections before saving</li>
             <li>- Assess damage levels from 0 (healthy) to 5 (critical)</li>
