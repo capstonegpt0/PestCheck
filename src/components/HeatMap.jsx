@@ -1298,24 +1298,45 @@ const HeatMap = ({ user, onLogout }) => {
               onClick={closeDetectionModal}
             />
 
-            {/* Modal sheet — full height on mobile, centered card on sm+ */}
+            {/* Modal sheet */}
             <div
-              className="fixed inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4"
-              style={{ zIndex: 10001 }}
+              style={{
+                position: 'fixed',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                top: 0,
+                zIndex: 10001,
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'center',
+                pointerEvents: 'none',
+              }}
             >
-              <div className="bg-white w-full sm:max-w-2xl sm:rounded-lg shadow-xl flex flex-col"
-                style={{ maxHeight: '92dvh', borderRadius: '16px 16px 0 0' }}
+              <div
                 onClick={e => e.stopPropagation()}
+                style={{
+                  background: '#fff',
+                  width: '100%',
+                  maxWidth: '672px',
+                  maxHeight: '90vh',
+                  borderRadius: '16px 16px 0 0',
+                  boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  pointerEvents: 'auto',
+                  overflow: 'hidden',
+                }}
               >
-                {/* Drag handle (mobile visual cue) */}
-                <div className="flex justify-center pt-2 pb-1 sm:hidden flex-shrink-0">
-                  <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                {/* Drag handle */}
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+                  <div style={{ width: 40, height: 4, borderRadius: 2, background: '#d1d5db' }} />
                 </div>
 
                 {/* Scrollable content */}
-                <div className="overflow-y-auto flex-1 p-4 sm:p-6">
+                <div style={{ overflowY: 'auto', flex: 1, padding: '0 16px 24px' }}>
                 {/* Header */}
-                <div className="flex justify-between items-center mb-4 sm:mb-6">
+                <div className="flex justify-between items-center mb-4 sm:mb-6" style={{ paddingTop: 8 }}>
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Pest Detection</h2>
                   <button onClick={closeDetectionModal} className="text-gray-500 hover:text-gray-700 p-1">
                     <X className="w-6 h-6" />

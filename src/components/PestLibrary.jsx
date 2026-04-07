@@ -361,17 +361,48 @@ const PestDetailModal = ({ pest, onClose }) => {
   return (
     <>
       <style>{`body { overflow: hidden !important; }`}</style>
-      <div className="fixed inset-0 bg-black bg-opacity-60" style={{ zIndex: 50 }} onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4" style={{ zIndex: 51 }}>
+
+      {/* Backdrop */}
+      <div
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50 }}
+        onClick={onClose}
+      />
+
+      {/* Sheet positioner */}
+      <div
+        style={{
+          position: 'fixed',
+          left: 0, right: 0, bottom: 0, top: 0,
+          zIndex: 51,
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+        }}
+      >
         <div
-          className="bg-white w-full sm:max-w-4xl sm:rounded-lg shadow-xl flex flex-col"
-          style={{ maxHeight: '92dvh', borderRadius: '16px 16px 0 0' }}
           onClick={e => e.stopPropagation()}
+          style={{
+            background: '#fff',
+            width: '100%',
+            maxWidth: '896px',
+            maxHeight: '90vh',
+            borderRadius: '16px 16px 0 0',
+            boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
+            display: 'flex',
+            flexDirection: 'column',
+            pointerEvents: 'auto',
+            overflow: 'hidden',
+          }}
         >
-          <div className="flex justify-center pt-2 pb-1 sm:hidden flex-shrink-0">
-            <div className="w-10 h-1 bg-gray-300 rounded-full" />
+          {/* Drag handle */}
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', flexShrink: 0 }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: '#d1d5db' }} />
           </div>
-          <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-start sm:rounded-t-lg">
+
+          {/* Sticky header */}
+          <div style={{ flexShrink: 0, borderBottom: '1px solid #e5e7eb', padding: '8px 16px 12px' }}
+            className="flex justify-between items-start">
             <div className="min-w-0 flex-1 mr-4">
               <h2 className="text-xl sm:text-3xl font-bold text-gray-800 mb-1">{pest.name}</h2>
               <p className="text-sm sm:text-lg text-gray-600 italic">{pest.scientific_name}</p>
@@ -384,7 +415,8 @@ const PestDetailModal = ({ pest, onClose }) => {
             </button>
           </div>
 
-          <div className="overflow-y-auto flex-1 p-4 sm:p-6 pb-8">
+          {/* Scrollable body */}
+          <div style={{ overflowY: 'auto', flex: 1, padding: '16px 16px 32px' }}>
 
           {/* Seasonal Activity Mini-Chart inside detail modal */}
           {seasonalData && (
@@ -532,7 +564,7 @@ const PestDetailModal = ({ pest, onClose }) => {
           </button>
           </div>{/* end scrollable body */}
         </div>{/* end modal sheet */}
-      </div>{/* end inset positioning */}
+      </div>{/* end sheet positioner */}
     </>
   );
 };
