@@ -867,26 +867,24 @@ const HeatMap = ({ user, onLogout }) => {
           <div className="flex items-center gap-2 px-3 py-3">
             <button
               onClick={startDetection}
-              className="inline-flex items-center gap-2 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-lg transition-colors"
-              style={{ paddingTop: '8px', paddingBottom: '8px', lineHeight: 1 }}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-lg transition-colors"
             >
               <Camera className="w-4 h-4 flex-shrink-0" />
-              <span>Detect Pest</span>
+              Detect Pest
             </button>
 
             {user.is_verified && (
               <button
                 onClick={() => setIsAddingFarm(true)}
                 disabled={isAddingFarm}
-                className={`inline-flex items-center gap-2 px-4 text-sm font-semibold rounded-lg transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
                   isAddingFarm
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-primary hover:bg-green-600 active:bg-green-700 text-white'
                 }`}
-                style={{ paddingTop: '8px', paddingBottom: '8px', lineHeight: 1 }}
               >
                 <MapPin className="w-4 h-4 flex-shrink-0" />
-                <span>{isAddingFarm ? 'Click map…' : 'Request Farm'}</span>
+                {isAddingFarm ? 'Click map…' : 'Request Farm'}
               </button>
             )}
 
@@ -907,8 +905,7 @@ const HeatMap = ({ user, onLogout }) => {
             <button
               onClick={fetchInitialData}
               title="Refresh"
-              className="inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 transition-colors"
-              style={{ padding: '8px', lineHeight: 1 }}
+              className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 transition-colors"
             >
               <Activity className="w-4 h-4" />
             </button>
