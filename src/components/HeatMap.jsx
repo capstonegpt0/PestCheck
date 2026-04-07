@@ -96,6 +96,11 @@ const HeatMap = ({ user, onLogout }) => {
   // Farm list sorting: 'all' = default, 'mine' = my farms first
   const [farmSortMode, setFarmSortMode] = useState('mine');
 
+  // Map filters
+  const [pestFilter, setPestFilter] = useState('all');
+  const [severityFilter, setSeverityFilter] = useState('all');
+  const [cropFilter, setCropFilter] = useState('all');
+
   // Detection workflow states
   const [showDetectionModal, setShowDetectionModal] = useState(false);
   const [detectionStep, setDetectionStep] = useState('upload');
@@ -830,6 +835,27 @@ const HeatMap = ({ user, onLogout }) => {
 
   const activeDetections = detections.filter(d => d.active !== false);
 
+  // Unique filter options derived from live data
+  const uniquePests = [...new Set(
+    activeDetections.map(d => d.pest || d.pest_name).filter(Boolean)
+  )].sort();
+  const uniqueCrops = [...new Set(
+    activeDetections.map(d => d.crop_type).filter(Boolean)
+  )].sort();
+
+  // Apply map filters
+  const filteredDetections = activeDetections.filter(d => {
+    if (pestFilter !== 'all') {
+      const name = d.pest || d.pest_name || '';
+      if (name !== pestFilter) return false;
+    }
+    if (severityFilter !== 'all' && d.severity !== severityFilter) return false;
+    if (cropFilter !== 'all' && d.crop_type !== cropFilter) return false;
+    return true;
+  });
+
+  const activeFilterCount = [pestFilter, severityFilter, cropFilter].filter(f => f !== 'all').length;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={onLogout} />
@@ -843,56 +869,136 @@ const HeatMap = ({ user, onLogout }) => {
         </div>
 
         {/* Map Controls */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6 flex flex-wrap gap-3 items-center">
-          <div className="flex items-center space-x-2">
-            <Filter className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700 hidden sm:inline">Time Range:</span>
-            <select
-              value={days}
-              onChange={(e) => setDays(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary text-sm"
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+
+          {/* Top row — actions */}
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+            {/* Time range */}
+            <div className="flex items-center gap-1.5 mr-1">
+              <Activity className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <select
+                value={days}
+                onChange={(e) => setDays(parseInt(e.target.value))}
+                className="text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-primary focus:outline-none"
+              >
+                <option value={7}>Last 7 days</option>
+                <option value={14}>Last 14 days</option>
+                <option value={30}>Last 30 days</option>
+                <option value={60}>Last 60 days</option>
+                <option value={90}>Last 90 days</option>
+              </select>
+            </div>
+
+            {/* Refresh */}
+            <button
+              onClick={fetchInitialData}
+              title="Refresh map data"
+              className="p-1.5 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors flex-shrink-0"
             >
-              <option value={7}>Last 7 days</option>
-              <option value={14}>Last 14 days</option>
-              <option value={30}>Last 30 days</option>
-              <option value={60}>Last 60 days</option>
-              <option value={90}>Last 90 days</option>
-            </select>
+              <Activity className="w-4 h-4" />
+            </button>
+
+            <div className="flex-1" />
+
+            {/* Detect Pest */}
+            <button
+              onClick={startDetection}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Detect Pest</span>
+            </button>
+
+            {/* Request Farm */}
+            {user.is_verified && (
+              <button
+                onClick={() => setIsAddingFarm(true)}
+                disabled={isAddingFarm}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex-shrink-0 ${
+                  isAddingFarm
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-primary hover:bg-green-600 text-white'
+                }`}
+              >
+                <MapPin className="w-4 h-4" />
+                <span className="hidden sm:inline">{isAddingFarm ? 'Click map…' : 'Request Farm'}</span>
+                <span className="sm:hidden">{isAddingFarm ? '…' : 'Farm'}</span>
+              </button>
+            )}
           </div>
 
-          <button
-            onClick={fetchInitialData}
-            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-            title="Refresh map data"
-          >
-            <Activity className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
+          {/* Bottom row — filters */}
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide flex-shrink-0">
+              <Filter className="w-3.5 h-3.5" />
+              <span>Filters</span>
+            </div>
 
-          <div className="hidden sm:block flex-1"></div>
-
-          <button
-            onClick={startDetection}
-            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-          >
-            <Camera className="w-4 h-4 mr-1 sm:mr-2" />
-            Detect Pest
-          </button>
-
-          {user.is_verified && (
-            <button
-              onClick={() => setIsAddingFarm(true)}
-              className={`flex items-center px-3 py-2 rounded-lg transition-colors text-sm ${
-                isAddingFarm
-                  ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-primary text-white hover:bg-green-600'
+            {/* Pest filter */}
+            <select
+              value={pestFilter}
+              onChange={e => setPestFilter(e.target.value)}
+              className={`text-sm border rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-primary focus:outline-none transition-colors ${
+                pestFilter !== 'all'
+                  ? 'border-blue-400 bg-blue-50 text-blue-700 font-medium'
+                  : 'border-gray-200 bg-white text-gray-600'
               }`}
-              disabled={isAddingFarm}
             >
-              <MapPin className="w-4 h-4 mr-1 sm:mr-2" />
-              {isAddingFarm ? 'Click map to place...' : 'Request Farm'}
-            </button>
-          )}
+              <option value="all">All Pests</option>
+              {uniquePests.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+
+            {/* Severity filter */}
+            <select
+              value={severityFilter}
+              onChange={e => setSeverityFilter(e.target.value)}
+              className={`text-sm border rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-primary focus:outline-none transition-colors ${
+                severityFilter !== 'all'
+                  ? 'border-orange-400 bg-orange-50 text-orange-700 font-medium'
+                  : 'border-gray-200 bg-white text-gray-600'
+              }`}
+            >
+              <option value="all">All Severities</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+
+            {/* Crop filter */}
+            <select
+              value={cropFilter}
+              onChange={e => setCropFilter(e.target.value)}
+              className={`text-sm border rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-primary focus:outline-none transition-colors ${
+                cropFilter !== 'all'
+                  ? 'border-green-500 bg-green-50 text-green-700 font-medium'
+                  : 'border-gray-200 bg-white text-gray-600'
+              }`}
+            >
+              <option value="all">All Crops</option>
+              {uniqueCrops.map(c => (
+                <option key={c} value={c} className="capitalize">{c}</option>
+              ))}
+            </select>
+
+            {/* Clear filters */}
+            {activeFilterCount > 0 && (
+              <button
+                onClick={() => { setPestFilter('all'); setSeverityFilter('all'); setCropFilter('all'); }}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors px-2 py-1.5 rounded-lg hover:bg-red-50"
+              >
+                <X className="w-3.5 h-3.5" />
+                Clear ({activeFilterCount})
+              </button>
+            )}
+
+            {/* Detection count */}
+            <span className="text-xs text-gray-400 ml-auto">
+              {filteredDetections.length} detection{filteredDetections.length !== 1 ? 's' : ''} shown
+            </span>
+          </div>
         </div>
 
         {/* Map */}
@@ -1050,7 +1156,7 @@ const HeatMap = ({ user, onLogout }) => {
                 // Validate coords helper
                 const isValidCoord = (v) => v !== null && v !== undefined && v !== '' && !isNaN(parseFloat(v)) && isFinite(parseFloat(v));
 
-                const validDetections = activeDetections.filter(d => {
+                const validDetections = filteredDetections.filter(d => {
                   const lat = d.lat || d.latitude;
                   const lng = d.lng || d.longitude;
                   return isValidCoord(lat) && isValidCoord(lng);
