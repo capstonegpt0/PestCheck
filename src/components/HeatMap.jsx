@@ -1316,8 +1316,6 @@ const HeatMap = ({ user, onLogout }) => {
                   >
                     <option value="Rice">Rice</option>
                     <option value="Corn">Corn</option>
-                    <option value="Vegetables">Vegetables</option>
-                    <option value="Mixed">Mixed Crops</option>
                   </select>
                 </div>
 
