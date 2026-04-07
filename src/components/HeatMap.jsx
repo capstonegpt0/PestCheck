@@ -904,14 +904,6 @@ const HeatMap = ({ user, onLogout }) => {
               <option value={90}>90 days</option>
             </select>
 
-            <button
-              onClick={fetchInitialData}
-              title="Refresh"
-              className="inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 transition-colors"
-              style={{ padding: '8px', lineHeight: 1 }}
-            >
-              <Activity className="w-4 h-4" />
-            </button>
           </div>
 
           {/* Divider */}
