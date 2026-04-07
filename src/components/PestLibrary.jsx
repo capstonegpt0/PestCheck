@@ -359,22 +359,32 @@ const PestDetailModal = ({ pest, onClose }) => {
   const seasonalData = PEST_SEASONAL_DATA[pest.id] || PEST_SEASONAL_DATA[pest.name?.toLowerCase().replace(/\s+/g, '-')];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-2 sm:p-4 py-4 sm:py-6 z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full my-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-3 sm:p-6 flex justify-between items-start z-10 rounded-t-lg">
-          <div className="min-w-0 flex-1 mr-4">
-            <h2 className="text-xl sm:text-3xl font-bold text-gray-800 mb-1">{pest.name}</h2>
-            <p className="text-sm sm:text-lg text-gray-600 italic">{pest.scientific_name}</p>
-            <span className="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
-              {pest.crop_affected}
-            </span>
+    <>
+      <style>{`body { overflow: hidden !important; }`}</style>
+      <div className="fixed inset-0 bg-black bg-opacity-60" style={{ zIndex: 50 }} onClick={onClose} />
+      <div className="fixed inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4" style={{ zIndex: 51 }}>
+        <div
+          className="bg-white w-full sm:max-w-4xl sm:rounded-lg shadow-xl flex flex-col"
+          style={{ maxHeight: '92dvh', borderRadius: '16px 16px 0 0' }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex justify-center pt-2 pb-1 sm:hidden flex-shrink-0">
+            <div className="w-10 h-1 bg-gray-300 rounded-full" />
           </div>
-          <button onClick={onClose} className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors">
-            <span className="text-xl font-bold leading-none">&times;</span>
-          </button>
-        </div>
+          <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-start sm:rounded-t-lg">
+            <div className="min-w-0 flex-1 mr-4">
+              <h2 className="text-xl sm:text-3xl font-bold text-gray-800 mb-1">{pest.name}</h2>
+              <p className="text-sm sm:text-lg text-gray-600 italic">{pest.scientific_name}</p>
+              <span className="inline-block mt-1 px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
+                {pest.crop_affected}
+              </span>
+            </div>
+            <button onClick={onClose} className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors">
+              <span className="text-xl font-bold leading-none">&times;</span>
+            </button>
+          </div>
 
-        <div className="p-4 sm:p-6 pb-8">
+          <div className="overflow-y-auto flex-1 p-4 sm:p-6 pb-8">
 
           {/* Seasonal Activity Mini-Chart inside detail modal */}
           {seasonalData && (
@@ -520,9 +530,10 @@ const PestDetailModal = ({ pest, onClose }) => {
           >
             Close
           </button>
-        </div>
-      </div>
-    </div>
+          </div>{/* end scrollable body */}
+        </div>{/* end modal sheet */}
+      </div>{/* end inset positioning */}
+    </>
   );
 };
 

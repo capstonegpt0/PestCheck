@@ -1287,13 +1287,37 @@ const HeatMap = ({ user, onLogout }) => {
 
         {/* Detection Modal */}
         {showDetectionModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-2 sm:p-4 py-4 sm:py-6" style={{ zIndex: 10000 }}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl my-auto">
-              <div className="p-4 sm:p-6">
+          <>
+            {/* Body scroll lock */}
+            <style>{`body { overflow: hidden !important; }`}</style>
+
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black bg-opacity-60"
+              style={{ zIndex: 10000 }}
+              onClick={closeDetectionModal}
+            />
+
+            {/* Modal sheet — full height on mobile, centered card on sm+ */}
+            <div
+              className="fixed inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4"
+              style={{ zIndex: 10001 }}
+            >
+              <div className="bg-white w-full sm:max-w-2xl sm:rounded-lg shadow-xl flex flex-col"
+                style={{ maxHeight: '92dvh', borderRadius: '16px 16px 0 0' }}
+                onClick={e => e.stopPropagation()}
+              >
+                {/* Drag handle (mobile visual cue) */}
+                <div className="flex justify-center pt-2 pb-1 sm:hidden flex-shrink-0">
+                  <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                </div>
+
+                {/* Scrollable content */}
+                <div className="overflow-y-auto flex-1 p-4 sm:p-6">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-4 sm:mb-6">
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Pest Detection</h2>
-                  <button onClick={closeDetectionModal} className="text-gray-500 hover:text-gray-700">
+                  <button onClick={closeDetectionModal} className="text-gray-500 hover:text-gray-700 p-1">
                     <X className="w-6 h-6" />
                   </button>
                 </div>
@@ -1966,9 +1990,10 @@ const HeatMap = ({ user, onLogout }) => {
                   </div>
                   );
                 })()}
-              </div>
-            </div>
-          </div>
+                </div>{/* end scrollable content */}
+              </div>{/* end modal sheet */}
+            </div>{/* end inset positioning */}
+          </>
         )}
 
 
