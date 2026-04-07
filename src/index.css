@@ -350,11 +350,9 @@ img {
 @keyframes pageContentFadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
@@ -462,9 +460,15 @@ img {
 
 /* Modals using inline style zIndex (HeatMap detection modals) */
 div[style*="9999"],
-div[style*="10000"],
-div[style*="10001"] {
+div[style*="10000"] {
   animation: overlayFadeIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+div[style*="9999"] > .bg-white,
+div[style*="9999"] > div > .bg-white,
+div[style*="10000"] > .bg-white,
+div[style*="10000"] > div > .bg-white {
+  animation: overlaySlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 
