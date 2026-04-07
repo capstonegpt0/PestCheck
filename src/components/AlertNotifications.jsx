@@ -178,9 +178,12 @@ const AlertNotifications = ({ user }) => {
     }
   };
 
-  // Only hide an alert if it was dismissed recently (within TTL)
+  // Filter alerts that are visible: not expired and not recently dismissed
   const visibleAlerts = Array.isArray(alerts)
     ? alerts.filter((alert) => {
+        // Enforce expiry at render time — catches alerts that expired between polls
+        if (alert.expires_at && new Date(alert.expires_at) <= new Date()) return false;
+
         const dismissedAt = dismissed[alert.id];
         if (!dismissedAt) return true; // Never dismissed
         // Re-show if the alert was updated after the dismissal
