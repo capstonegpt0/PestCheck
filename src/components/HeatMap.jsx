@@ -972,7 +972,7 @@ const HeatMap = ({ user, onLogout }) => {
               center={center}
               zoom={14}
               minZoom={12}
-              maxZoom={19}
+              maxZoom={18}
               style={{ height: '100%', width: '100%' }}
               attributionControl={false}
               maxBounds={[
@@ -984,11 +984,15 @@ const HeatMap = ({ user, onLogout }) => {
               <TileLayer
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                 attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+                maxZoom={18}
+                maxNativeZoom={18}
               />
               {/* Satellite labels overlay */}
               <TileLayer
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
                 opacity={0.7}
+                maxZoom={18}
+                maxNativeZoom={18}
               />
               {/* Grey mask covering everything outside Magalang */}
               <GeoJSON
