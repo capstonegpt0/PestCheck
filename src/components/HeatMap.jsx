@@ -91,45 +91,73 @@ const PanelOverlay = ({ title, onClose, children, width = 360, side = 'left', to
 );
 
 // ── Draggable Bottom Sheet Modal ───────────────────────────────────────────────
+// All drag state lives in refs so React never re-renders mid-gesture (no jitter).
 const DraggableBottomSheet = ({ title, onClose, children, icon, badge }) => {
-  const [dragY, setDragY] = React.useState(0);
-  const [isDragging, setIsDragging] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(false);
-  const startYRef = React.useRef(null);
   const sheetRef = React.useRef(null);
+  const handleRef = React.useRef(null);
 
-  const COLLAPSED_HEIGHT = '55vh';
-  const EXPANDED_HEIGHT = '88vh';
+  // Drag state — all refs, no setState during the gesture
+  const dragging = React.useRef(false);
+  const startY = React.useRef(0);
+  const currentTranslate = React.useRef(0);
+  const isExpanded = React.useRef(false);
 
-  const handleDragStart = (clientY) => {
-    startYRef.current = clientY;
-    setIsDragging(true);
+  const COLLAPSED_H = 55; // vh
+  const EXPANDED_H  = 88; // vh
+
+  // Apply translate directly to the DOM element (no React re-render)
+  const applyTranslate = (dy) => {
+    if (!sheetRef.current) return;
+    sheetRef.current.style.transform = `translateY(${dy}px)`;
+    sheetRef.current.style.transition = 'none';
   };
 
-  const handleDragMove = (clientY) => {
-    if (!isDragging || startYRef.current === null) return;
-    const delta = clientY - startYRef.current;
-    setDragY(Math.max(0, delta));
+  const snapTo = (expanded, close = false) => {
+    if (!sheetRef.current) return;
+    if (close) {
+      sheetRef.current.style.transition = 'transform 0.28s cubic-bezier(0.32,0.72,0,1)';
+      sheetRef.current.style.transform = `translateY(100%)`;
+      setTimeout(onClose, 290);
+      return;
+    }
+    isExpanded.current = expanded;
+    sheetRef.current.style.height = `${expanded ? EXPANDED_H : COLLAPSED_H}vh`;
+    sheetRef.current.style.transition = 'transform 0.28s cubic-bezier(0.32,0.72,0,1), height 0.28s ease';
+    sheetRef.current.style.transform = 'translateY(0)';
+    currentTranslate.current = 0;
   };
 
-  const handleDragEnd = (clientY) => {
-    if (!isDragging) return;
-    const delta = clientY - startYRef.current;
-    setIsDragging(false);
-    startYRef.current = null;
-    if (delta > 60) { setDragY(window.innerHeight); setTimeout(() => { onClose(); setDragY(0); }, 320); }
-    else if (delta < -60) { setIsExpanded(true); setDragY(0); }
-    else { setIsExpanded(false); setDragY(0); }
-  };
-
-  const handleHeaderPointerDown = (e) => {
+  const onPointerDown = (e) => {
+    // Only handle primary pointer (ignore multi-touch second finger)
+    if (e.button !== 0 && e.pointerType !== 'touch') return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    handleDragStart(e.clientY);
+    dragging.current = true;
+    startY.current = e.clientY;
+    currentTranslate.current = 0;
+    if (sheetRef.current) sheetRef.current.style.transition = 'none';
   };
-  const handlePointerMove = (e) => handleDragMove(e.clientY);
-  const handlePointerUp = (e) => handleDragEnd(e.clientY);
 
-  const currentHeight = isExpanded ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT;
+  const onPointerMove = (e) => {
+    if (!dragging.current) return;
+    const delta = e.clientY - startY.current;
+    // Allow slight upward drag (expand) but cap downward drag for feel
+    const clamped = Math.max(-30, delta);
+    currentTranslate.current = clamped;
+    applyTranslate(Math.max(0, clamped));
+  };
+
+  const onPointerUp = (e) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    const delta = e.clientY - startY.current;
+    if (delta > 80) {
+      snapTo(false, true);          // swipe down → close
+    } else if (delta < -60) {
+      snapTo(true);                 // swipe up → expand
+    } else {
+      snapTo(isExpanded.current);   // return to current snap
+    }
+  };
 
   return (
     <>
@@ -141,9 +169,9 @@ const DraggableBottomSheet = ({ title, onClose, children, icon, badge }) => {
         ref={sheetRef}
         style={{
           position: 'fixed', left: 0, right: 0, bottom: 0,
-          height: currentHeight,
-          transform: `translateY(${dragY}px)`,
-          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s ease',
+          height: `${COLLAPSED_H}vh`,
+          transform: 'translateY(0)',
+          transition: 'height 0.28s ease',
           background: '#fff',
           borderRadius: '20px 20px 0 0',
           boxShadow: '0 -4px 40px rgba(0,0,0,0.22)',
@@ -152,20 +180,26 @@ const DraggableBottomSheet = ({ title, onClose, children, icon, badge }) => {
           flexDirection: 'column',
           overflow: 'hidden',
         }}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
       >
-        {/* Drag handle area */}
+        {/* Drag handle — only this area initiates drag */}
         <div
-          style={{ padding: '10px 0 0', cursor: 'grab', userSelect: 'none', flexShrink: 0 }}
-          onPointerDown={handleHeaderPointerDown}
+          ref={handleRef}
+          style={{ padding: '10px 0 0', cursor: 'grab', userSelect: 'none', flexShrink: 0, touchAction: 'none' }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
         >
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
             <div style={{ width: 40, height: 4, background: '#d1d5db', borderRadius: 2 }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {icon && <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f0f4ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>}
+              {icon && (
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f0f4ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {icon}
+                </div>
+              )}
               <div>
                 <div style={{ fontWeight: 700, fontSize: 16, color: '#1a1a1a' }}>{title}</div>
                 {badge != null && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>{badge} total</div>}
@@ -173,15 +207,15 @@ const DraggableBottomSheet = ({ title, onClose, children, icon, badge }) => {
             </div>
             <button
               onClick={onClose}
-              style={{ background: '#f3f4f6', border: 'none', cursor: 'pointer', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}
               onPointerDown={e => e.stopPropagation()}
+              style={{ background: '#f3f4f6', border: 'none', cursor: 'pointer', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}
             >
               <X size={16} />
             </button>
           </div>
           <div style={{ height: 1, background: '#f0f0f0' }} />
         </div>
-        {/* Scrollable content */}
+        {/* Scrollable content — separate from drag area */}
         <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           {children}
         </div>
@@ -709,76 +743,138 @@ const HeatMap = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* ── Floating Camera Button ── */}
+        {/* ── Bottom action bar ── */}
         {!loading && (
-          <button
-            onClick={() => { cameraInputRef.current?.click(); startDetection(); }}
-            title="Capture pest photo"
-            style={{
-              position: 'absolute',
-              bottom: 158,
-              right: 18,
-              zIndex: 1001,
-              width: 58,
-              height: 58,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #1a73e8, #0d5cca)',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 18px rgba(26,115,232,0.5)',
-              transition: 'transform 0.15s, box-shadow 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(26,115,232,0.65)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 18px rgba(26,115,232,0.5)'; }}
-          >
-            <Camera size={26} color="#fff" />
-          </button>
-        )}
-
-        {/* ── Bottom FAB bar (Google Maps action buttons) ── */}
-        {!loading && (
-          <div style={{ position: 'absolute', bottom: 92, left: '50%', transform: 'translateX(-50%)', zIndex: 1000, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {/* Register Farm - verified only */}
-            {user.is_verified && (
-              <FAB
-                onClick={() => setIsAddingFarm(true)}
-                icon={<MapPin size={16} />}
-                label={isAddingFarm ? 'Click on map…' : 'Request Farm'}
-                color={isAddingFarm ? '#f97316' : '#fff'}
-                textColor={isAddingFarm ? '#fff' : '#333'}
-                small
-              />
-            )}
-            {/* Farms list */}
-            <FAB
+          <div style={{
+            position: 'absolute', bottom: 92, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 1000,
+            background: 'rgba(255,255,255,0.97)',
+            borderRadius: 28,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+            padding: '6px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            backdropFilter: 'blur(8px)',
+          }}>
+            {/* Farms */}
+            <button
               onClick={() => { setShowFarmsPanel(p => !p); setShowInfestationsPanel(false); setShowFiltersPanel(false); }}
-              icon={<Home size={14} />}
-              label={`Farms (${farms.length})`}
-              color={showFarmsPanel ? '#e8f0fe' : '#fff'}
-              textColor={showFarmsPanel ? '#1a73e8' : '#333'}
-              small
-            />
-            {/* Infestations list */}
-            <FAB
+              title="View Farms"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 3, padding: '8px 14px', border: 'none', borderRadius: 22, cursor: 'pointer',
+                background: showFarmsPanel ? '#e8f0fe' : 'transparent',
+                color: showFarmsPanel ? '#1a73e8' : '#444',
+                transition: 'background 0.15s, color 0.15s',
+                minWidth: 60,
+              }}
+            >
+              <Home size={18} color={showFarmsPanel ? '#1a73e8' : '#555'} />
+              <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1 }}>Farms</span>
+              <span style={{ fontSize: 9, color: showFarmsPanel ? '#1a73e8' : '#9ca3af', lineHeight: 1 }}>{farms.length}</span>
+            </button>
+
+            {/* Divider */}
+            <div style={{ width: 1, height: 32, background: '#e5e7eb', margin: '0 2px' }} />
+
+            {/* Infestations */}
+            <button
               onClick={() => { setShowInfestationsPanel(p => !p); setShowFarmsPanel(false); setShowFiltersPanel(false); }}
-              icon={<AlertTriangle size={14} />}
-              label={`Infestations (${activeDetections.length})`}
-              color={showInfestationsPanel ? '#fce8e6' : '#fff'}
-              textColor={showInfestationsPanel ? '#c5221f' : '#333'}
-              small
-            />
-            {/* Filters */}
-            <FAB
+              title="View Infestations"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 3, padding: '8px 14px', border: 'none', borderRadius: 22, cursor: 'pointer',
+                background: showInfestationsPanel ? '#fce8e6' : 'transparent',
+                color: showInfestationsPanel ? '#c5221f' : '#444',
+                transition: 'background 0.15s, color 0.15s',
+                minWidth: 60, position: 'relative',
+              }}
+            >
+              <AlertTriangle size={18} color={showInfestationsPanel ? '#c5221f' : '#555'} />
+              <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1 }}>Alerts</span>
+              {activeDetections.length > 0 && (
+                <span style={{
+                  position: 'absolute', top: 4, right: 8,
+                  background: '#dc2626', color: '#fff',
+                  borderRadius: 99, fontSize: 8, fontWeight: 700,
+                  padding: '1px 4px', lineHeight: 1.4, minWidth: 14, textAlign: 'center',
+                }}>{activeDetections.length > 99 ? '99+' : activeDetections.length}</span>
+              )}
+            </button>
+
+            {/* Divider */}
+            <div style={{ width: 1, height: 32, background: '#e5e7eb', margin: '0 2px' }} />
+
+            {/* Detect Pest — primary CTA */}
+            <button
+              onClick={startDetection}
+              title="Detect Pest"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 3, padding: '8px 18px', border: 'none', borderRadius: 22, cursor: 'pointer',
+                background: 'linear-gradient(135deg, #1a73e8, #0d5cca)',
+                color: '#fff',
+                boxShadow: '0 2px 10px rgba(26,115,232,0.4)',
+                transition: 'transform 0.12s, box-shadow 0.12s',
+                minWidth: 68,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(26,115,232,0.55)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(26,115,232,0.4)'; }}
+            >
+              <Camera size={20} color="#fff" />
+              <span style={{ fontSize: 10, fontWeight: 700, lineHeight: 1 }}>Detect</span>
+            </button>
+
+            {/* Divider */}
+            <div style={{ width: 1, height: 32, background: '#e5e7eb', margin: '0 2px' }} />
+
+            {/* Filter */}
+            <button
               onClick={() => { setShowFiltersPanel(p => !p); setShowFarmsPanel(false); setShowInfestationsPanel(false); }}
-              icon={<Filter size={14} />}
-              label={activeFilterCount > 0 ? `Filters (${activeFilterCount})` : 'Filter'}
-              color={activeFilterCount > 0 ? '#e6f4ea' : '#fff'}
-              textColor={activeFilterCount > 0 ? '#137333' : '#333'}
-              small
-            />
+              title="Filter"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 3, padding: '8px 14px', border: 'none', borderRadius: 22, cursor: 'pointer',
+                background: showFiltersPanel || activeFilterCount > 0 ? '#e6f4ea' : 'transparent',
+                color: showFiltersPanel || activeFilterCount > 0 ? '#137333' : '#444',
+                transition: 'background 0.15s, color 0.15s',
+                minWidth: 60, position: 'relative',
+              }}
+            >
+              <Filter size={18} color={showFiltersPanel || activeFilterCount > 0 ? '#137333' : '#555'} />
+              <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1 }}>Filter</span>
+              {activeFilterCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: 4, right: 8,
+                  background: '#137333', color: '#fff',
+                  borderRadius: 99, fontSize: 8, fontWeight: 700,
+                  padding: '1px 4px', lineHeight: 1.4, minWidth: 14, textAlign: 'center',
+                }}>{activeFilterCount}</span>
+              )}
+            </button>
+
+            {/* Request Farm — verified users only */}
+            {user.is_verified && (
+              <>
+                <div style={{ width: 1, height: 32, background: '#e5e7eb', margin: '0 2px' }} />
+                <button
+                  onClick={() => setIsAddingFarm(v => !v)}
+                  title="Request Farm"
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    gap: 3, padding: '8px 14px', border: 'none', borderRadius: 22, cursor: 'pointer',
+                    background: isAddingFarm ? '#fff7ed' : 'transparent',
+                    color: isAddingFarm ? '#ea580c' : '#444',
+                    transition: 'background 0.15s, color 0.15s',
+                    minWidth: 60,
+                  }}
+                >
+                  <MapPin size={18} color={isAddingFarm ? '#ea580c' : '#555'} />
+                  <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1 }}>{isAddingFarm ? 'Placing…' : 'Add Farm'}</span>
+                </button>
+              </>
+            )}
           </div>
         )}
 
