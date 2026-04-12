@@ -1,48 +1,50 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bug, Loader } from 'lucide-react';
+import { Bug, Loader, Clock } from 'lucide-react';
 import api from '../utils/api';
 
 const Login = ({ onLogin }) => {
-  const [formData, setFormData] = useState({
-    username: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+  const [isPending, setIsPending] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsPending(false);
     setLoading(true);
 
     try {
       const response = await api.post('/auth/login/', formData);
       onLogin(response.data.user, response.data.tokens);
     } catch (err) {
-      if (err.response?.data) {
-        const data = err.response.data;
-        
+      const status = err.response?.status;
+      const data = err.response?.data;
+
+      if (status === 403) {
+        // Account exists but is pending approval
+        setIsPending(true);
+        return;
+      }
+
+      if (data) {
         if (data.non_field_errors?.[0]) {
           setError(data.non_field_errors[0]);
         } else if (data.detail) {
           setError(data.detail);
         } else if (data.username || data.password) {
-          const errors = [];
-          if (data.username) {
-            errors.push(...(Array.isArray(data.username) ? data.username : [data.username]));
-          }
-          if (data.password) {
-            errors.push(...(Array.isArray(data.password) ? data.password : [data.password]));
-          }
-          setError(errors.join(', '));
+          const msgs = [];
+          if (data.username) msgs.push(...(Array.isArray(data.username) ? data.username : [data.username]));
+          if (data.password) msgs.push(...(Array.isArray(data.password) ? data.password : [data.password]));
+          setError(msgs.join(', '));
         } else {
           setError('Login failed. Please check your credentials.');
         }
-      } else if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) {
+      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
         setError('Cannot connect to server. Please check your internet connection and try again.');
-      } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
-        setError('Request timeout. The server is taking too long to respond. Please try again.');
+      } else if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        setError('Request timed out. Please try again.');
       } else {
         setError('Login failed. Please check your credentials.');
       }
@@ -58,10 +60,22 @@ const Login = ({ onLogin }) => {
           <Bug className="w-12 h-12 text-primary mr-2" />
           <h1 className="text-3xl font-bold text-gray-800">PestCheck</h1>
         </div>
-        
-        <h2 className="text-2xl font-semibold text-center text-gray-700 mb-6">
-          Welcome Back
-        </h2>
+
+        <h2 className="text-2xl font-semibold text-center text-gray-700 mb-6">Welcome Back</h2>
+
+        {/* Pending approval banner */}
+        {isPending && (
+          <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-4 mb-5 flex items-start gap-3">
+            <Clock className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Account Pending Approval</p>
+              <p className="text-sm text-amber-700 mt-0.5">
+                Your registration is under review by the Magalang Agricultural Office.
+                You will be able to log in once your RSBSA number and ID have been verified.
+              </p>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
@@ -71,9 +85,7 @@ const Login = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Username
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
             <input
               type="text"
               value={formData.username}
@@ -86,9 +98,7 @@ const Login = ({ onLogin }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <input
               type="password"
               value={formData.password}
@@ -114,7 +124,7 @@ const Login = ({ onLogin }) => {
           </button>
         </form>
 
-        <p className="text-center text-gray-600 mt-6">
+        <p className="text-center text-gray-600 mt-6 text-sm">
           Don't have an account?{' '}
           <Link to="/register" className="text-yellow-600 font-semibold hover:underline">
             Register

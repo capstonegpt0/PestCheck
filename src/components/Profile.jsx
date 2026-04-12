@@ -1,290 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   User, Mail, Phone, Calendar, MapPin, Settings, Lock, Bell,
-  X, Save, Eye, EyeOff, ShieldCheck, ShieldAlert, FileText, Upload,
-  Clock, CheckCircle, XCircle, AlertTriangle, Accessibility, Type, ZoomIn
+  X, Save, Eye, EyeOff, Accessibility, Type, ZoomIn
 } from 'lucide-react';
 import Navigation from './Navigation';
 import PageContent from './PageContent';
 import api from '../utils/api';
-
-
-// ==================== VERIFICATION REQUEST MODAL ====================
-const VerificationRequestModal = ({ isOpen, onClose, onSuccess, existingRequest }) => {
-  const [rsbsaNumber, setRsbsaNumber] = useState('');
-  const [validIdFile, setValidIdFile] = useState(null);
-  const [validIdPreview, setValidIdPreview] = useState(null);
-  const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!isOpen) {
-      setRsbsaNumber('');
-      setValidIdFile(null);
-      setValidIdPreview(null);
-      setNotes('');
-      setError('');
-    }
-  }, [isOpen]);
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError('Please upload an image file (JPG, PNG, etc.)');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image must be smaller than 5MB');
-      return;
-    }
-    setValidIdFile(file);
-    setValidIdPreview(URL.createObjectURL(file));
-    setError('');
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!rsbsaNumber.trim()) {
-      setError('Please enter your RSBSA number.');
-      return;
-    }
-    if (!validIdFile) {
-      setError('Please upload a valid ID image.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('rsbsa_number', rsbsaNumber.trim());
-      formData.append('valid_id_image', validIdFile);
-      formData.append('notes', notes.trim());
-
-      await api.post('/verification-requests/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      onSuccess();
-      onClose();
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to submit verification request. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  // Show status if there is an existing request
-  if (existingRequest) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto z-50 p-4 py-6">
-        <div className="bg-white rounded-xl shadow-xl max-w-lg w-full my-auto">
-          <div className="flex justify-between items-center p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center">
-              <ShieldCheck className="w-5 h-5 mr-2 text-primary" />
-              Verification Request Status
-            </h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="p-6">
-            {existingRequest.status === 'pending' && (
-              <div className="text-center py-4">
-                <Clock className="w-16 h-16 text-amber-400 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Under Review</h3>
-                <p className="text-gray-600 text-sm">
-                  Your verification request has been submitted and is being reviewed by our admin team.
-                  You will be notified once it has been processed.
-                </p>
-                <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4 text-left">
-                  <p className="text-sm font-medium text-amber-800">Submitted Details:</p>
-                  <p className="text-sm text-amber-700 mt-1">RSBSA Number: {existingRequest.rsbsa_number}</p>
-                  <p className="text-sm text-amber-700">
-                    Submitted: {new Date(existingRequest.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {existingRequest.status === 'rejected' && (
-              <div className="text-center py-4">
-                <XCircle className="w-16 h-16 text-red-400 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Request Rejected</h3>
-                <p className="text-gray-600 text-sm">Your previous request was rejected.</p>
-                {existingRequest.review_notes && (
-                  <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 text-left">
-                    <p className="text-sm font-medium text-red-800">Admin Feedback:</p>
-                    <p className="text-sm text-red-700 mt-1">{existingRequest.review_notes}</p>
-                  </div>
-                )}
-                <p className="text-sm text-gray-500 mt-4">
-                  You may submit a new verification request with corrected information.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="p-6 border-t border-gray-200">
-            <button
-              onClick={onClose}
-              className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto z-50 p-4 py-6">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full my-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-800 flex items-center">
-            <ShieldCheck className="w-5 h-5 mr-2 text-primary" />
-            Request Verification
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-800 font-medium mb-1">Why get verified?</p>
-            <p className="text-sm text-blue-700">
-              Verified farmers gain access to farm registration and full pest monitoring features.
-              Verification requires your RSBSA (Registry System for Basic Sectors in Agriculture) number and a valid government-issued ID.
-            </p>
-          </div>
-
-          {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* RSBSA Number */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                RSBSA Number <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={rsbsaNumber}
-                onChange={(e) => setRsbsaNumber(e.target.value)}
-                placeholder="e.g. 03-0101-000-00000-0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Your RSBSA registration number from the Department of Agriculture
-              </p>
-            </div>
-
-            {/* Valid ID Upload */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Valid Government ID <span className="text-red-500">*</span>
-              </label>
-              <div
-                className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                  validIdPreview
-                    ? 'border-primary bg-green-50'
-                    : 'border-gray-300 hover:border-primary hover:bg-gray-50'
-                }`}
-                onClick={() => document.getElementById('valid-id-upload').click()}
-              >
-                {validIdPreview ? (
-                  <div>
-                    <img
-                      src={validIdPreview}
-                      alt="ID Preview"
-                      className="max-h-48 mx-auto rounded-lg object-cover mb-2"
-                    />
-                    <p className="text-sm text-primary font-medium">
-                      {validIdFile?.name}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">Click to change</p>
-                  </div>
-                ) : (
-                  <div>
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">Click to upload your valid ID</p>
-                    <p className="text-xs text-gray-400 mt-1">JPG, PNG Max 5MB</p>
-                  </div>
-                )}
-              </div>
-              <input
-                id="valid-id-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Accepted IDs: PhilSys, Driver's License, Passport, SSS, GSIS, PRC, Voter's ID
-              </p>
-            </div>
-
-            {/* Additional Notes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Additional Notes <span className="text-gray-400">(optional)</span>
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any additional information for the admin..."
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm resize-none"
-              />
-            </div>
-
-            <div className="flex space-x-3 pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-primary text-white py-2.5 px-4 rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck className="w-4 h-4 mr-2" />
-                    Submit Request
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 
 // ==================== SETTINGS MODAL ====================
@@ -301,19 +22,19 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
     first_name: '',
     last_name: '',
     email: '',
-    phone: ''
+    phone: '',
   });
 
   const [passwordData, setPasswordData] = useState({
     current_password: '',
     new_password: '',
-    confirm_password: ''
+    confirm_password: '',
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
     push_enabled: true,
     detection_alerts: true,
-    critical_alerts: true
+    critical_alerts: true,
   });
 
   const [largeFontMode, setLargeFontMode] = useState(() => {
@@ -326,12 +47,11 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         email: user.email || '',
-        phone: user.phone || ''
+        phone: user.phone || '',
       });
-      // Fetch saved notification preferences
-      api.get('/auth/notification-settings/').then(res => {
+      api.get('/auth/notification-settings/').then((res) => {
         if (res.data && typeof res.data === 'object') {
-          setNotificationSettings(prev => ({ ...prev, ...res.data }));
+          setNotificationSettings((prev) => ({ ...prev, ...res.data }));
         }
       }).catch(() => {});
     }
@@ -371,7 +91,7 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
     try {
       await api.post('/auth/change-password/', {
         current_password: passwordData.current_password,
-        new_password: passwordData.new_password
+        new_password: passwordData.new_password,
       });
       setSuccess('Password changed successfully!');
       setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
@@ -389,18 +109,16 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
     setError('');
     setSuccess('');
     try {
-      // If enabling push, request browser permission first
       if (notificationSettings.push_enabled) {
         if ('Notification' in window && Notification.permission === 'default') {
           const permission = await Notification.requestPermission();
           if (permission !== 'granted') {
-            setNotificationSettings(prev => ({ ...prev, push_enabled: false }));
+            setNotificationSettings((prev) => ({ ...prev, push_enabled: false }));
             setError('Push notification permission was denied. You can enable it in browser settings.');
             setLoading(false);
             return;
           }
         }
-        // Subscribe to push
         try {
           const { subscribeToPush } = await import('../utils/pushNotifications');
           await subscribeToPush();
@@ -504,7 +222,6 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
                   />
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input
@@ -514,7 +231,6 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                 <input
@@ -525,7 +241,6 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
                   placeholder="+63 XXX XXX XXXX"
                 />
               </div>
-
               <div className="flex space-x-3 pt-4">
                 <button
                   type="submit"
@@ -576,7 +291,6 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
                   {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
                 </div>
               ))}
-
               <div className="flex space-x-3 pt-4">
                 <button
                   type="submit"
@@ -632,7 +346,6 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
                   </div>
                 ))}
               </div>
-
               <div className="flex space-x-3 pt-4">
                 <button
                   type="submit"
@@ -669,14 +382,13 @@ const SettingsModal = ({ isOpen, onClose, user, onUpdateSuccess }) => {
               </div>
 
               <div className="space-y-4">
-                {/* Large Font Toggle */}
                 <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex items-start flex-1 mr-4">
                     <Type className="w-5 h-5 text-gray-600 mr-3 mt-0.5 flex-shrink-0" />
                     <div>
                       <h4 className="font-medium text-gray-800">Large Text</h4>
                       <p className="text-sm text-gray-600 mt-0.5">
-                        Increases font sizes across the app for better readability. Recommended for users with low vision or those who prefer larger text.
+                        Increases font sizes across the app for better readability.
                       </p>
                     </div>
                   </div>
@@ -734,149 +446,20 @@ const Profile = ({ user, onLogout }) => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [verificationRequest, setVerificationRequest] = useState(null);
-  const [verificationLoading, setVerificationLoading] = useState(false);
 
   useEffect(() => {
     fetchProfileData();
-    fetchVerificationStatus();
   }, []);
 
   const fetchProfileData = async () => {
     try {
-      const profileRes = await api.get('/auth/profile/');
-      setProfileData(profileRes.data);
+      const res = await api.get('/auth/profile/');
+      setProfileData(res.data);
     } catch (error) {
       console.error('Error fetching profile data:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchVerificationStatus = async () => {
-    setVerificationLoading(true);
-    try {
-      const res = await api.get('/verification-requests/my_request/');
-      setVerificationRequest(res.data);
-    } catch (err) {
-      // No request yet — that's fine
-      setVerificationRequest(null);
-    } finally {
-      setVerificationLoading(false);
-    }
-  };
-
-  const handleVerificationSuccess = () => {
-    fetchVerificationStatus();
-    fetchProfileData();
-  };
-
-  const getVerificationBadge = () => {
-    if (profileData?.is_verified) {
-      return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-300 mb-2">
-          <CheckCircle className="w-4 h-4 mr-1.5" />
-          Verified Farmer
-        </span>
-      );
-    }
-    if (verificationRequest?.status === 'pending') {
-      return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-300 mb-2">
-          <Clock className="w-4 h-4 mr-1.5" />
-          Verification Pending
-        </span>
-      );
-    }
-    if (verificationRequest?.status === 'rejected') {
-      return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 border border-red-300 mb-2">
-          <XCircle className="w-4 h-4 mr-1.5" />
-          Verification Rejected
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 border border-amber-300 mb-2">
-        <ShieldAlert className="w-4 h-4 mr-1.5" />
-        Unverified User
-      </span>
-    );
-  };
-
-  const getVerificationCTA = () => {
-    // Already verified — no CTA needed
-    if (profileData?.is_verified) return null;
-
-    // Pending review
-    if (verificationRequest?.status === 'pending') {
-      return (
-        <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-start">
-            <Clock className="w-4 h-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-medium text-blue-800">Request Under Review</p>
-              <p className="text-xs text-blue-600 mt-0.5">
-                Submitted {new Date(verificationRequest.created_at).toLocaleDateString()}
-              </p>
-              <button
-                onClick={() => setShowVerificationModal(true)}
-                className="text-xs text-blue-700 underline mt-1 hover:text-blue-900"
-              >
-                View details
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Rejected — allow resubmission
-    if (verificationRequest?.status === 'rejected') {
-      return (
-        <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
-          <div className="flex items-start mb-2">
-            <XCircle className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-medium text-red-800">Previous Request Rejected</p>
-              {verificationRequest.review_notes && (
-                <p className="text-xs text-red-600 mt-0.5">"{verificationRequest.review_notes}"</p>
-              )}
-            </div>
-          </div>
-          <button
-            onClick={() => setShowVerificationModal(true)}
-            className="w-full bg-red-600 text-white py-1.5 px-3 rounded-lg text-xs font-medium hover:bg-red-700 transition-colors flex items-center justify-center"
-          >
-            <ShieldCheck className="w-3 h-3 mr-1" />
-            Resubmit Verification
-          </button>
-        </div>
-      );
-    }
-
-    // No request yet — show CTA
-    return (
-      <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-        <div className="flex items-start mb-2">
-          <AlertTriangle className="w-4 h-4 text-amber-500 mr-2 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-xs font-medium text-amber-800">Account not verified</p>
-            <p className="text-xs text-amber-600 mt-0.5">
-              Submit your RSBSA number and valid ID to unlock all features.
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowVerificationModal(true)}
-          className="w-full bg-primary text-white py-1.5 px-3 rounded-lg text-xs font-medium hover:bg-green-600 transition-colors flex items-center justify-center"
-        >
-          <ShieldCheck className="w-3 h-3 mr-1" />
-          Request Verification
-        </button>
-      </div>
-    );
   };
 
   if (loading) {
@@ -911,33 +494,27 @@ const Profile = ({ user, onLogout }) => {
                   <h2 className="text-2xl font-bold text-gray-800 mb-1">
                     {profileData?.first_name} {profileData?.last_name}
                   </h2>
-                  <p className="text-gray-600 mb-3">@{profileData?.username}</p>
+                  <p className="text-gray-600 mb-4">@{profileData?.username}</p>
 
-                  {/* Verification Status Badge */}
-                  {getVerificationBadge()}
-
-                  {/* Verification CTA for unverified users */}
-                  {!verificationLoading && getVerificationCTA()}
-
-                  <div className="w-full space-y-3 mt-4">
+                  <div className="w-full space-y-3">
                     <div className="flex items-center text-gray-700">
-                      <Mail className="w-5 h-5 mr-3 text-gray-500" />
+                      <Mail className="w-5 h-5 mr-3 text-gray-500 flex-shrink-0" />
                       <span className="text-sm">{profileData?.email}</span>
                     </div>
                     {profileData?.phone && (
                       <div className="flex items-center text-gray-700">
-                        <Phone className="w-5 h-5 mr-3 text-gray-500" />
+                        <Phone className="w-5 h-5 mr-3 text-gray-500 flex-shrink-0" />
                         <span className="text-sm">{profileData.phone}</span>
                       </div>
                     )}
                     <div className="flex items-center text-gray-700">
-                      <Calendar className="w-5 h-5 mr-3 text-gray-500" />
+                      <Calendar className="w-5 h-5 mr-3 text-gray-500 flex-shrink-0" />
                       <span className="text-sm">
                         Joined {new Date(profileData?.created_at || profileData?.date_joined).toLocaleDateString()}
                       </span>
                     </div>
                     <div className="flex items-center text-gray-700">
-                      <MapPin className="w-5 h-5 mr-3 text-gray-500" />
+                      <MapPin className="w-5 h-5 mr-3 text-gray-500 flex-shrink-0" />
                       <span className="text-sm">Magalang, Pampanga</span>
                     </div>
                   </div>
@@ -958,21 +535,6 @@ const Profile = ({ user, onLogout }) => {
                     Settings
                   </button>
 
-                  {/* Show verification button in account actions for unverified users */}
-                  {!profileData?.is_verified && (
-                    <button
-                      onClick={() => setShowVerificationModal(true)}
-                      className="w-full text-left px-4 py-3 border border-amber-200 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors flex items-center text-amber-700"
-                    >
-                      <ShieldCheck className="w-5 h-5 mr-3 text-amber-500" />
-                      {verificationRequest?.status === 'pending'
-                        ? 'View Verification Status'
-                        : verificationRequest?.status === 'rejected'
-                        ? 'Resubmit Verification Request'
-                        : 'Request Account Verification'}
-                    </button>
-                  )}
-
                   <button
                     onClick={onLogout}
                     className="w-full text-left px-4 py-3 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
@@ -985,22 +547,11 @@ const Profile = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Settings Modal */}
         <SettingsModal
           isOpen={showSettings}
           onClose={() => setShowSettings(false)}
           user={profileData}
           onUpdateSuccess={fetchProfileData}
-        />
-
-        {/* Verification Request Modal */}
-        <VerificationRequestModal
-          isOpen={showVerificationModal}
-          onClose={() => setShowVerificationModal(false)}
-          onSuccess={handleVerificationSuccess}
-          existingRequest={
-            verificationRequest?.status === 'pending' ? verificationRequest : null
-          }
         />
       </PageContent>
     </div>

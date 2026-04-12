@@ -63,7 +63,7 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
  <div>
  <h2 className="text-xl font-bold text-gray-800 flex items-center">
  <FileText className="w-5 h-5 mr-2 text-blue-600" />
- Verification Request Review
+ Registration Request Review
  </h2>
  <p className="text-sm text-gray-500 mt-0.5">
  Submitted {new Date(request.created_at).toLocaleDateString('en-PH', {
@@ -234,7 +234,7 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
  className="flex-1 bg-green-600 text-white py-2.5 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
  >
  <CheckCircle className="w-4 h-4 mr-2" />
- {loading ? 'Processing...' : 'Approve & Verify User'}
+ {loading ? 'Processing...' : 'Approve Registration'}
  </button>
  <button
  onClick={() => handleAction('reject')}
@@ -877,7 +877,7 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  {/* Stats Row */}
  <div className="grid grid-cols-3 gap-4 mb-6">
  {[
- { label: 'Pending', count: verificationRequests.filter(r => r.status === 'pending').length, color: 'amber' },
+ { label: 'Pending Approval', count: verificationRequests.filter(r => r.status === 'pending').length, color: 'amber' },
  { label: 'Approved', count: verificationRequests.filter(r => r.status === 'approved').length, color: 'green' },
  { label: 'Rejected', count: verificationRequests.filter(r => r.status === 'rejected').length, color: 'red' },
  ].map(({ label, count, color }) => (
@@ -931,7 +931,7 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  <table className="w-full">
  <thead className="bg-gray-50">
  <tr>
- {['Farmer', 'RSBSA Number', 'Submitted', 'Status', 'Reviewed By', 'Actions'].map((h) => (
+ {['Farmer', 'RSBSA Number', 'Submitted', 'Status', 'Reviewed By', 'Action'].map((h) => (
  <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
  ))}
  </tr>
