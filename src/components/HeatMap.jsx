@@ -1368,15 +1368,6 @@ const HeatMap = ({ user, onLogout }) => {
                                 )}
                               </div>
 
-                              {/* Confidence thresholds used */}
-                              <div style={{ background: '#1e293b', borderRadius: 8, padding: '9px 11px' }}>
-                                <p style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 6px' }}>Model Thresholds</p>
-                                <div style={{ display: 'flex', gap: 16 }}>
-                                  <span style={{ fontSize: 12, color: '#94a3b8' }}>Confidence cutoff: <strong style={{ color: '#e2e8f0' }}>0.60</strong></span>
-                                  <span style={{ fontSize: 12, color: '#94a3b8' }}>IoU threshold: <strong style={{ color: '#e2e8f0' }}>0.50</strong></span>
-                                </div>
-                              </div>
-
                             </div>
                           )}
                         </div>
