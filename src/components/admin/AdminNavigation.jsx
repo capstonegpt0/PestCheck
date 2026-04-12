@@ -4,10 +4,11 @@ import {
   LayoutDashboard, Users, MapPin, AlertTriangle, Book,
   Bell, Activity, LogOut, Shield, FileText, UserCheck
 } from 'lucide-react';
+import AdminNotificationBell from './AdminNotificationBell';
 
 const AdminNavigation = ({ user, onLogout }) => {
   const location = useLocation();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin   = user?.role === 'admin';
   const isMAOStaff = user?.role === 'mao_staff';
 
   const adminNavItems = [
@@ -38,7 +39,7 @@ const AdminNavigation = ({ user, onLogout }) => {
     <nav className="bg-gradient-to-r from-gray-800 to-gray-900 shadow-lg">
       <div className="max-w-screen-2xl mx-auto px-6">
 
-        {/* Top row — brand + user info + logout */}
+        {/* Top row — brand + notification bell + user info + logout */}
         <div className="flex items-center justify-between h-12 border-b border-gray-700">
           {/* Brand */}
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -56,8 +57,13 @@ const AdminNavigation = ({ user, onLogout }) => {
             )}
           </div>
 
-          {/* User + Logout */}
-          <div className="flex items-center gap-4 flex-shrink-0">
+          {/* Right side: notification bell + user + logout */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {/* Admin Notification Bell */}
+            <AdminNotificationBell user={user} />
+
+            <div className="w-px h-6 bg-gray-700" />
+
             <div className="text-right leading-tight">
               <p className="text-sm font-medium text-white">{user?.username}</p>
               <p className="text-xs text-yellow-400">
