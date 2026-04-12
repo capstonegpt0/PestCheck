@@ -25,6 +25,17 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Block digits from name fields
+  const handleNameKeyDown = (e) => {
+    if (/\d/.test(e.key)) e.preventDefault();
+  };
+
+  // Strip any non-digit, non-+, non-space character on input for phone
+  const handlePhoneChange = (e) => {
+    const cleaned = e.target.value.replace(/[^\d+\s\-()]/g, '');
+    setFormData({ ...formData, phone: cleaned });
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -147,6 +158,7 @@ const Register = () => {
                 type="text"
                 value={formData.first_name}
                 onChange={handleChange}
+                onKeyDown={handleNameKeyDown}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
                 required
               />
@@ -160,6 +172,7 @@ const Register = () => {
                 type="text"
                 value={formData.last_name}
                 onChange={handleChange}
+                onKeyDown={handleNameKeyDown}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
                 required
               />
@@ -202,8 +215,9 @@ const Register = () => {
             <input
               name="phone"
               type="tel"
+              inputMode="tel"
               value={formData.phone}
-              onChange={handleChange}
+              onChange={handlePhoneChange}
               placeholder="+63 9XX XXX XXXX"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
             />
