@@ -1204,6 +1204,184 @@ const HeatMap = ({ user, onLogout }) => {
                       ? 'The AI model is reasonably confident. Please verify against the reference images.'
                       : 'The AI model has low certainty. Carefully compare with reference images before confirming.';
 
+                    // ── Advanced / bounding-box panel ──────────────────────────────
+                    const BoundingBoxPanel = () => {
+                      const [open, setOpen] = React.useState(false);
+                      const canvasRef = React.useRef(null);
+                      const boxes = detectionResult.bounding_boxes || [];
+                      const imgW   = detectionResult.image_width;
+                      const imgH   = detectionResult.image_height;
+                      const modelUsed = detectionResult.model_used || '—';
+
+                      // Friendly model label
+                      const modelLabel = {
+                        'primary':                   'Primary model (best.pt)',
+                        'primary-weak-class-winner':  'Primary model won (weak-class comparison)',
+                        'fallback':                   'Fallback model (bestfine.pt)',
+                        'fallback-weak-class-winner': 'Fallback model won (weak-class comparison)',
+                        'primary-fallback-empty':     'Primary model (fallback found nothing)',
+                      }[modelUsed] || modelUsed;
+
+                      // Draw boxes onto canvas whenever panel opens or imagePreview changes
+                      React.useEffect(() => {
+                        if (!open || !canvasRef.current || !imagePreview || boxes.length === 0 || !imgW || !imgH) return;
+                        const canvas = canvasRef.current;
+                        const ctx = canvas.getContext('2d');
+                        const image = new Image();
+                        image.onload = () => {
+                          // Scale to fit canvas width (max 560px)
+                          const displayW = canvas.width;
+                          const scale = displayW / imgW;
+                          const displayH = imgH * scale;
+                          canvas.height = displayH;
+                          ctx.clearRect(0, 0, displayW, displayH);
+                          ctx.drawImage(image, 0, 0, displayW, displayH);
+                          boxes.forEach((box, idx) => {
+                            const x  = box.xmin * scale;
+                            const y  = box.ymin * scale;
+                            const w  = (box.xmax - box.xmin) * scale;
+                            const h  = (box.ymax - box.ymin) * scale;
+                            const pct = Math.round(Math.min(box.confidence > 1 ? box.confidence : box.confidence * 100, 100));
+                            // Box
+                            ctx.strokeStyle = '#22c55e';
+                            ctx.lineWidth   = 2.5;
+                            ctx.strokeRect(x, y, w, h);
+                            // Semi-transparent fill
+                            ctx.fillStyle = 'rgba(34,197,94,0.10)';
+                            ctx.fillRect(x, y, w, h);
+                            // Label background
+                            const label = `${box.label || pestName} ${pct}%`;
+                            ctx.font = 'bold 12px sans-serif';
+                            const tw = ctx.measureText(label).width + 8;
+                            const th = 18;
+                            const ly = y > th + 2 ? y - th - 2 : y + 2;
+                            ctx.fillStyle = '#16a34a';
+                            ctx.fillRect(x, ly, tw, th);
+                            // Label text
+                            ctx.fillStyle = '#fff';
+                            ctx.fillText(label, x + 4, ly + 13);
+                          });
+                        };
+                        image.src = imagePreview;
+                      }, [open, imagePreview, boxes, imgW, imgH]);
+
+                      return (
+                        <div style={{ border: '1.5px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
+                          {/* Toggle button */}
+                          <button
+                            onClick={() => setOpen(o => !o)}
+                            style={{
+                              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              padding: '11px 14px', background: open ? '#0f172a' : '#1e293b',
+                              border: 'none', cursor: 'pointer', gap: 8,
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 14 }}>🔬</span>
+                              <span style={{ fontWeight: 700, fontSize: 13, color: '#e2e8f0', letterSpacing: '0.02em' }}>
+                                How was this detected?
+                              </span>
+                              <span style={{ fontSize: 10, background: '#334155', color: '#94a3b8', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
+                                ADVANCED
+                              </span>
+                            </div>
+                            <span style={{ color: '#94a3b8', fontSize: 16, lineHeight: 1 }}>{open ? '▲' : '▼'}</span>
+                          </button>
+
+                          {/* Panel content */}
+                          {open && (
+                            <div style={{ background: '#0f172a', padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+                              {/* Model info row */}
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                <div style={{ background: '#1e293b', borderRadius: 8, padding: '9px 11px' }}>
+                                  <p style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Model Used</p>
+                                  <p style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 600, margin: 0, lineHeight: 1.4 }}>{modelLabel}</p>
+                                </div>
+                                <div style={{ background: '#1e293b', borderRadius: 8, padding: '9px 11px' }}>
+                                  <p style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Architecture</p>
+                                  <p style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 600, margin: 0 }}>YOLOv5 (custom)</p>
+                                </div>
+                                <div style={{ background: '#1e293b', borderRadius: 8, padding: '9px 11px' }}>
+                                  <p style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Regions Detected</p>
+                                  <p style={{ fontSize: 20, color: '#22c55e', fontWeight: 800, margin: 0 }}>{boxes.length}</p>
+                                </div>
+                                <div style={{ background: '#1e293b', borderRadius: 8, padding: '9px 11px' }}>
+                                  <p style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Image Size</p>
+                                  <p style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 600, margin: 0 }}>{imgW && imgH ? `${imgW} × ${imgH}px` : '—'}</p>
+                                </div>
+                              </div>
+
+                              {/* Per-box breakdown */}
+                              {boxes.length > 0 && (
+                                <div>
+                                  <p style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
+                                    Detection Regions
+                                  </p>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    {boxes.map((box, i) => {
+                                      const bPct = Math.round(Math.min(box.confidence > 1 ? box.confidence : box.confidence * 100, 100));
+                                      const bColor = bPct >= 80 ? '#22c55e' : bPct >= 55 ? '#f59e0b' : '#f87171';
+                                      return (
+                                        <div key={i} style={{ background: '#1e293b', borderRadius: 8, padding: '8px 11px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                                          <div style={{ width: 22, height: 22, borderRadius: 5, background: '#22c55e22', border: '1.5px solid #22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <span style={{ fontSize: 10, color: '#22c55e', fontWeight: 800 }}>{i + 1}</span>
+                                          </div>
+                                          <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                              <span style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>{box.label || pestName}</span>
+                                              <span style={{ fontSize: 11, color: bColor, fontWeight: 800 }}>{bPct}%</span>
+                                            </div>
+                                            <div style={{ height: 4, background: '#334155', borderRadius: 99, overflow: 'hidden' }}>
+                                              <div style={{ height: '100%', width: `${bPct}%`, background: bColor, borderRadius: 99 }} />
+                                            </div>
+                                            <p style={{ fontSize: 10, color: '#475569', margin: '4px 0 0', fontFamily: 'monospace' }}>
+                                              [{Math.round(box.xmin)}, {Math.round(box.ymin)}] → [{Math.round(box.xmax)}, {Math.round(box.ymax)}]
+                                            </p>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Canvas with bounding boxes drawn on uploaded image */}
+                              <div>
+                                <p style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
+                                  Detected Regions on Your Image
+                                </p>
+                                {imagePreview && boxes.length > 0 ? (
+                                  <div style={{ borderRadius: 8, overflow: 'hidden', border: '1.5px solid #22c55e33' }}>
+                                    <canvas
+                                      ref={canvasRef}
+                                      width={560}
+                                      style={{ width: '100%', display: 'block' }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div style={{ background: '#1e293b', borderRadius: 8, padding: '20px', textAlign: 'center' }}>
+                                    <p style={{ fontSize: 12, color: '#475569', margin: 0 }}>
+                                      {!imagePreview ? 'No image available.' : 'No bounding box data returned by the model.'}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Confidence thresholds used */}
+                              <div style={{ background: '#1e293b', borderRadius: 8, padding: '9px 11px' }}>
+                                <p style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 6px' }}>Model Thresholds</p>
+                                <div style={{ display: 'flex', gap: 16 }}>
+                                  <span style={{ fontSize: 12, color: '#94a3b8' }}>Confidence cutoff: <strong style={{ color: '#e2e8f0' }}>0.60</strong></span>
+                                  <span style={{ fontSize: 12, color: '#94a3b8' }}>IoU threshold: <strong style={{ color: '#e2e8f0' }}>0.50</strong></span>
+                                </div>
+                              </div>
+
+                            </div>
+                          )}
+                        </div>
+                      );
+                    };
 
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -1249,6 +1427,9 @@ const HeatMap = ({ user, onLogout }) => {
                           </div>
                           <p style={{ fontSize: 12, color: '#555', margin: 0, lineHeight: 1.5 }}>{confDesc}</p>
                         </div>
+
+                        {/* ── Advanced: How was this detected? ── */}
+                        <BoundingBoxPanel />
 
                         {/* ── Accuracy Metrics Grid ── */}
                         <div>
