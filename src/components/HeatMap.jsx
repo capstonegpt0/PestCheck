@@ -1204,11 +1204,6 @@ const HeatMap = ({ user, onLogout }) => {
                       ? 'The AI model is reasonably confident. Please verify against the reference images.'
                       : 'The AI model has low certainty. Carefully compare with reference images before confirming.';
 
-                    // Severity colour
-                    const sevColor = { low: '#16a34a', medium: '#d97706', high: '#ef4444', critical: '#7f1d1d' }[mlSeverity] || '#d97706';
-                    const sevBg    = { low: '#f0fdf4', medium: '#fffbeb', high: '#fef2f2', critical: '#3b0000' }[mlSeverity] || '#fffbeb';
-                    const sevBorder= { low: '#bbf7d0', medium: '#fde68a', high: '#fecaca', critical: '#7f1d1d' }[mlSeverity] || '#fde68a';
-                    const sevText  = mlSeverity === 'critical' ? '#fff' : sevColor;
 
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -1267,15 +1262,6 @@ const HeatMap = ({ user, onLogout }) => {
                               <div style={{ height: 4, background: '#e5e7eb', borderRadius: 99, marginTop: 6, overflow: 'hidden' }}>
                                 <div style={{ height: '100%', width: `${confPct}%`, background: confColor, borderRadius: 99 }} />
                               </div>
-                            </div>
-
-                            {/* ML-suggested severity */}
-                            <div style={{ background: sevBg, border: `1px solid ${sevBorder}`, borderRadius: 10, padding: '10px 12px' }}>
-                              <p style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Detected Severity</p>
-                              <p style={{ fontSize: 20, fontWeight: 800, color: sevText, margin: '0 0 4px', textTransform: 'capitalize' }}>{mlSeverity}</p>
-                              <span style={{ fontSize: 10, background: sevColor + '22', color: sevColor, borderRadius: 4, padding: '2px 6px', fontWeight: 700 }}>
-                                {mlSeverity === 'low' ? 'Early Stage' : mlSeverity === 'medium' ? 'Moderate' : mlSeverity === 'high' ? 'Serious' : 'Critical'}
-                              </span>
                             </div>
 
                             {/* Detections count */}
