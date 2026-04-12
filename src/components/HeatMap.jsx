@@ -1185,111 +1185,239 @@ const HeatMap = ({ user, onLogout }) => {
                     const pestData = getPestById(pestName) || getPestById(pestName.toLowerCase().replace(/\s+/g, '-'));
                     const referenceImages = pestData?.referenceImages || [];
                     const identificationTips = pestData?.identificationTips || [];
+
+                    // ── Confidence & Accuracy Metrics ──────────────────────────────
+                    const rawConf = detectionResult.confidence ?? detectionResult.confidence_score ?? 0;
+                    const confPct = Math.round(Math.min(rawConf > 1 ? rawConf : rawConf * 100, 100));
+                    const numDetections = detectionResult.num_detections ?? 1;
+                    const mlSeverity = detectionResult.severity || 'low';
+                    const symptoms = detectionResult.symptoms || '';
+
+                    // Derive colour & label for the confidence level
+                    const confColor = confPct >= 80 ? '#16a34a' : confPct >= 55 ? '#d97706' : '#dc2626';
+                    const confBg    = confPct >= 80 ? '#f0fdf4' : confPct >= 55 ? '#fffbeb' : '#fef2f2';
+                    const confBorder= confPct >= 80 ? '#bbf7d0' : confPct >= 55 ? '#fde68a' : '#fecaca';
+                    const confLabel = confPct >= 80 ? 'High Confidence' : confPct >= 55 ? 'Moderate Confidence' : 'Low Confidence';
+                    const confDesc  = confPct >= 80
+                      ? 'The AI model is highly certain this pest is present in your image.'
+                      : confPct >= 55
+                      ? 'The AI model is reasonably confident. Please verify against the reference images.'
+                      : 'The AI model has low certainty. Carefully compare with reference images before confirming.';
+
+                    // Severity colour
+                    const sevColor = { low: '#16a34a', medium: '#d97706', high: '#ef4444', critical: '#7f1d1d' }[mlSeverity] || '#d97706';
+                    const sevBg    = { low: '#f0fdf4', medium: '#fffbeb', high: '#fef2f2', critical: '#3b0000' }[mlSeverity] || '#fffbeb';
+                    const sevBorder= { low: '#bbf7d0', medium: '#fde68a', high: '#fecaca', critical: '#7f1d1d' }[mlSeverity] || '#fde68a';
+                    const sevText  = mlSeverity === 'critical' ? '#fff' : sevColor;
+
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+                        {/* ── Header: Pest name ── */}
                         <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: 16 }}>
                           <p style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Detection Result</p>
-                          <p style={{ fontSize: 24, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>{detectionResult.pest_name || detectionResult.pest}</p>
-                          {(detectionResult.scientific_name || pestData?.scientificName) && <p style={{ fontSize: 13, fontStyle: 'italic', color: '#555', margin: 0 }}>{detectionResult.scientific_name || pestData?.scientificName}</p>}
+                          <p style={{ fontSize: 24, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>{pestName}</p>
+                          {(detectionResult.scientific_name || pestData?.scientificName) && (
+                            <p style={{ fontSize: 13, fontStyle: 'italic', color: '#555', margin: 0 }}>{detectionResult.scientific_name || pestData?.scientificName}</p>
+                          )}
                         </div>
-                        {/* Your Captured Image */}
-<div>
-  <p style={{ fontSize: 13, fontWeight: 600, color: '#1d4ed8', marginBottom: 8, textAlign: 'center' }}>Your Captured Image</p>
-  <div style={{ border: '2px solid #60a5fa', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
-    {imagePreview ? (
-      <img src={imagePreview} alt="Your captured pest" style={{ width: '100%', height: 180, objectFit: 'cover' }} />
-    ) : (
-      <div style={{ width: '100%', height: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
-        <AlertCircle size={32} color="#9ca3af" style={{ marginBottom: 8 }} />
-        <p style={{ fontSize: 12, color: '#9ca3af' }}>Image not available</p>
-      </div>
-    )}
-  </div>
-</div>
 
-{/* Reference Images */}
-<div>
-  <p style={{ fontSize: 13, fontWeight: 600, color: '#15803d', marginBottom: 8, textAlign: 'center' }}>
-    {referenceImages.length > 1 ? 'Reference Images' : 'Reference Pest'}
-  </p>
-  {referenceImages.length > 0 ? (
-    <div style={{ display: 'grid', gridTemplateColumns: referenceImages.length > 1 ? '1fr 1fr' : '1fr', gap: 10 }}>
-      {referenceImages.map((refImg, i) => (
-        <div key={i} style={{ border: '2px solid #4ade80', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
-          <div style={{ position: 'relative' }}>
-            <img
-              src={refImg.url || refImg}
-              alt={`Reference: ${pestName}`}
-              style={{ width: '100%', height: 150, objectFit: 'cover' }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextSibling.style.display = 'flex';
-              }}
-            />
-            <div style={{ display: 'none', width: '100%', height: 150, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
-              <AlertCircle size={32} color="#9ca3af" style={{ marginBottom: 8 }} />
-              <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: '0 12px' }}>Reference image not available</p>
-            </div>
-            {refImg.stage && (
-              <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 10, padding: '2px 6px', borderRadius: 4 }}>
-                {refImg.stage}
-              </div>
-            )}
-          </div>
-          {refImg.description && (
-            <p style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', padding: '4px 8px', background: '#f9fafb', borderTop: '1px solid #e5e7eb' }}>
-              {refImg.description}
-            </p>
-          )}
-        </div>
-      ))}
-    </div>
-  ) : (
-    <div style={{ border: '2px solid #4ade80', borderRadius: 10, overflow: 'hidden' }}>
-      <div style={{ width: '100%', height: 150, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
-        <AlertCircle size={32} color="#9ca3af" style={{ marginBottom: 8 }} />
-        <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: '0 12px' }}>Reference image not available</p>
-      </div>
-    </div>
-  )}
-</div>
+                        {/* ── Confidence Meter ── */}
+                        <div style={{ background: confBg, border: `1.5px solid ${confBorder}`, borderRadius: 14, padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 8, background: confColor + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Activity size={18} color={confColor} />
+                              </div>
+                              <div>
+                                <p style={{ fontWeight: 700, fontSize: 13, color: confColor, margin: 0 }}>{confLabel}</p>
+                                <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>AI Model Confidence</p>
+                              </div>
+                            </div>
+                            <span style={{ fontSize: 28, fontWeight: 800, color: confColor, lineHeight: 1 }}>{confPct}%</span>
+                          </div>
+                          {/* Progress bar */}
+                          <div style={{ height: 10, background: '#e5e7eb', borderRadius: 99, overflow: 'hidden', marginBottom: 8 }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${confPct}%`,
+                              background: `linear-gradient(90deg, ${confColor}99, ${confColor})`,
+                              borderRadius: 99,
+                              transition: 'width 0.6s ease',
+                            }} />
+                          </div>
+                          {/* Tick marks */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                            {['0%','25%','50%','75%','100%'].map(t => (
+                              <span key={t} style={{ fontSize: 9, color: '#9ca3af' }}>{t}</span>
+                            ))}
+                          </div>
+                          <p style={{ fontSize: 12, color: '#555', margin: 0, lineHeight: 1.5 }}>{confDesc}</p>
+                        </div>
 
-{/* Reference Damage Image */}
-{(() => {
-  const referenceDamageImage = pestData?.damageImage || null;
-  return (
-    <div>
-      <p style={{ fontSize: 13, fontWeight: 600, color: '#dc2626', marginBottom: 8, textAlign: 'center' }}>Reference Damage Pattern</p>
-      <div style={{ border: '2px solid #f87171', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
-        {referenceDamageImage ? (
-          <div style={{ position: 'relative' }}>
-            <img
-              src={referenceDamageImage}
-              alt={`Typical damage from ${pestName}`}
-              style={{ width: '100%', height: 200, objectFit: 'cover' }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextSibling.style.display = 'flex';
-              }}
-            />
-            <div style={{ display: 'none', width: '100%', height: 200, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
-              <AlertCircle size={32} color="#9ca3af" style={{ marginBottom: 8 }} />
-              <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: '0 12px' }}>Reference damage image not available</p>
-            </div>
-            <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(127,29,29,0.8)', color: '#fff', fontSize: 10, padding: '2px 8px', borderRadius: 4 }}>
-              Typical {pestName} Damage
-            </div>
-          </div>
-        ) : (
-          <div style={{ width: '100%', height: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
-            <AlertCircle size={32} color="#9ca3af" style={{ marginBottom: 8 }} />
-            <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: '0 12px' }}>Reference damage image not available</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-})()}
+                        {/* ── Accuracy Metrics Grid ── */}
+                        <div>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>📊 Detection Parameters</p>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+
+                            {/* Confidence score */}
+                            <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 12px' }}>
+                              <p style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Confidence Score</p>
+                              <p style={{ fontSize: 20, fontWeight: 800, color: confColor, margin: 0 }}>{confPct}%</p>
+                              <div style={{ height: 4, background: '#e5e7eb', borderRadius: 99, marginTop: 6, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${confPct}%`, background: confColor, borderRadius: 99 }} />
+                              </div>
+                            </div>
+
+                            {/* ML-suggested severity */}
+                            <div style={{ background: sevBg, border: `1px solid ${sevBorder}`, borderRadius: 10, padding: '10px 12px' }}>
+                              <p style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Detected Severity</p>
+                              <p style={{ fontSize: 20, fontWeight: 800, color: sevText, margin: '0 0 4px', textTransform: 'capitalize' }}>{mlSeverity}</p>
+                              <span style={{ fontSize: 10, background: sevColor + '22', color: sevColor, borderRadius: 4, padding: '2px 6px', fontWeight: 700 }}>
+                                {mlSeverity === 'low' ? 'Early Stage' : mlSeverity === 'medium' ? 'Moderate' : mlSeverity === 'high' ? 'Serious' : 'Critical'}
+                              </span>
+                            </div>
+
+                            {/* Detections count */}
+                            <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 10, padding: '10px 12px' }}>
+                              <p style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Instances Found</p>
+                              <p style={{ fontSize: 20, fontWeight: 800, color: '#0369a1', margin: '0 0 2px' }}>{numDetections}</p>
+                              <p style={{ fontSize: 10, color: '#6b7280', margin: 0 }}>pest region{numDetections !== 1 ? 's' : ''} detected</p>
+                            </div>
+
+                            {/* Crop type */}
+                            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '10px 12px' }}>
+                              <p style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Crop Type</p>
+                              <p style={{ fontSize: 20, fontWeight: 800, color: '#15803d', margin: '0 0 2px', textTransform: 'capitalize' }}>
+                                {detectionResult.crop_type || 'Rice'}
+                              </p>
+                              <p style={{ fontSize: 10, color: '#6b7280', margin: 0 }}>analyzed crop</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ── Symptoms / Evidence ── */}
+                        {symptoms && (
+                          <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, padding: '12px 14px' }}>
+                            <p style={{ fontWeight: 700, fontSize: 13, color: '#c2410c', marginBottom: 6 }}>🌿 Observed Symptoms</p>
+                            <p style={{ fontSize: 13, color: '#7c2d12', margin: 0, lineHeight: 1.55 }}>{symptoms}</p>
+                          </div>
+                        )}
+
+                        {/* ── Confidence Interpretation Guide ── */}
+                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px' }}>
+                          <p style={{ fontWeight: 700, fontSize: 12, color: '#475569', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>How to Read Confidence</p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                            {[
+                              { range: '80–100%', color: '#16a34a', bg: '#f0fdf4', label: 'High', desc: 'Very likely correct — strong visual match' },
+                              { range: '55–79%', color: '#d97706', bg: '#fffbeb', label: 'Moderate', desc: 'Probable match — verify with reference images' },
+                              { range: '0–54%', color: '#dc2626', bg: '#fef2f2', label: 'Low', desc: 'Uncertain — carefully compare before confirming' },
+                            ].map(({ range, color, bg, label, desc }) => (
+                              <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: bg, borderRadius: 7, padding: '6px 10px' }}>
+                                <span style={{ fontSize: 11, fontWeight: 800, color, minWidth: 52 }}>{range}</span>
+                                <div>
+                                  <span style={{ fontSize: 11, fontWeight: 700, color }}>{label}: </span>
+                                  <span style={{ fontSize: 11, color: '#555' }}>{desc}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* ── Your Captured Image ── */}
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#1d4ed8', marginBottom: 8, textAlign: 'center' }}>Your Captured Image</p>
+                          <div style={{ border: '2px solid #60a5fa', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+                            {imagePreview ? (
+                              <img src={imagePreview} alt="Your captured pest" style={{ width: '100%', height: 180, objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ width: '100%', height: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+                                <AlertCircle size={32} color="#9ca3af" style={{ marginBottom: 8 }} />
+                                <p style={{ fontSize: 12, color: '#9ca3af' }}>Image not available</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* ── Reference Images ── */}
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#15803d', marginBottom: 8, textAlign: 'center' }}>
+                            {referenceImages.length > 1 ? 'Reference Images' : 'Reference Pest'}
+                          </p>
+                          {referenceImages.length > 0 ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: referenceImages.length > 1 ? '1fr 1fr' : '1fr', gap: 10 }}>
+                              {referenceImages.map((refImg, i) => (
+                                <div key={i} style={{ border: '2px solid #4ade80', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+                                  <div style={{ position: 'relative' }}>
+                                    <img
+                                      src={refImg.url || refImg}
+                                      alt={`Reference: ${pestName}`}
+                                      style={{ width: '100%', height: 150, objectFit: 'cover' }}
+                                      onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+                                    />
+                                    <div style={{ display: 'none', width: '100%', height: 150, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+                                      <AlertCircle size={32} color="#9ca3af" style={{ marginBottom: 8 }} />
+                                      <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: '0 12px' }}>Reference image not available</p>
+                                    </div>
+                                    {refImg.stage && (
+                                      <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 10, padding: '2px 6px', borderRadius: 4 }}>
+                                        {refImg.stage}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {refImg.description && (
+                                    <p style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', padding: '4px 8px', background: '#f9fafb', borderTop: '1px solid #e5e7eb' }}>
+                                      {refImg.description}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ border: '2px solid #4ade80', borderRadius: 10, overflow: 'hidden' }}>
+                              <div style={{ width: '100%', height: 150, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+                                <AlertCircle size={32} color="#9ca3af" style={{ marginBottom: 8 }} />
+                                <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: '0 12px' }}>Reference image not available</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ── Reference Damage Image ── */}
+                        {(() => {
+                          const referenceDamageImage = pestData?.damageImage || null;
+                          return (
+                            <div>
+                              <p style={{ fontSize: 13, fontWeight: 600, color: '#dc2626', marginBottom: 8, textAlign: 'center' }}>Reference Damage Pattern</p>
+                              <div style={{ border: '2px solid #f87171', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+                                {referenceDamageImage ? (
+                                  <div style={{ position: 'relative' }}>
+                                    <img
+                                      src={referenceDamageImage}
+                                      alt={`Typical damage from ${pestName}`}
+                                      style={{ width: '100%', height: 200, objectFit: 'cover' }}
+                                      onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+                                    />
+                                    <div style={{ display: 'none', width: '100%', height: 200, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+                                      <AlertCircle size={32} color="#9ca3af" style={{ marginBottom: 8 }} />
+                                      <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: '0 12px' }}>Reference damage image not available</p>
+                                    </div>
+                                    <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(127,29,29,0.8)', color: '#fff', fontSize: 10, padding: '2px 8px', borderRadius: 4 }}>
+                                      Typical {pestName} Damage
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div style={{ width: '100%', height: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+                                    <AlertCircle size={32} color="#9ca3af" style={{ marginBottom: 8 }} />
+                                    <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: '0 12px' }}>Reference damage image not available</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* ── Identification Tips ── */}
                         {identificationTips.length > 0 && (
                           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 14px' }}>
                             <p style={{ fontWeight: 700, fontSize: 13, color: '#1d4ed8', marginBottom: 8 }}>🔍 Identification Tips:</p>
@@ -1298,19 +1426,30 @@ const HeatMap = ({ user, onLogout }) => {
                             </ul>
                           </div>
                         )}
+
+                        {/* ── Comparison Tips ── */}
                         <div style={{ background: '#fefce8', border: '1px solid #fbbf24', borderRadius: 10, padding: '12px 14px' }}>
                           <p style={{ fontWeight: 700, fontSize: 13, color: '#92400e', marginBottom: 8 }}>📋 Comparison Tips:</p>
                           <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                            {['Compare body color and patterns', 'Check body shape and size', 'Look for distinctive markings', 'Compare damage patterns', 'Verify feeding marks and symptoms'].map((t, i) => <li key={i} style={{ fontSize: 12, color: '#78350f' }}>{t}</li>)}
+                            {['Compare body color and patterns', 'Check body shape and size', 'Look for distinctive markings', 'Compare damage patterns', 'Verify feeding marks and symptoms'].map((t, i) => (
+                              <li key={i} style={{ fontSize: 12, color: '#78350f' }}>{t}</li>
+                            ))}
                           </ul>
                         </div>
+
+                        {/* ── Confirm / Reject ── */}
                         <div style={{ textAlign: 'center' }}>
                           <p style={{ fontSize: 15, fontWeight: 600, color: '#333', marginBottom: 12 }}>Does your image match the reference pest and damage pattern?</p>
                           <div style={{ display: 'flex', gap: 10 }}>
-                            <button onClick={() => confirmDetection(true)} style={{ flex: 1, padding: '14px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><ThumbsUp size={18} /> Yes, Matches</button>
-                            <button onClick={() => confirmDetection(false)} style={{ flex: 1, padding: '14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><ThumbsDown size={18} /> No, Different</button>
+                            <button onClick={() => confirmDetection(true)} style={{ flex: 1, padding: '14px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                              <ThumbsUp size={18} /> Yes, Matches
+                            </button>
+                            <button onClick={() => confirmDetection(false)} style={{ flex: 1, padding: '14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                              <ThumbsDown size={18} /> No, Different
+                            </button>
                           </div>
                         </div>
+
                       </div>
                     );
                   })()}
