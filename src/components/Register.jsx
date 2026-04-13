@@ -17,6 +17,7 @@ const Register = () => {
   });
   const [validIdFile, setValidIdFile] = useState(null);
   const [validIdPreview, setValidIdPreview] = useState(null);
+  const [fileError, setFileError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -40,13 +41,22 @@ const Register = () => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setError('Please upload an image file (JPG, PNG, etc.)');
+      setFileError('Please upload an image file (JPG, PNG, etc.)');
+      setValidIdFile(null);
+      setValidIdPreview(null);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError('Image must be smaller than 5 MB');
+      setFileError(
+        `File too large: ${(file.size / (1024 * 1024)).toFixed(1)} MB. Please upload an image smaller than 5 MB.`
+      );
+      setValidIdFile(null);
+      setValidIdPreview(null);
+      // Reset the input so the same file can be re-selected after compression
+      e.target.value = '';
       return;
     }
+    setFileError('');
     setValidIdFile(file);
     setValidIdPreview(URL.createObjectURL(file));
     setError('');
@@ -291,7 +301,9 @@ const Register = () => {
               </label>
               <div
                 className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                  validIdPreview
+                  fileError
+                    ? 'border-red-400 bg-red-50'
+                    : validIdPreview
                     ? 'border-primary bg-green-50'
                     : 'border-gray-300 hover:border-primary hover:bg-gray-50'
                 }`}
@@ -322,6 +334,14 @@ const Register = () => {
                 onChange={handleFileChange}
                 className="hidden"
               />
+              {fileError && (
+                <div className="flex items-start gap-2 mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+                  <svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span>{fileError}</span>
+                </div>
+              )}
               <p className="text-xs text-gray-400 mt-1">
                 Accepted: PhilSys, Driver's License, Passport, SSS, GSIS, PRC, Voter's ID
               </p>
