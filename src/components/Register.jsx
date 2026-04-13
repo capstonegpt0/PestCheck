@@ -15,6 +15,19 @@ const Register = () => {
     rsbsa_number: '',
     notes: '',
   });
+  const [passwordErrors, setPasswordErrors] = useState([]);
+
+  const validatePassword = (pwd) => {
+    const rules = [
+      { test: pwd.length >= 8,          label: 'At least 8 characters' },
+      { test: /[A-Z]/.test(pwd),        label: 'At least 1 uppercase letter' },
+      { test: /[a-z]/.test(pwd),        label: 'At least 1 lowercase letter' },
+      { test: /[0-9]/.test(pwd),        label: 'At least 1 number' },
+      { test: /[^A-Za-z0-9]/.test(pwd), label: 'At least 1 special character (!@#$%^&*)' },
+    ];
+    return rules;
+  };
+
   const [validIdFile, setValidIdFile] = useState(null);
   const [validIdPreview, setValidIdPreview] = useState(null);
   const [fileError, setFileError] = useState('');
@@ -23,7 +36,11 @@ const Register = () => {
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    if (name === 'password') {
+      setPasswordErrors(validatePassword(value));
+    }
   };
 
   // Block digits from name fields
@@ -68,6 +85,12 @@ const Register = () => {
 
     if (formData.password !== formData.password_confirm) {
       setError('Passwords do not match');
+      return;
+    }
+
+    const pwdRules = validatePassword(formData.password);
+    if (pwdRules.some((r) => !r.test)) {
+      setError('Password does not meet the required criteria.');
       return;
     }
     if (!validIdFile) {
@@ -248,6 +271,24 @@ const Register = () => {
                 required
                 minLength={8}
               />
+              {formData.password.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {validatePassword(formData.password).map((rule) => (
+                    <li key={rule.label} className={`flex items-center gap-1.5 text-xs ${rule.test ? 'text-green-600' : 'text-red-500'}`}>
+                      {rule.test ? (
+                        <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {rule.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
