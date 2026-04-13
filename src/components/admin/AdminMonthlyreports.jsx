@@ -57,7 +57,7 @@ async function exportToExcel(detections, farms, month, year) {
   const sheetLabel = `${MONTHS[month].slice(0, 3)} ${endOfMonth}, ${year}`;
   const farmById   = Object.fromEntries(farms.map(f => [f.id, f]));
 
-  // Group by farm/barangay
+  // Group detections by farm/barangay
   const byMuni = {};
   detections.forEach(d => {
     const farm = farmById[d.farm_id] || null;
@@ -67,31 +67,48 @@ async function exportToExcel(detections, farms, month, year) {
   });
   const muniKeys = Object.keys(byMuni);
 
-  // ── Build array-of-arrays ────────────────────────────────────────────────
+  // ── Build array-of-arrays matching the exact template layout ─────────────
+  // Template row structure (1-indexed, matching actual xlsx):
+  //   Row 1  : blank (logos float here as images)
+  //   Row 2  : Republic of the Philippines       (merged A:Q, Bookman Old Style 12)
+  //   Row 3  : Province of Pampanga              (merged A:Q, Bookman Old Style 12)
+  //   Row 4  : OFFICE OF THE PROVINCIAL AGRICULTURIST  (merged A:Q, Bookman Old Style 12)
+  //   Row 5  : Capitol Compound, Sto. Niño, City of San Fernando  (merged A:Q, Bookman Old Style 12)
+  //   Row 6  : blank
+  //   Row 7  : PEST MONITORING ON RICE, CORN, CASSAVA & HIGH VALUE CROPS (merged A:Q, TNR 12 bold)
+  //   Row 8  : as of <date>                      (merged A:Q, TNR 12 bold)
+  //   Row 9  : blank
+  //   Row 10 : blank
+  //   Row 11 : Province: PAMPANGA                (TNR 12, no merge)
+  //   Row 12 : Column headers                    (TNR 12 bold, green fill #92D050)
+  //   Row 13+: Data rows, sub-total rows, blank separators
+
   const aoa = [];
 
-  // Row 1 — blank (logos float here via image anchoring)
+  // Row 1 — blank (logos float here)
   aoa.push(Array(17).fill(null));
 
-  // Rows 2–5 — letterhead block
-  aoa.push(['Republic of the Philippines', ...Array(16).fill(null)]);
-  aoa.push(['Province of Pampanga',        ...Array(16).fill(null)]);
-  aoa.push(['OFFICE OF THE PROVINCIAL AGRICULTURIST', ...Array(16).fill(null)]);
-  aoa.push(['Municipality of Magalang, Pampanga',     ...Array(16).fill(null)]);
+  // Rows 2–5 — letterhead (Bookman Old Style 12, centered)
+  aoa.push(['Republic of the Philippines',              ...Array(16).fill(null)]);
+  aoa.push(['Province of Pampanga',                    ...Array(16).fill(null)]);
+  aoa.push(['OFFICE OF THE PROVINCIAL AGRICULTURIST',  ...Array(16).fill(null)]);
+  aoa.push(['Capitol Compound, Sto. Niño, City of San Fernando', ...Array(16).fill(null)]);
 
   // Row 6 — blank
   aoa.push(Array(17).fill(null));
 
-  // Rows 7–8 — title / date
-  aoa.push(['PEST MONITORING ON RICE AND CORN', ...Array(16).fill(null)]);
+  // Row 7 — title
+  aoa.push(['PEST MONITORING ON RICE, CORN, CASSAVA & HIGH VALUE CROPS', ...Array(16).fill(null)]);
+
+  // Row 8 — date
   aoa.push([`as of ${MONTHS[month]} ${endOfMonth}, ${year}`, ...Array(16).fill(null)]);
 
   // Rows 9–10 — blank
   aoa.push(Array(17).fill(null));
   aoa.push(Array(17).fill(null));
 
-  // Row 11 — municipality label
-  aoa.push(['Municipality: MAGALANG, PAMPANGA', ...Array(16).fill(null)]);
+  // Row 11 — province label
+  aoa.push(['Province: PAMPANGA', ...Array(16).fill(null)]);
 
   // Row 12 — column headers
   aoa.push([
@@ -102,18 +119,19 @@ async function exportToExcel(detections, farms, month, year) {
     'Data Source', 'Remarks',
   ]);
 
-  // ── Data rows ────────────────────────────────────────────────────────────
+  // ── Data rows ─────────────────────────────────────────────────────────────
   muniKeys.forEach((muni, mi) => {
     const rows    = byMuni[muni];
-    const startEx = aoa.length + 1; // Excel 1-indexed row of first data row
+    const startEx = aoa.length + 1; // Excel 1-indexed row of first data row for this group
 
     rows.forEach((d, ri) => {
       const farm = d._farm;
       const lat  = d.latitude  || (farm ? farm.lat  : null);
       const lng  = d.longitude || (farm ? farm.lng  : null);
+      // Store as decimal — cell will be formatted as 0%
       const pct  = severityToPct(d.severity);
       aoa.push([
-        ri === 0 ? `${mi + 1}. ${muni}` : null,   // A: Municipality
+        ri === 0 ? `${mi + 1}. ${muni}` : null,        // A: Municipality (only first row)
         muni,                                            // B: Barangay
         null,                                            // C: No. of Farmers — blank
         lat ? Number(lat).toFixed(6) : null,             // D: Latitude
@@ -125,7 +143,7 @@ async function exportToExcel(detections, farms, month, year) {
         null,                                            // J: Natural Enemies — blank
         null,                                            // K: Area Planted — blank
         null,                                            // L: Area Affected — blank
-        pct,                                             // M: % Infestation (from severity)
+        pct,                                             // M: % Infestation (decimal, formatted 0%)
         null,                                            // N: Area Treated — blank
         null,                                            // O: Actions Taken — blank
         'PestCheck System',                              // P: Data Source
@@ -133,143 +151,196 @@ async function exportToExcel(detections, farms, month, year) {
       ]);
     });
 
-    // Sub-total row
+    // Sub-total row — only C, K, L get SUM formulas (matches template)
     const endEx = aoa.length;
-    aoa.push([
-      null, null,
-      `=SUM(C${startEx}:C${endEx})`, null, null, null, null, null, null, null,
-      `=SUM(K${startEx}:K${endEx})`,
-      `=SUM(L${startEx}:L${endEx})`,
-      null, null, null, null, null,
-    ]);
-    aoa.push(Array(17).fill(null)); // blank separator
+    const subRow = Array(17).fill(null);
+    subRow[2]  = `=SUM(C${startEx}:C${endEx})`;   // C
+    subRow[10] = `=SUM(K${startEx}:K${endEx})`;   // K
+    subRow[11] = `=SUM(L${startEx}:L${endEx})`;   // L
+    aoa.push(subRow);
+
+    // Blank separator row between municipalities
+    aoa.push(Array(17).fill(null));
   });
 
-  // Signatories
+  // Signatories (matching template rows 105–109)
   aoa.push(Array(17).fill(null));
   aoa.push(['* NOTHING FOLLOWS *', ...Array(16).fill(null)]);
   aoa.push(Array(17).fill(null));
-  aoa.push(['Prepared by:', ...Array(8).fill(null), 'Noted by:', ...Array(7).fill(null)]);
-  const sigRow = Array(17).fill(null);
-  sigRow[1]  = '________________________';
-  sigRow[10] = '________________________';
-  aoa.push(sigRow);
+  const prepRow = Array(17).fill(null);
+  prepRow[0] = 'Prepared by:';
+  prepRow[9] = 'Noted by:';
+  aoa.push(prepRow);
+  aoa.push(Array(17).fill(null));
+  aoa.push(Array(17).fill(null));
+  aoa.push(Array(17).fill(null));
+  const nameRow = Array(17).fill(null);
+  nameRow[1] = '________________________';
+  nameRow[9] = '________________________';
+  aoa.push(nameRow);
   const titleRow = Array(17).fill(null);
-  titleRow[1]  = 'Agricultural Technician';
-  titleRow[10] = 'Municipal Agriculturist';
+  titleRow[1] = 'Agricultural Technician';
+  titleRow[9] = 'Municipal Agriculturist';
   aoa.push(titleRow);
 
-  // ── Create worksheet ─────────────────────────────────────────────────────
+  // ── Create worksheet ──────────────────────────────────────────────────────
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-  // Column widths — exact match to template
+  // ── Column widths — exact match to template ───────────────────────────────
   ws['!cols'] = [
-    { wch: 24     }, // A
-    { wch: 23.664 }, // B
-    { wch: 15.664 }, // C
-    { wch: 17.332 }, // D
-    { wch: 17.332 }, // E
-    { wch: 17.332 }, // F
-    { wch: 15.555 }, // G
-    { wch: 22.332 }, // H
-    { wch: 21     }, // I
-    { wch: 11.441 }, // J
-    { wch: 9.332  }, // K
-    { wch: 11.332 }, // L
-    { wch: 14.109 }, // M
-    { wch: 10.664 }, // N
-    { wch: 10.664 }, // O
-    { wch: 10     }, // P
-    { wch: 12.555 }, // Q
+    { wch: 24.0        }, // A  Municipality
+    { wch: 23.6640625  }, // B  Barangay
+    { wch: 15.6640625  }, // C  No. of Farmers
+    { wch: 17.33203125 }, // D  Latitude
+    { wch: 17.33203125 }, // E  Longitude
+    { wch: 17.33203125 }, // F  Crop  (template has no explicit width for E/F — using D width)
+    { wch: 15.5546875  }, // G  Variety
+    { wch: 22.33203125 }, // H  Growth Stage
+    { wch: 21.0        }, // I  Pests
+    { wch: 11.44140625 }, // J  Natural Enemies
+    { wch: 9.33203125  }, // K  Area Planted
+    { wch: 11.33203125 }, // L  Area Affected
+    { wch: 14.109375   }, // M  % Infestation
+    { wch: 10.6640625  }, // N  Area Treated
+    { wch: 10.6640625  }, // O  Actions Taken
+    { wch: 10.0        }, // P  Data Source
+    { wch: 12.5546875  }, // Q  Remarks
   ];
 
-  // Row heights
-  ws['!rows'] = [
-    { hpt: 72   }, // row 0 (Excel 1) — logo row
-    { hpt: 15.6 }, // row 1 (Excel 2) — Republic
-    { hpt: 15.6 }, // row 2 (Excel 3) — Province
-    { hpt: 15.6 }, // row 3 (Excel 4) — Office
-    { hpt: 15.6 }, // row 4 (Excel 5) — Municipality
-    { hpt: 15.6 }, // row 5 (Excel 6) — blank
-    { hpt: 15.6 }, // row 6 (Excel 7) — title
-    { hpt: 15.6 }, // row 7 (Excel 8) — date
-    { hpt: 15.6 }, // row 8 (Excel 9) — blank
-    { hpt: 15.6 }, // row 9 (Excel 10)— blank
-    { hpt: 15.6 }, // row 10 (Excel 11)— municipality line
-    { hpt: 42.6 }, // row 11 (Excel 12)— header row (green)
-  ];
+  // ── Row heights — only row 12 (headers) has a fixed height in the template ─
+  ws['!rows'] = [];
+  // aoa index 11 = Excel row 12 = header row
+  ws['!rows'][11] = { hpt: 42.6 };
 
-  // Merges
+  // ── Merges — matching template exactly ───────────────────────────────────
+  // aoa indices are 0-based; Excel rows are 1-based
+  // Row 2  = aoa[1]  (Republic)
+  // Row 3  = aoa[2]  (Province)
+  // Row 4  = aoa[3]  (Office)
+  // Row 5  = aoa[4]  (Address)
+  // Row 7  = aoa[6]  (Title)
+  // Row 8  = aoa[7]  (Date)
   ws['!merges'] = [
-    { s: { r:  1, c: 0 }, e: { r:  1, c: 16 } },
-    { s: { r:  2, c: 0 }, e: { r:  2, c: 16 } },
-    { s: { r:  3, c: 0 }, e: { r:  3, c: 16 } },
-    { s: { r:  4, c: 0 }, e: { r:  4, c: 16 } },
-    { s: { r:  6, c: 0 }, e: { r:  6, c: 16 } },
-    { s: { r:  7, c: 0 }, e: { r:  7, c: 16 } },
-    { s: { r: 10, c: 0 }, e: { r: 10, c: 16 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 16 } },  // Row 2: Republic
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 16 } },  // Row 3: Province
+    { s: { r: 3, c: 0 }, e: { r: 3, c: 16 } },  // Row 4: Office
+    { s: { r: 4, c: 0 }, e: { r: 4, c: 16 } },  // Row 5: Address
+    { s: { r: 6, c: 0 }, e: { r: 6, c: 16 } },  // Row 7: Title
+    { s: { r: 7, c: 0 }, e: { r: 7, c: 16 } },  // Row 8: Date
   ];
 
   // ── Cell styles ───────────────────────────────────────────────────────────
-  const CENTER_BOLD = {
-    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-    font: { bold: true, sz: 11, name: 'Calibri' },
+  // Bookman Old Style 12 centered (letterhead rows 2–5)
+  const LETTERHEAD_STYLE = {
+    alignment: { horizontal: 'center', vertical: 'center' },
+    font: { sz: 12, name: 'Bookman Old Style' },
   };
+  // Times New Roman 12 bold centered (title / date rows 7–8)
+  const TITLE_STYLE = {
+    alignment: { horizontal: 'center', vertical: 'center' },
+    font: { bold: true, sz: 12, name: 'Times New Roman' },
+  };
+  // Times New Roman 12 left (province label row 11)
+  const PROVINCE_STYLE = {
+    font: { sz: 12, name: 'Times New Roman' },
+  };
+  // Green header: Times New Roman 12 bold, green fill, centered, wrapped, medium border
   const GREEN_HDR = {
-    fill: { patternType: 'solid', fgColor: { rgb: '92D050' } },
-    font: { bold: true, sz: 10, name: 'Calibri' },
+    fill: { patternType: 'solid', fgColor: { rgb: 'FF92D050' } },
+    font: { bold: true, sz: 12, name: 'Times New Roman' },
     alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
     border: {
-      top:    { style: 'thin', color: { rgb: '000000' } },
-      bottom: { style: 'thin', color: { rgb: '000000' } },
-      left:   { style: 'thin', color: { rgb: '000000' } },
-      right:  { style: 'thin', color: { rgb: '000000' } },
+      top:    { style: 'medium' },
+      bottom: { style: 'medium' },
+      left:   { style: 'medium' },
+      right:  { style: 'medium' },
     },
   };
-  const LETTERHEAD = {
-    alignment: { horizontal: 'center', vertical: 'center' },
-    font: { sz: 11, name: 'Calibri' },
+  // Data cell: Times New Roman 12, thin borders (left/right/bottom only — top=none)
+  const DATA_STYLE = {
+    font: { sz: 12, name: 'Times New Roman' },
+    alignment: { vertical: 'center', wrapText: true },
+    border: {
+      left:   { style: 'thin' },
+      right:  { style: 'thin' },
+      bottom: { style: 'thin' },
+    },
   };
-  const TITLE_BOLD = {
-    alignment: { horizontal: 'center', vertical: 'center' },
-    font: { bold: true, sz: 11, name: 'Calibri' },
+  const DATA_CENTER = {
+    ...DATA_STYLE,
+    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  };
+  // % infestation cell — same as DATA_CENTER but with numFmt 0%
+  const PCT_STYLE = {
+    ...DATA_CENTER,
+    numFmt: '0%',
+  };
+  // Sub-total cells: bold version of data
+  const SUBTOTAL_STYLE = {
+    font: { bold: true, sz: 12, name: 'Times New Roman' },
+    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+    border: {
+      left:   { style: 'thin' },
+      right:  { style: 'thin' },
+      bottom: { style: 'thin' },
+    },
   };
 
-  // Letterhead rows 2–5 (aoa index 1–4 = Excel rows 2–5)
-  [2, 3, 4, 5].forEach(exRow => {
-    const addr = `A${exRow}`;
-    if (ws[addr]) ws[addr].s = LETTERHEAD;
+  // Apply letterhead styles (Excel rows 2–5 = aoa indices 1–4)
+  ['A2','A3','A4','A5'].forEach(addr => {
+    if (ws[addr]) ws[addr].s = LETTERHEAD_STYLE;
   });
-  // Title rows 7–8
-  [7, 8].forEach(exRow => {
-    const addr = `A${exRow}`;
-    if (ws[addr]) ws[addr].s = TITLE_BOLD;
-  });
-  // Row 11 — municipality
-  if (ws['A11']) ws['A11'].s = TITLE_BOLD;
 
-  // Green header row 12
+  // Apply title/date styles (Excel rows 7–8)
+  ['A7','A8'].forEach(addr => {
+    if (ws[addr]) ws[addr].s = TITLE_STYLE;
+  });
+
+  // Province label (Excel row 11)
+  if (ws['A11']) ws['A11'].s = PROVINCE_STYLE;
+
+  // Green header row (Excel row 12)
   'ABCDEFGHIJKLMNOPQ'.split('').forEach(col => {
     const addr = `${col}12`;
     if (!ws[addr]) ws[addr] = { t: 's', v: '' };
     ws[addr].s = GREEN_HDR;
   });
 
-  // ── Add logos as images ──────────────────────────────────────────────────
-  // xlsx-js-style / SheetJS doesn't support images natively in browser builds.
-  // We instead inject the images into the xlsx zip manually after generation.
+  // Apply styles to all data rows (Excel row 13 onward = aoa index 12 onward)
+  const cols = 'ABCDEFGHIJKLMNOPQ'.split('');
+  for (let r = 13; r <= aoa.length; r++) {
+    cols.forEach((col, ci) => {
+      const addr = `${col}${r}`;
+      if (!ws[addr]) return;
+      if (col === 'M') {
+        // % infestation — format as percentage
+        ws[addr].s = PCT_STYLE;
+        if (typeof ws[addr].v === 'number') ws[addr].t = 'n';
+      } else if (col === 'C' || col === 'K' || col === 'L') {
+        ws[addr].s = SUBTOTAL_STYLE;
+      } else {
+        ws[addr].s = col === 'B' || col === 'A' || col === 'I'
+          ? DATA_STYLE
+          : DATA_CENTER;
+      }
+    });
+  }
+
+  // ── Build workbook and generate bytes ─────────────────────────────────────
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheetLabel.slice(0, 31));
-
-  // Generate the xlsx as ArrayBuffer
   const wbBytes = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-  // ── Manually inject images into the xlsx zip ────────────────────────────
+  // ── Inject logos via JSZip ────────────────────────────────────────────────
+  // The template has 3 floating images positioned over the letterhead area.
+  // We anchor them to rows 1–5 (0-indexed rows 0–4) matching the template layout:
+  //   Left (col 0):   Bagong Pilipinas logo
+  //   Center (col 7): Pampanga Provincial Seal
+  //   Right (col 14): OPA Logo
   try {
     const { default: JSZip } = await import('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')
       .catch(() => { throw new Error('JSZip not available'); });
 
-    // Load images
     const [sealBytes, opaBytes, bagongBytes] = await Promise.all([
       loadImageBytes(PAMPANGA_SEAL_B64),
       loadImageBytes(OPA_LOGO_B64),
@@ -278,12 +349,11 @@ async function exportToExcel(detections, farms, month, year) {
 
     const zip = await JSZip.loadAsync(wbBytes);
 
-    // Add media images
     zip.file('xl/media/image1.jpeg', opaBytes);
     zip.file('xl/media/image2.png',  sealBytes);
     zip.file('xl/media/image3.png',  bagongBytes);
 
-    // Relationship file for the drawing
+    // Drawing relationships
     const drawingRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image3.png"/>
@@ -291,14 +361,14 @@ async function exportToExcel(detections, farms, month, year) {
   <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.jpeg"/>
 </Relationships>`;
 
-    // Drawing XML — positions logos in row 1 (0-indexed row 0)
-    // Left: Bagong Pilipinas (col 0), Center: Pampanga Seal (col 7–8), Right: OPA logo (col 14–15)
-    // EMU = English Metric Units. 1 column ~ 914400 EMU, 1 row ~ 190500 EMU
+    // Drawing XML — logos anchored over rows 1–5 (0-indexed rows 0–4)
+    // Columns: A-B (0-1) = Bagong Pilipinas, H-I (7-8) = Pampanga Seal, O-P (14-15) = OPA Logo
+    // EMU offsets keep images within the letterhead rows
     const drawingXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-  <xdr:twoCellAnchor>
-    <xdr:from><xdr:col>0</xdr:col><xdr:colOff>50000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>50000</xdr:rowOff></xdr:from>
-    <xdr:to><xdr:col>1</xdr:col><xdr:colOff>500000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>900000</xdr:rowOff></xdr:to>
+  <xdr:twoCellAnchor moveWithCells="1" sizeWithCells="0">
+    <xdr:from><xdr:col>0</xdr:col><xdr:colOff>76200</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>76200</xdr:rowOff></xdr:from>
+    <xdr:to><xdr:col>2</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>5</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
     <xdr:pic>
       <xdr:nvPicPr>
         <xdr:cNvPr id="2" name="BagongPilipinas"/>
@@ -308,13 +378,13 @@ async function exportToExcel(detections, farms, month, year) {
         <a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId1"/>
         <a:stretch><a:fillRect/></a:stretch>
       </xdr:blipFill>
-      <xdr:spPr><a:xfrm><a:off x="50000" y="50000"/><a:ext cx="900000" cy="900000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>
+      <xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1000000" cy="1000000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>
     </xdr:pic>
     <xdr:clientData/>
   </xdr:twoCellAnchor>
-  <xdr:twoCellAnchor>
-    <xdr:from><xdr:col>7</xdr:col><xdr:colOff>500000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>50000</xdr:rowOff></xdr:from>
-    <xdr:to><xdr:col>9</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>950000</xdr:rowOff></xdr:to>
+  <xdr:twoCellAnchor moveWithCells="1" sizeWithCells="0">
+    <xdr:from><xdr:col>7</xdr:col><xdr:colOff>200000</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>76200</xdr:rowOff></xdr:from>
+    <xdr:to><xdr:col>9</xdr:col><xdr:colOff>200000</xdr:colOff><xdr:row>5</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
     <xdr:pic>
       <xdr:nvPicPr>
         <xdr:cNvPr id="3" name="PampangaSeal"/>
@@ -324,13 +394,13 @@ async function exportToExcel(detections, farms, month, year) {
         <a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId2"/>
         <a:stretch><a:fillRect/></a:stretch>
       </xdr:blipFill>
-      <xdr:spPr><a:xfrm><a:off x="9000000" y="50000"/><a:ext cx="900000" cy="900000"/></a:xfrm><a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom><a:noFill/></xdr:spPr>
+      <xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1000000" cy="1000000"/></a:xfrm><a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom><a:noFill/></xdr:spPr>
     </xdr:pic>
     <xdr:clientData/>
   </xdr:twoCellAnchor>
-  <xdr:twoCellAnchor>
-    <xdr:from><xdr:col>14</xdr:col><xdr:colOff>200000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>50000</xdr:rowOff></xdr:from>
-    <xdr:to><xdr:col>16</xdr:col><xdr:colOff>500000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>950000</xdr:rowOff></xdr:to>
+  <xdr:twoCellAnchor moveWithCells="1" sizeWithCells="0">
+    <xdr:from><xdr:col>14</xdr:col><xdr:colOff>200000</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>76200</xdr:rowOff></xdr:from>
+    <xdr:to><xdr:col>16</xdr:col><xdr:colOff>500000</xdr:colOff><xdr:row>5</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
     <xdr:pic>
       <xdr:nvPicPr>
         <xdr:cNvPr id="4" name="OPALogo" descr="opa-logoRICE"/>
@@ -340,7 +410,7 @@ async function exportToExcel(detections, farms, month, year) {
         <a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId3" cstate="print"/>
         <a:stretch><a:fillRect/></a:stretch>
       </xdr:blipFill>
-      <xdr:spPr><a:xfrm><a:off x="13500000" y="50000"/><a:ext cx="900000" cy="900000"/></a:xfrm><a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom><a:noFill/></xdr:spPr>
+      <xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1000000" cy="1000000"/></a:xfrm><a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom><a:noFill/></xdr:spPr>
     </xdr:pic>
     <xdr:clientData/>
   </xdr:twoCellAnchor>
@@ -349,29 +419,39 @@ async function exportToExcel(detections, farms, month, year) {
     zip.file('xl/drawings/drawing1.xml', drawingXml);
     zip.file('xl/drawings/_rels/drawing1.xml.rels', drawingRels);
 
-    // Add drawing relationship to sheet1
+    // Sheet relationship — link drawing to sheet1
     const sheetRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>
 </Relationships>`;
     zip.file('xl/worksheets/_rels/sheet1.xml.rels', sheetRels);
 
-    // Update [Content_Types].xml to include drawing and images
+    // Update [Content_Types].xml
     const contentTypes = await zip.file('[Content_Types].xml').async('string');
     let updatedCT = contentTypes;
     const additions = [];
     if (!updatedCT.includes('drawing1.xml')) {
       additions.push('<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>');
     }
-    if (!updatedCT.includes('image/jpeg')) {
+    if (!updatedCT.includes('image/jpeg') && !updatedCT.includes('Extension="jpeg"')) {
       additions.push('<Default Extension="jpeg" ContentType="image/jpeg"/>');
     }
-    if (!updatedCT.includes('image/png') && !updatedCT.includes('.png')) {
+    if (!updatedCT.includes('Extension="png"')) {
       additions.push('<Default Extension="png" ContentType="image/png"/>');
     }
     if (additions.length > 0) {
       updatedCT = updatedCT.replace('</Types>', additions.join('\n') + '\n</Types>');
       zip.file('[Content_Types].xml', updatedCT);
+    }
+
+    // Patch sheet1.xml to reference the drawing
+    const sheet1Xml = await zip.file('xl/worksheets/sheet1.xml').async('string');
+    if (!sheet1Xml.includes('<drawing')) {
+      const patched = sheet1Xml.replace(
+        '</worksheet>',
+        '<drawing r:id="rId1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/></worksheet>'
+      );
+      zip.file('xl/worksheets/sheet1.xml', patched);
     }
 
     const finalBytes = await zip.generateAsync({ type: 'arraybuffer' });
@@ -380,7 +460,6 @@ async function exportToExcel(detections, farms, month, year) {
     });
     triggerDownload(blob, `Pest_Monitoring_Report_${MONTHS[month]}_${year}.xlsx`);
   } catch (err) {
-    // Fallback: download without images
     console.warn('Image injection failed, downloading without logos:', err);
     const blob = new Blob([wbBytes], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
