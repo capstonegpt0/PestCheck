@@ -531,10 +531,9 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
 @page{size:A4 landscape;margin:8mm;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:Arial,sans-serif;font-size:7pt;color:#000;background:#fff;}
-.lh-wrap{display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-bottom:1px solid #ccc;}
-.lh-logos{display:flex;align-items:center;gap:4px;}
+.lh-wrap{display:flex;align-items:center;justify-content:center;gap:12px;padding:4px 8px;border-bottom:1px solid #ccc;}
 .lh-logos img{height:48px;width:48px;object-fit:contain;}
-.lh-text{flex:1;text-align:center;padding:0 8px;}
+.lh-text{text-align:center;padding:0 8px;}
 .lh-text p{line-height:1.4;}
 .lh-bold{font-weight:bold;font-size:8pt;}
 .title-block{text-align:center;padding:4px 0;border-bottom:1px solid #ccc;}
@@ -682,26 +681,22 @@ thead tr{background-color:#92D050;font-weight:bold;text-align:center;}
               {/* ─── PRINTABLE REPORT — rendered in iframe for printing ──── */}
               <div id="printable-report" className="bg-white rounded-lg shadow mb-6" style={{ fontFamily: 'Arial, sans-serif' }}>
 
-                {/* Letterhead */}
-                <div className="lh-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 16px', borderBottom:'1px solid #ccc' }}>
-                  <div className="lh-logos" style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                    <img src={BAGONG_PILIPINAS_B64} alt="Bagong Pilipinas" style={{ height:'56px', width:'56px', objectFit:'contain' }} />
-                  </div>
-                  <div className="lh-text" style={{ flex:1, textAlign:'center', padding:'0 12px' }}>
+                {/* Letterhead — all logos flanking the center text */}
+                <div className="lh-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'8px 16px', borderBottom:'1px solid #ccc', gap:'12px' }}>
+                  <img src={BAGONG_PILIPINAS_B64} alt="Bagong Pilipinas" style={{ height:'56px', width:'56px', objectFit:'contain', flexShrink:0 }} />
+                  <div className="lh-text" style={{ textAlign:'center', padding:'0 8px' }}>
                     <p style={{ fontSize:'9pt' }}>Republic of the Philippines</p>
                     <p style={{ fontSize:'9pt' }}>Province of Pampanga</p>
                     <p className="lh-bold" style={{ fontWeight:'bold', fontSize:'10pt' }}>OFFICE OF THE PROVINCIAL AGRICULTURIST</p>
                     <p style={{ fontSize:'9pt' }}>Capitol Compound, Sto. Niño, City of San Fernando</p>
                   </div>
-                  <div className="lh-logos" style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                    <img src={PAMPANGA_SEAL_B64} alt="Pampanga Seal" style={{ height:'56px', width:'56px', objectFit:'contain' }} />
-                    <img src={OPA_LOGO_B64} alt="OPA Logo" style={{ height:'56px', width:'56px', objectFit:'contain', borderRadius:'50%' }} />
-                  </div>
+                  <img src={PAMPANGA_SEAL_B64} alt="Pampanga Seal" style={{ height:'56px', width:'56px', objectFit:'contain', flexShrink:0 }} />
+                  <img src={OPA_LOGO_B64} alt="OPA Logo" style={{ height:'56px', width:'56px', objectFit:'contain', borderRadius:'50%', flexShrink:0 }} />
                 </div>
 
                 {/* Title block */}
                 <div className="title-block" style={{ textAlign:'center', padding:'6px 0', borderBottom:'1px solid #ccc' }}>
-                  <p className="title-main" style={{ fontWeight:'bold', fontSize:'10pt' }}>PEST MONITORING ON RICE, CORN, CASSAVA &amp; HIGH VALUE CROPS</p>
+                  <p className="title-main" style={{ fontWeight:'bold', fontSize:'10pt' }}>PEST MONITORING ON RICE AND CORN</p>
                   <p className="title-sub" style={{ fontSize:'9pt' }}>as of {MONTHS[selectedMonth]} {endOfMonth}, {selectedYear}</p>
                   <p className="title-sub" style={{ fontSize:'9pt', marginTop:'2px' }}>Province: <strong>PAMPANGA</strong></p>
                 </div>
@@ -736,7 +731,7 @@ thead tr{background-color:#92D050;font-weight:bold;text-align:center;}
                           'Area\nPlanted','Area\nAffected','%\nInfest.','Area\nTreated',
                           'Actions\nTaken','Data\nSource','Remarks'
                         ].map(h => (
-                          <th key={h} style={{ border:'0.5pt solid #aaa', padding:'2pt 2pt', whiteSpace:'pre-line', fontWeight:'bold', textAlign:'center', verticalAlign:'middle' }}>{h}</th>
+                          <th key={h} style={{ border:'0.5pt solid #aaa', padding:'2pt 2pt', whiteSpace:'pre-line', fontWeight:'bold', textAlign:'center', verticalAlign:'middle', backgroundColor:'#92D050' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
