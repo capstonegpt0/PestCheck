@@ -529,8 +529,8 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
     if (!reportEl) return;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Pest Monitoring Report</title><style>
 @page{size:A4 landscape;margin:8mm;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:Arial,sans-serif;font-size:7pt;color:#000;background:#fff;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+body{font-family:Arial,sans-serif;font-size:7pt;color:#000;background:#fff;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
 .lh-wrap{display:flex;align-items:center;justify-content:center;gap:12px;padding:4px 8px;border-bottom:1px solid #ccc;}
 .lh-logos img{height:48px;width:48px;object-fit:contain;}
 .lh-text{text-align:center;padding:0 8px;}
@@ -545,9 +545,11 @@ col.c6{width:5%;}col.c7{width:5%;}col.c8{width:7%;}col.c9{width:8%;}col.c10{widt
 col.c11{width:5%;}col.c12{width:5%;}col.c13{width:5%;}col.c14{width:5%;}col.c15{width:6%;}
 col.c16{width:6%;}col.c17{width:7%;}
 th,td{border:0.5pt solid #aaa;padding:1.5pt 2pt;word-break:break-word;vertical-align:middle;}
-thead tr{background-color:#92D050;font-weight:bold;text-align:center;}
-.subtotal{background-color:#E2EFDA;font-weight:bold;}
-.sep td{border:none;height:3pt;background:#f3f4f6;}
+thead tr{background-color:#92D050!important;font-weight:bold;text-align:center;}
+thead th{background-color:#92D050!important;}
+.subtotal{background-color:#E2EFDA!important;font-weight:bold;}
+.subtotal td{background-color:#E2EFDA!important;}
+.sep td{border:none;height:3pt;background:#f3f4f6!important;}
 .tc{text-align:center;}.bold{font-weight:bold;}.muted{color:#aaa;}
 .sig-wrap{display:flex;justify-content:space-between;padding:16px 16px 8px;}
 .sig-col{width:42%;}
