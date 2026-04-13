@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, MapPin, AlertTriangle, Book,
-  Bell, Activity, LogOut, Shield, FileText, UserCheck
+  Bell, Activity, LogOut, Shield, FileText, UserCheck, Map
 } from 'lucide-react';
 import AdminNotificationBell from './AdminNotificationBell';
 
@@ -17,6 +17,7 @@ const AdminNavigation = ({ user, onLogout }) => {
     { path: '/admin/farms',          icon: MapPin,          label: 'Farms' },
     { path: '/admin/farm-requests',  icon: FileText,        label: 'Farm Requests' },
     { path: '/admin/detections',     icon: AlertTriangle,   label: 'Detections' },
+    { path: '/admin/heatmap',        icon: Map,             label: 'Heat Map' },
     { path: '/admin/pests',          icon: Book,            label: 'Pest Info' },
     { path: '/admin/alerts',         icon: Bell,            label: 'Alerts' },
     { path: '/admin/activities',     icon: Activity,        label: 'Activity Logs' },
@@ -28,6 +29,7 @@ const AdminNavigation = ({ user, onLogout }) => {
     { path: '/admin/farms',          icon: MapPin,          label: 'Farms' },
     { path: '/admin/farm-requests',  icon: FileText,        label: 'Farm Requests' },
     { path: '/admin/detections',     icon: AlertTriangle,   label: 'Detections' },
+    { path: '/admin/heatmap',        icon: Map,             label: 'Heat Map' },
     { path: '/admin/pests',          icon: Book,            label: 'Pest Info' },
     { path: '/admin/alerts',         icon: Bell,            label: 'Send Alerts' },
     { path: '/admin/monthly-report', icon: FileText,        label: 'Monthly Report' },
@@ -59,11 +61,8 @@ const AdminNavigation = ({ user, onLogout }) => {
 
           {/* Right side: notification bell + user + logout */}
           <div className="flex items-center gap-3 flex-shrink-0">
-            {/* Admin Notification Bell */}
             <AdminNotificationBell user={user} />
-
             <div className="w-px h-6 bg-gray-700" />
-
             <div className="text-right leading-tight">
               <p className="text-sm font-medium text-white">{user?.username}</p>
               <p className="text-xs text-yellow-400">

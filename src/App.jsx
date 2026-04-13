@@ -19,6 +19,8 @@ import AdminAlerts from './components/admin/AdminAlerts';
 import AdminActivities from './components/admin/AdminActivities';
 import AdminFarmRequests from './components/admin/AdminFarmrequests';
 import AdminMonthlyReport from './components/admin/AdminMonthlyreports';
+import AdminHeatMap from './components/admin/AdminHeatMap';
+
 
 // PWA Components
 import PWAInstallPrompt from './components/PWAInstallPrompt'
@@ -238,6 +240,14 @@ function App() {
               <AdminMonthlyReport user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="/admin/heatmap"
+          element={
+            <ProtectedRoute requireStaff={true}>
+            <AdminHeatMap user={user} onLogout={handleLogout} />
+          </ProtectedRoute>
+        }
         />
 
         {/* MAO staff verification review */}
