@@ -525,7 +525,49 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
 
 
   const handlePrint = () => {
-    window.print();
+    const reportEl = document.getElementById('printable-report');
+    if (!reportEl) return;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Pest Monitoring Report</title><style>
+@page{size:A4 landscape;margin:8mm;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:7pt;color:#000;background:#fff;}
+.lh-wrap{display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-bottom:1px solid #ccc;}
+.lh-logos{display:flex;align-items:center;gap:4px;}
+.lh-logos img{height:48px;width:48px;object-fit:contain;}
+.lh-text{flex:1;text-align:center;padding:0 8px;}
+.lh-text p{line-height:1.4;}
+.lh-bold{font-weight:bold;font-size:8pt;}
+.title-block{text-align:center;padding:4px 0;border-bottom:1px solid #ccc;}
+.title-main{font-weight:bold;font-size:8pt;}
+.title-sub{font-size:7pt;}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:6.5pt;margin-top:4px;}
+col.c1{width:9%;}col.c2{width:9%;}col.c3{width:4%;}col.c4{width:6%;}col.c5{width:6%;}
+col.c6{width:5%;}col.c7{width:5%;}col.c8{width:7%;}col.c9{width:8%;}col.c10{width:6%;}
+col.c11{width:5%;}col.c12{width:5%;}col.c13{width:5%;}col.c14{width:5%;}col.c15{width:6%;}
+col.c16{width:6%;}col.c17{width:7%;}
+th,td{border:0.5pt solid #aaa;padding:1.5pt 2pt;word-break:break-word;vertical-align:middle;}
+thead tr{background-color:#92D050;font-weight:bold;text-align:center;}
+.subtotal{background-color:#E2EFDA;font-weight:bold;}
+.sep td{border:none;height:3pt;background:#f3f4f6;}
+.tc{text-align:center;}.bold{font-weight:bold;}.muted{color:#aaa;}
+.sig-wrap{display:flex;justify-content:space-between;padding:16px 16px 8px;}
+.sig-col{width:42%;}
+.sig-label{font-size:7pt;margin-bottom:24px;}
+.sig-line{border-top:1pt solid #333;padding-top:2px;font-weight:bold;font-size:7pt;}
+.sig-title{font-size:7pt;}
+.nothing-follows{text-align:center;font-style:italic;font-size:7pt;color:#666;padding:8px 0;}
+</style></head><body>${reportEl.innerHTML}</body></html>`;
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
+    document.body.appendChild(iframe);
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(html);
+    iframe.contentDocument.close();
+    iframe.contentWindow.focus();
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      setTimeout(() => document.body.removeChild(iframe), 1000);
+    }, 500);
   };
 
   const handleExport = async () => {
@@ -562,63 +604,7 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <><style>{`
-      @media print {
-        @page { size: A4 landscape; margin: 8mm; }
-
-        /* Hide everything on the page first */
-        body > * { display: none !important; }
-
-        /* Show only the root app container so React tree is visible */
-        body > #root,
-        body > div:first-child { display: block !important; }
-
-        /* Hide everything inside the app except the report */
-        body > #root *,
-        body > div:first-child * { display: none !important; }
-
-        /* Show the report and all its children */
-        #printable-report,
-        #printable-report * { display: revert !important; }
-
-        /* Layout reset for the report */
-        #printable-report {
-          width: 100% !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          box-shadow: none !important;
-          border-radius: 0 !important;
-          overflow: visible !important;
-        }
-
-        /* Fix the scrollable wrapper so table is not clipped */
-        #printable-report .overflow-x-auto {
-          overflow: visible !important;
-          width: 100% !important;
-        }
-
-        /* Table: fixed layout so columns do not collapse */
-        #printable-report table {
-          width: 100% !important;
-          table-layout: fixed !important;
-          border-collapse: collapse !important;
-          font-size: 6.5pt !important;
-        }
-
-        #printable-report table th,
-        #printable-report table td {
-          border: 0.5pt solid #999 !important;
-          padding: 1pt 2pt !important;
-          word-break: break-word !important;
-          white-space: normal !important;
-          overflow: hidden !important;
-        }
-
-        /* Header text sizes */
-        #printable-report .text-sm  { font-size: 8pt !important; }
-        #printable-report .text-xs  { font-size: 7pt !important; }
-      }
-    `}</style><div className="min-h-screen bg-gray-50">
+    <><div className="min-h-screen bg-gray-50">
         <div className="no-print"><AdminNavigation user={user} onLogout={onLogout} /></div>
         <div className="max-w-screen-2xl mx-auto px-6 py-6">
 
@@ -693,128 +679,125 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
                 ))}
               </div>
 
-              {/* ─── TEMPLATE PREVIEW — exact visual match to xlsx ──────────── */}
-              <div id="printable-report" className="bg-white rounded-lg shadow overflow-hidden mb-6">
+              {/* ─── PRINTABLE REPORT — rendered in iframe for printing ──── */}
+              <div id="printable-report" className="bg-white rounded-lg shadow mb-6" style={{ fontFamily: 'Arial, sans-serif' }}>
 
-                {/* Logo row */}
-                <div className="flex items-center justify-between px-6 py-3 border-b bg-white">
-                  <img src={BAGONG_PILIPINAS_B64} alt="Bagong Pilipinas" className="h-16 w-16 object-contain" />
-                  <div className="flex-1 text-center px-4">
-                    <p className="text-xs text-gray-600">Republic of the Philippines</p>
-                    <p className="text-xs text-gray-600">Province of Pampanga</p>
-                    <p className="text-sm font-bold text-gray-800">OFFICE OF THE PROVINCIAL AGRICULTURIST</p>
-                    <p className="text-xs text-gray-600">Capitol Compound, Sto. Niño, City of San Fernando</p>
+                {/* Letterhead */}
+                <div className="lh-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 16px', borderBottom:'1px solid #ccc' }}>
+                  <div className="lh-logos" style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                    <img src={BAGONG_PILIPINAS_B64} alt="Bagong Pilipinas" style={{ height:'56px', width:'56px', objectFit:'contain' }} />
                   </div>
-                  <div className="flex gap-3 items-center">
-                    <img src={PAMPANGA_SEAL_B64} alt="Pampanga Seal" className="h-16 w-16 object-contain" />
-                    <img src={OPA_LOGO_B64} alt="OPA Logo" className="h-16 w-16 object-contain rounded-full" />
+                  <div className="lh-text" style={{ flex:1, textAlign:'center', padding:'0 12px' }}>
+                    <p style={{ fontSize:'9pt' }}>Republic of the Philippines</p>
+                    <p style={{ fontSize:'9pt' }}>Province of Pampanga</p>
+                    <p className="lh-bold" style={{ fontWeight:'bold', fontSize:'10pt' }}>OFFICE OF THE PROVINCIAL AGRICULTURIST</p>
+                    <p style={{ fontSize:'9pt' }}>Capitol Compound, Sto. Niño, City of San Fernando</p>
+                  </div>
+                  <div className="lh-logos" style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                    <img src={PAMPANGA_SEAL_B64} alt="Pampanga Seal" style={{ height:'56px', width:'56px', objectFit:'contain' }} />
+                    <img src={OPA_LOGO_B64} alt="OPA Logo" style={{ height:'56px', width:'56px', objectFit:'contain', borderRadius:'50%' }} />
                   </div>
                 </div>
 
                 {/* Title block */}
-                <div className="text-center py-2 border-b bg-white">
-                  <p className="font-bold text-gray-800 text-sm">PEST MONITORING ON RICE, CORN, CASSAVA &amp; HIGH VALUE CROPS</p>
-                  <p className="text-xs text-gray-600">as of {MONTHS[selectedMonth]} {endOfMonth}, {selectedYear}</p>
-                  <p className="text-xs text-gray-700 mt-0.5">
-                    Province: <span className="font-semibold">PAMPANGA</span>
-                  </p>
+                <div className="title-block" style={{ textAlign:'center', padding:'6px 0', borderBottom:'1px solid #ccc' }}>
+                  <p className="title-main" style={{ fontWeight:'bold', fontSize:'10pt' }}>PEST MONITORING ON RICE, CORN, CASSAVA &amp; HIGH VALUE CROPS</p>
+                  <p className="title-sub" style={{ fontSize:'9pt' }}>as of {MONTHS[selectedMonth]} {endOfMonth}, {selectedYear}</p>
+                  <p className="title-sub" style={{ fontSize:'9pt', marginTop:'2px' }}>Province: <strong>PAMPANGA</strong></p>
                 </div>
 
-                {/* Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs border-collapse" style={{ tableLayout: 'fixed' }}>
+                {/* Table — uses only inline styles so iframe inherits correctly */}
+                <div style={{ padding:'0 4px' }}>
+                  <table style={{ width:'100%', borderCollapse:'collapse', tableLayout:'fixed', fontSize:'7pt' }}>
                     <colgroup>
-                      <col style={{ width: '9%' }} />
-                      <col style={{ width: '9%' }} />
-                      <col style={{ width: '5%' }} />
-                      <col style={{ width: '6%' }} />
-                      <col style={{ width: '6%' }} />
-                      <col style={{ width: '5%' }} />
-                      <col style={{ width: '6%' }} />
-                      <col style={{ width: '7%' }} />
-                      <col style={{ width: '8%' }} />
-                      <col style={{ width: '6%' }} />
-                      <col style={{ width: '5%' }} />
-                      <col style={{ width: '5%' }} />
-                      <col style={{ width: '5%' }} />
-                      <col style={{ width: '5%' }} />
-                      <col style={{ width: '6%' }} />
-                      <col style={{ width: '6%' }} />
-                      <col style={{ width: '6%' }} />
+                      <col className="c1"  style={{ width:'9%' }}  />
+                      <col className="c2"  style={{ width:'9%' }}  />
+                      <col className="c3"  style={{ width:'4%' }}  />
+                      <col className="c4"  style={{ width:'6%' }}  />
+                      <col className="c5"  style={{ width:'6%' }}  />
+                      <col className="c6"  style={{ width:'5%' }}  />
+                      <col className="c7"  style={{ width:'5%' }}  />
+                      <col className="c8"  style={{ width:'7%' }}  />
+                      <col className="c9"  style={{ width:'8%' }}  />
+                      <col className="c10" style={{ width:'6%' }}  />
+                      <col className="c11" style={{ width:'5%' }}  />
+                      <col className="c12" style={{ width:'5%' }}  />
+                      <col className="c13" style={{ width:'5%' }}  />
+                      <col className="c14" style={{ width:'5%' }}  />
+                      <col className="c15" style={{ width:'6%' }}  />
+                      <col className="c16" style={{ width:'6%' }}  />
+                      <col className="c17" style={{ width:'7%' }}  />
                     </colgroup>
                     <thead>
-                      <tr style={{ backgroundColor: '#92D050' }} className="text-gray-900 text-center font-bold">
-                        {['Municipality', 'Barangay', 'No. of\nFarmers', 'Lat', 'Lng', 'Crop', 'Variety',
-                          'Growth\nStage', 'Pests', 'Natural\nEnemies', 'Area\nPlanted', 'Area\nAffected',
-                          '%\nInfest.', 'Area\nTreated', 'Actions\nTaken', 'Data\nSource', 'Remarks'
+                      <tr style={{ backgroundColor:'#92D050', fontWeight:'bold', textAlign:'center' }}>
+                        {[
+                          'Municipality','Barangay','No. of\nFarmers','Lat','Lng',
+                          'Crop','Variety','Growth\nStage','Pests','Natural\nEnemies',
+                          'Area\nPlanted','Area\nAffected','%\nInfest.','Area\nTreated',
+                          'Actions\nTaken','Data\nSource','Remarks'
                         ].map(h => (
-                          <th key={h} className="border border-gray-400 px-2 py-2 whitespace-pre-line font-bold">{h}</th>
+                          <th key={h} style={{ border:'0.5pt solid #aaa', padding:'2pt 2pt', whiteSpace:'pre-line', fontWeight:'bold', textAlign:'center', verticalAlign:'middle' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {detections.length === 0 ? (
                         <tr>
-                          <td colSpan={17} className="text-center py-12 text-gray-400 italic">
+                          <td colSpan={17} style={{ textAlign:'center', padding:'24pt', color:'#aaa', fontStyle:'italic', border:'0.5pt solid #aaa' }}>
                             No detections found for {MONTHS[selectedMonth]} {selectedYear}.
                           </td>
                         </tr>
                       ) : (
                         muniKeys.flatMap((muni, mi) => {
                           const rows = byMuni[muni];
+                          const tdBase = { border:'0.5pt solid #aaa', padding:'1.5pt 2pt', verticalAlign:'middle', wordBreak:'break-word' };
+                          const tdC    = { ...tdBase, textAlign:'center' };
                           const dataRows = rows.map((d, ri) => {
                             const farm = farmById[d.farm_id] || null;
-                            const lat = d.latitude || (farm ? farm.lat : null);
-                            const lng = d.longitude || (farm ? farm.lng : null);
-                            const pct = severityToPct(d.severity);
-                            const sevColor = d.severity === 'critical' ? 'text-red-700 font-bold'
-                              : d.severity === 'high' ? 'text-orange-600 font-semibold'
-                                : d.severity === 'medium' ? 'text-yellow-600' : 'text-green-600';
+                            const lat  = d.latitude  || (farm ? farm.lat  : null);
+                            const lng  = d.longitude || (farm ? farm.lng  : null);
+                            const pct  = severityToPct(d.severity);
+                            const pctColor = d.severity === 'critical' ? '#b91c1c'
+                              : d.severity === 'high'   ? '#c2410c'
+                              : d.severity === 'medium' ? '#ca8a04' : '#15803d';
                             return (
-                              <tr key={`${mi}-${ri}`} className={ri % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <tr key={`${mi}-${ri}`} style={{ backgroundColor: ri % 2 === 0 ? '#fff' : '#f9fafb' }}>
                                 {ri === 0 ? (
-                                  <td rowSpan={rows.length} className="border border-gray-300 px-2 py-1.5 font-semibold align-top">
-                                    {mi + 1}. MAGALANG
+                                  <td rowSpan={rows.length} style={{ ...tdBase, fontWeight:'600', verticalAlign:'top' }}>
+                                    {mi + 1}. {muni}
                                   </td>
                                 ) : null}
-                                <td className="border border-gray-300 px-2 py-1.5 text-gray-300">—</td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-500">
-                                  {lat ? Number(lat).toFixed(6) : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-500">
-                                  {lng ? Number(lng).toFixed(6) : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1.5">{capitalize(d.crop_type) || '—'}</td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                                <td className="border border-gray-300 px-2 py-1.5 font-medium text-red-700">
-                                  {d.pest_name || d.pest || '—'}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                                <td className={`border border-gray-300 px-2 py-1.5 text-center ${sevColor}`}>
-                                  {pct !== null ? `${(pct * 100).toFixed(0)}%` : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-500 text-xs">PestCheck</td>
-                                <td className="border border-gray-300 px-2 py-1.5 text-gray-500 text-xs">
-                                  {d.confirmed ? 'Confirmed' : 'Unconfirmed'}
-                                </td>
+                                <td style={tdBase}>—</td>
+                                <td style={tdC}>—</td>
+                                <td style={tdC}>{lat ? Number(lat).toFixed(6) : '—'}</td>
+                                <td style={tdC}>{lng ? Number(lng).toFixed(6) : '—'}</td>
+                                <td style={tdBase}>{capitalize(d.crop_type) || '—'}</td>
+                                <td style={tdC}>—</td>
+                                <td style={tdBase}>—</td>
+                                <td style={{ ...tdBase, fontWeight:'500', color:'#b91c1c' }}>{d.pest_name || d.pest || '—'}</td>
+                                <td style={tdC}>—</td>
+                                <td style={tdC}>—</td>
+                                <td style={tdC}>—</td>
+                                <td style={{ ...tdC, color: pctColor, fontWeight:'600' }}>{pct !== null ? `${(pct * 100).toFixed(0)}%` : '—'}</td>
+                                <td style={tdC}>—</td>
+                                <td style={tdC}>—</td>
+                                <td style={{ ...tdC, color:'#6b7280' }}>PestCheck</td>
+                                <td style={{ ...tdBase, color:'#6b7280' }}>{d.confirmed ? 'Confirmed' : 'Unconfirmed'}</td>
                               </tr>
                             );
                           });
-                          // Sub-total row
                           const subTotal = (
-                            <tr key={`${mi}-sub`} style={{ backgroundColor: '#E2EFDA' }}>
-                              <td colSpan={2} className="border border-gray-300 px-2 py-1"></td>
-                              <td className="border border-gray-300 px-2 py-1 text-center text-xs italic text-gray-400">Σ</td>
-                              <td colSpan={14} className="border border-gray-300 px-2 py-1"></td>
+                            <tr key={`${mi}-sub`} className="subtotal" style={{ backgroundColor:'#E2EFDA' }}>
+                              <td colSpan={2} style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt' }}></td>
+                              <td style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt', textAlign:'center', fontStyle:'italic', color:'#6b7280' }}>Σ</td>
+                              <td colSpan={14} style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt' }}></td>
                             </tr>
                           );
-                          const sep = <tr key={`${mi}-sep`}><td colSpan={17} className="py-0.5 bg-gray-100"></td></tr>;
+                          const sep = (
+                            <tr key={`${mi}-sep`} className="sep">
+                              <td colSpan={17} style={{ border:'none', height:'4pt', background:'#f3f4f6' }}></td>
+                            </tr>
+                          );
                           return [...dataRows, subTotal, sep];
                         })
                       )}
@@ -823,25 +806,22 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
                 </div>
 
                 {/* Signature section */}
-                <div className="px-6 pt-6 pb-4 bg-white">
-                  <p className="text-xs text-center italic text-gray-500 mb-6">* NOTHING FOLLOWS *</p>
-                  <div className="flex justify-between text-xs">
-                    <div style={{ width: '40%' }}>
-                      <p className="font-semibold text-gray-700 mb-8">Prepared by:</p>
-                      <p className="border-t border-gray-700 pt-1 font-bold text-gray-800">ALICIA C. DE LEON</p>
-                      <p className="text-gray-600">Provincial Crop Protection Coordinator</p>
-                    </div>
-                    <div style={{ width: '40%' }}>
-                      <p className="font-semibold text-gray-700 mb-8">Noted by:</p>
-                      <p className="border-t border-gray-700 pt-1 font-bold text-gray-800">JIMMY S. MANLICLIC</p>
-                      <p className="text-gray-600">Assistant Provincial Agriculturist/ OIC - OPA</p>
-                    </div>
+                <div className="sig-wrap" style={{ display:'flex', justifyContent:'space-between', padding:'20px 16px 12px' }}>
+                  <div style={{ width:'42%' }}>
+                    <p className="sig-label" style={{ marginBottom:'32px', fontSize:'9pt' }}>Prepared by:</p>
+                    <p className="sig-line" style={{ borderTop:'1pt solid #333', paddingTop:'2px', fontWeight:'bold', fontSize:'9pt' }}>ALICIA C. DE LEON</p>
+                    <p className="sig-title" style={{ fontSize:'8pt' }}>Provincial Crop Protection Coordinator</p>
+                  </div>
+                  <div style={{ width:'42%' }}>
+                    <p className="sig-label" style={{ marginBottom:'32px', fontSize:'9pt' }}>Noted by:</p>
+                    <p className="sig-line" style={{ borderTop:'1pt solid #333', paddingTop:'2px', fontWeight:'bold', fontSize:'9pt' }}>JIMMY S. MANLICLIC</p>
+                    <p className="sig-title" style={{ fontSize:'8pt' }}>Assistant Provincial Agriculturist/ OIC - OPA</p>
                   </div>
                 </div>
               </div>
 
-              {/* Summary breakdowns */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 no-print">
+              {/* Summary breakdowns — screen only */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="bg-white rounded-lg shadow p-4">
                   <h3 className="text-sm font-bold text-gray-700 border-b pb-2 mb-3">By Crop Type</h3>
                   <table className="w-full text-xs">
@@ -888,15 +868,14 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
               </div>
 
               {/* Export CTA */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-5 flex flex-wrap items-center justify-between gap-4 no-print">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-5 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="font-semibold text-green-800">Report ready to print</p>
                   <p className="text-sm text-green-700 mt-0.5">
-                    Click <strong>Print as PDF</strong> to open the browser print dialog. Select <strong>Save as PDF</strong> as the destination for a digital copy, or send directly to a printer.
+                    Click <strong>Print as PDF</strong> to open the browser print dialog. Select <strong>Save as PDF</strong> as the destination for a digital copy.
                   </p>
                   <p className="text-xs text-green-600 mt-1">
-                    Province pre-filled as <strong>PAMPANGA</strong>.
-                    Blank fields (Barangay, No. of Farmers, Variety, Growth Stage, Areas, Natural Enemies, Actions Taken) require manual entry before submission.
+                    Province pre-filled as <strong>PAMPANGA</strong>. Blank fields (Barangay, No. of Farmers, Variety, Growth Stage, Areas, Natural Enemies, Actions Taken) require manual entry before submission.
                   </p>
                 </div>
                 <button
