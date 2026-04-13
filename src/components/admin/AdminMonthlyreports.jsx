@@ -98,7 +98,7 @@ async function exportToExcel(detections, farms, month, year) {
   aoa.push(Array(17).fill(null));
 
   // Row 7 — title
-  aoa.push(['PEST MONITORING ON RICE AND CORN', ...Array(16).fill(null)]);
+  aoa.push(['PEST MONITORING ON RICE, CORN, CASSAVA & HIGH VALUE CROPS', ...Array(16).fill(null)]);
 
   // Row 8 — date
   aoa.push([`as of ${MONTHS[month]} ${endOfMonth}, ${year}`, ...Array(16).fill(null)]);
@@ -107,8 +107,8 @@ async function exportToExcel(detections, farms, month, year) {
   aoa.push(Array(17).fill(null));
   aoa.push(Array(17).fill(null));
 
-  // Row 11 — municipality label
-  aoa.push(['Municipality: MAGALANG, PAMPANGA', ...Array(16).fill(null)]);
+  // Row 11 — province label (matches template exactly)
+  aoa.push(['Province: PAMPANGA', ...Array(16).fill(null)]);
 
   // Row 12 — column headers
   aoa.push([
@@ -175,12 +175,12 @@ async function exportToExcel(detections, farms, month, year) {
   aoa.push(Array(17).fill(null));
   aoa.push(Array(17).fill(null));
   const nameRow = Array(17).fill(null);
-  nameRow[1] = '________________________';
-  nameRow[9] = '________________________';
+  nameRow[1] = 'ALICIA C. DE LEON';
+  nameRow[9] = 'JIMMY S. MANLICLIC';
   aoa.push(nameRow);
   const titleRow = Array(17).fill(null);
-  titleRow[1] = 'Agricultural Technician';
-  titleRow[9] = 'Municipal Agriculturist';
+  titleRow[1] = 'Provincial Crop Protection Coordinator';
+  titleRow[9] = 'Assistant Provincial Agriculturist/ OIC - OPA';
   aoa.push(titleRow);
 
   // ── Create worksheet ──────────────────────────────────────────────────────
@@ -564,7 +564,7 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
   return (
     <><style>{`
       @media print {
-        @page { size: landscape; margin: 10mm; }
+        @page { size: A4 landscape; margin: 10mm; }
         body * { visibility: hidden !important; }
         #printable-report, #printable-report * { visibility: visible !important; }
         #printable-report { position: absolute; left: 0; top: 0; width: 100%; }
@@ -655,7 +655,7 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
                     <p className="text-xs text-gray-600">Republic of the Philippines</p>
                     <p className="text-xs text-gray-600">Province of Pampanga</p>
                     <p className="text-sm font-bold text-gray-800">OFFICE OF THE PROVINCIAL AGRICULTURIST</p>
-                    <p className="text-xs text-gray-600">Municipality of Magalang, Pampanga</p>
+                    <p className="text-xs text-gray-600">Capitol Compound, Sto. Niño, City of San Fernando</p>
                   </div>
                   <div className="flex gap-3 items-center">
                     <img src={PAMPANGA_SEAL_B64} alt="Pampanga Seal" className="h-16 w-16 object-contain" />
@@ -665,10 +665,10 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
 
                 {/* Title block */}
                 <div className="text-center py-2 border-b bg-white">
-                  <p className="font-bold text-gray-800 text-sm">PEST MONITORING ON RICE AND CORN</p>
+                  <p className="font-bold text-gray-800 text-sm">PEST MONITORING ON RICE, CORN, CASSAVA &amp; HIGH VALUE CROPS</p>
                   <p className="text-xs text-gray-600">as of {MONTHS[selectedMonth]} {endOfMonth}, {selectedYear}</p>
                   <p className="text-xs text-gray-700 mt-0.5">
-                    Municipality: <span className="font-semibold">MAGALANG, PAMPANGA</span>
+                    Province: <span className="font-semibold">PAMPANGA</span>
                   </p>
                 </div>
 
@@ -754,6 +754,23 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Signature section — matches xlsx rows 105–109 */}
+                <div className="px-6 pt-6 pb-4 bg-white">
+                  <p className="text-xs text-center italic text-gray-500 mb-6">* NOTHING FOLLOWS *</p>
+                  <div className="flex justify-between text-xs">
+                    <div style={{ width: '40%' }}>
+                      <p className="font-semibold text-gray-700 mb-8">Prepared by:</p>
+                      <p className="border-t border-gray-700 pt-1 font-bold text-gray-800">ALICIA C. DE LEON</p>
+                      <p className="text-gray-600">Provincial Crop Protection Coordinator</p>
+                    </div>
+                    <div style={{ width: '40%' }}>
+                      <p className="font-semibold text-gray-700 mb-8">Noted by:</p>
+                      <p className="border-t border-gray-700 pt-1 font-bold text-gray-800">JIMMY S. MANLICLIC</p>
+                      <p className="text-gray-600">Assistant Provincial Agriculturist/ OIC - OPA</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Summary breakdowns */}
@@ -811,8 +828,8 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
                     Click <strong>Print as PDF</strong> to open the browser print dialog. Select <strong>Save as PDF</strong> as the destination for a digital copy, or send directly to a printer.
                   </p>
                   <p className="text-xs text-green-600 mt-1">
-                    Municipality pre-filled as <strong>MAGALANG, PAMPANGA</strong>.
-                    Blank fields (No. of Farmers, Variety, Growth Stage, Areas, Actions Taken) require manual entry before submission.
+                    Province pre-filled as <strong>PAMPANGA</strong>.
+                    Blank fields (Barangay, No. of Farmers, Variety, Growth Stage, Areas, Natural Enemies, Actions Taken) require manual entry before submission.
                   </p>
                 </div>
                 <button
