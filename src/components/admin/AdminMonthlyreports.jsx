@@ -98,7 +98,7 @@ async function exportToExcel(detections, farms, month, year) {
   aoa.push(Array(17).fill(null));
 
   // Row 7 — title
-  aoa.push(['PEST MONITORING ON RICE, CORN, CASSAVA & HIGH VALUE CROPS', ...Array(16).fill(null)]);
+  aoa.push(['PEST MONITORING ON RICE AND CORN', ...Array(16).fill(null)]);
 
   // Row 8 — date
   aoa.push([`as of ${MONTHS[month]} ${endOfMonth}, ${year}`, ...Array(16).fill(null)]);
@@ -107,8 +107,8 @@ async function exportToExcel(detections, farms, month, year) {
   aoa.push(Array(17).fill(null));
   aoa.push(Array(17).fill(null));
 
-  // Row 11 — province label
-  aoa.push(['Province: PAMPANGA', ...Array(16).fill(null)]);
+  // Row 11 — municipality label
+  aoa.push(['Municipality: MAGALANG, PAMPANGA', ...Array(16).fill(null)]);
 
   // Row 12 — column headers
   aoa.push([
@@ -131,8 +131,8 @@ async function exportToExcel(detections, farms, month, year) {
       // Store as decimal — cell will be formatted as 0%
       const pct  = severityToPct(d.severity);
       aoa.push([
-        ri === 0 ? `${mi + 1}. ${muni}` : null,        // A: Municipality (only first row)
-        muni,                                            // B: Barangay
+        ri === 0 ? `${mi + 1}. MAGALANG` : null,        // A: Municipality (always MAGALANG, only first row)
+        null,                                             // B: Barangay — always blank
         null,                                            // C: No. of Farmers — blank
         lat ? Number(lat).toFixed(6) : null,             // D: Latitude
         lng ? Number(lng).toFixed(6) : null,             // E: Longitude
@@ -329,6 +329,9 @@ async function exportToExcel(detections, farms, month, year) {
   // ── Build workbook and generate bytes ─────────────────────────────────────
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheetLabel.slice(0, 31));
+
+  // ── Set landscape print orientation ──────────────────────────────────────
+  ws['!pageSetup'] = { orientation: 'landscape', paperSize: 9 }; // paperSize 9 = A4
   const wbBytes = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
   // ── Inject logos via JSZip ────────────────────────────────────────────────
@@ -444,15 +447,22 @@ async function exportToExcel(detections, farms, month, year) {
       zip.file('[Content_Types].xml', updatedCT);
     }
 
-    // Patch sheet1.xml to reference the drawing
+    // Patch sheet1.xml to reference the drawing and set landscape orientation
     const sheet1Xml = await zip.file('xl/worksheets/sheet1.xml').async('string');
-    if (!sheet1Xml.includes('<drawing')) {
-      const patched = sheet1Xml.replace(
+    let patched = sheet1Xml;
+    if (!patched.includes('<drawing')) {
+      patched = patched.replace(
         '</worksheet>',
         '<drawing r:id="rId1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/></worksheet>'
       );
-      zip.file('xl/worksheets/sheet1.xml', patched);
     }
+    if (!patched.includes('<pageSetup')) {
+      patched = patched.replace(
+        '</worksheet>',
+        '<pageSetup orientation="landscape" paperSize="9"/></worksheet>'
+      );
+    }
+    zip.file('xl/worksheets/sheet1.xml', patched);
 
     const finalBytes = await zip.generateAsync({ type: 'arraybuffer' });
     const blob = new Blob([finalBytes], {
@@ -554,6 +564,7 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
   return (
     <><style>{`
       @media print {
+        @page { size: landscape; margin: 10mm; }
         body * { visibility: hidden !important; }
         #printable-report, #printable-report * { visibility: visible !important; }
         #printable-report { position: absolute; left: 0; top: 0; width: 100%; }
@@ -696,10 +707,10 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
                               <tr key={`${mi}-${ri}`} className={ri % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                 {ri === 0 ? (
                                   <td rowSpan={rows.length} className="border border-gray-300 px-2 py-1.5 font-semibold align-top">
-                                    {mi + 1}. {muni}
+                                    {mi + 1}. MAGALANG
                                   </td>
                                 ) : null}
-                                <td className="border border-gray-300 px-2 py-1.5">{muni}</td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-gray-300">—</td>
                                 <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
                                 <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-500">
                                   {lat ? Number(lat).toFixed(6) : '—'}
