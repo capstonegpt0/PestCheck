@@ -759,7 +759,7 @@ thead tr{background-color:#92D050;font-weight:bold;text-align:center;}
                               <tr key={`${mi}-${ri}`} style={{ backgroundColor: ri % 2 === 0 ? '#fff' : '#f9fafb' }}>
                                 {ri === 0 ? (
                                   <td rowSpan={rows.length} style={{ ...tdBase, fontWeight:'600', verticalAlign:'top' }}>
-                                    {mi + 1}. {muni}
+                                    {mi + 1}. Magalang
                                   </td>
                                 ) : null}
                                 <td style={tdBase}>—</td>
