@@ -104,7 +104,8 @@ const AdminFarmRequests = ({ user, onLogout }) => {
         r.name.toLowerCase().includes(query) ||
         r.user_name.toLowerCase().includes(query) ||
         (r.crop_type && r.crop_type.toLowerCase().includes(query)) ||
-        (r.address && r.address.toLowerCase().includes(query))
+        (r.address && r.address.toLowerCase().includes(query)) ||
+        (r.barangay && r.barangay.toLowerCase().includes(query))
       );
     }
     setFilteredRequests(filtered);
@@ -250,7 +251,7 @@ const AdminFarmRequests = ({ user, onLogout }) => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['ID', 'Farm Name', 'Farmer', 'Crop Type', 'Size (ha)', 'Address', 'Location', 'Status', 'Requested', 'Actions'].map(h => (
+                    {['ID', 'Farm Name', 'Farmer', 'Barangay', 'Crop Type', 'Size (ha)', 'Address', 'Location', 'Status', 'Requested', 'Actions'].map(h => (
                       <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
@@ -261,6 +262,13 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{request.id}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{request.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.user_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {request.barangay ? (
+                          <span className="px-2 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded-full whitespace-nowrap">
+                            {request.barangay}
+                          </span>
+                        ) : <span className="text-gray-400">—</span>}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.crop_type || 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.size || 'N/A'}</td>
                       <td className="px-6 py-4 text-sm text-gray-700 max-w-xs">
@@ -339,6 +347,16 @@ const AdminFarmRequests = ({ user, onLogout }) => {
                 <div>
                   <p className="text-sm text-gray-600">Farmer</p>
                   <p className="font-semibold">{selectedRequest.user_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Barangay</p>
+                  <p className="font-semibold">
+                    {selectedRequest.barangay ? (
+                      <span className="inline-flex items-center px-2.5 py-1 text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded-full">
+                        📍 {selectedRequest.barangay}
+                      </span>
+                    ) : <span className="text-gray-400 font-normal italic">Not specified</span>}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Crop Type</p>

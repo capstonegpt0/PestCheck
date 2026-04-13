@@ -123,7 +123,7 @@ async function exportToExcel(detections, farms, month, year) {
     const pct  = severityToPct(d.severity);
     aoa.push([
       'MAGALANG',                                        // A: Municipality
-      null,                                              // B: Barangay — blank
+      (farm ? farm.barangay || null : null),             // B: Barangay — from farm
       null,                                              // C: No. of Farmers — blank
       lat ? Number(lat).toFixed(6) : null,               // D: Latitude
       lng ? Number(lng).toFixed(6) : null,               // E: Longitude

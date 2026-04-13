@@ -92,7 +92,8 @@ const AdminFarms = ({ user, onLogout }) => {
       filtered = filtered.filter(f =>
         f.name.toLowerCase().includes(query) ||
         f.user_name.toLowerCase().includes(query) ||
-        (f.crop_type && f.crop_type.toLowerCase().includes(query))
+        (f.crop_type && f.crop_type.toLowerCase().includes(query)) ||
+        (f.barangay && f.barangay.toLowerCase().includes(query))
       );
     }
     setFilteredFarms(filtered);
@@ -174,7 +175,7 @@ const AdminFarms = ({ user, onLogout }) => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['ID', 'Farm Name', 'Owner', 'Crop Type', 'Size (ha)', 'Location', 'Infestations', 'Status', 'Actions'].map(h => (
+                    {['ID', 'Farm Name', 'Owner', 'Barangay', 'Crop Type', 'Size (ha)', 'Location', 'Infestations', 'Status', 'Actions'].map(h => (
                       <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
@@ -185,6 +186,13 @@ const AdminFarms = ({ user, onLogout }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{farm.id}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{farm.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{farm.user_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {farm.barangay ? (
+                          <span className="px-2 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded-full whitespace-nowrap">
+                            {farm.barangay}
+                          </span>
+                        ) : <span className="text-gray-400">—</span>}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{farm.crop_type || 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{farm.size || 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
@@ -266,6 +274,16 @@ const AdminFarms = ({ user, onLogout }) => {
                 <div>
                   <p className="text-sm text-gray-600">Owner</p>
                   <p className="font-semibold">{selectedFarm.user_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Barangay</p>
+                  <p className="font-semibold">
+                    {selectedFarm.barangay ? (
+                      <span className="inline-flex items-center px-2.5 py-1 text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded-full">
+                        📍 {selectedFarm.barangay}
+                      </span>
+                    ) : <span className="text-gray-400 font-normal italic">Not specified</span>}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Crop Type</p>

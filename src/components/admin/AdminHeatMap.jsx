@@ -353,6 +353,11 @@ const AdminHeatMap = ({ user, onLogout }) => {
                       <div className="p-2 space-y-1">
                         <p className="font-bold text-base border-b pb-1 mb-1">{f.name}</p>
                         <p className="text-sm text-gray-600">Owner: {f.user_name}</p>
+                        {f.barangay && (
+                          <p className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                            📍 {f.barangay}
+                          </p>
+                        )}
                         <p className="text-sm">{f.crop_type} — {f.size} ha</p>
                         <p className="text-sm font-medium mt-1">
                           Active infestations:{' '}
@@ -458,7 +463,7 @@ const AdminHeatMap = ({ user, onLogout }) => {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>
-                        {['#', 'Pest', 'Severity', 'Farm', 'Reported by', 'Verified', 'Date'].map(h => (
+                        {['#', 'Pest', 'Severity', 'Farm', 'Barangay', 'Reported by', 'Verified', 'Date'].map(h => (
                           <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             {h}
                           </th>
@@ -478,6 +483,13 @@ const AdminHeatMap = ({ user, onLogout }) => {
                               </span>
                             </td>
                             <td className="px-4 py-2.5 text-gray-600">{farmName}</td>
+                            <td className="px-4 py-2.5 text-gray-600">
+                              {(() => { const f = farms.find(fm => fm.id === d.farm_id); return f?.barangay ? (
+                                <span className="px-1.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded-full whitespace-nowrap">
+                                  {f.barangay}
+                                </span>
+                              ) : <span className="text-gray-400">—</span>; })()}
+                            </td>
                             <td className="px-4 py-2.5 text-gray-600">{d.user_name ?? '—'}</td>
                             <td className="px-4 py-2.5">
                               {d.user_is_verified === false ? (
@@ -540,6 +552,9 @@ const AdminHeatMap = ({ user, onLogout }) => {
                   >
                     <p className="text-sm font-semibold text-gray-800 truncate">{f.name}</p>
                     <p className="text-xs text-gray-500">{f.user_name} · {f.crop_type}</p>
+                    {f.barangay && (
+                      <p className="text-xs font-medium text-blue-600 mt-0.5">📍 {f.barangay}</p>
+                    )}
                     <div className="flex items-center gap-2 mt-1.5">
                       <span className="text-lg font-bold text-gray-700">{count}</span>
                       <span className="text-xs text-gray-500">detection{count !== 1 ? 's' : ''}</span>

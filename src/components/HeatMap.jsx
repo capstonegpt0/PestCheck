@@ -286,7 +286,7 @@ const HeatMap = ({ user, onLogout }) => {
   const [showFarmModal, setShowFarmModal] = useState(false);
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
   const [selectedInfestationToResolve, setSelectedInfestationToResolve] = useState(null);
-  const [farmForm, setFarmForm] = useState({ name: '', size: '', crop_type: 'Rice' });
+  const [farmForm, setFarmForm] = useState({ name: '', size: '', crop_type: 'Rice', barangay: '' });
   const [farmSortMode, setFarmSortMode] = useState('mine');
   const [pestFilter, setPestFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
@@ -425,10 +425,11 @@ const HeatMap = ({ user, onLogout }) => {
 
   const saveFarm = async () => {
     if (!selectedLocation || !farmForm.name) { alert('Please fill in required fields'); return; }
+    if (!farmForm.barangay) { alert('Please select a barangay'); return; }
     const sizeValue = parseFloat(farmForm.size);
     if (farmForm.size !== '' && (isNaN(sizeValue) || sizeValue <= 0)) { alert('Farm size must be a positive number'); return; }
     try {
-      await api.post('/farm-requests/', { name: farmForm.name, size: farmForm.size || '5', crop_type: farmForm.crop_type || 'Rice', lat: selectedLocation.lat, lng: selectedLocation.lng });
+      await api.post('/farm-requests/', { name: farmForm.name, size: farmForm.size || '5', crop_type: farmForm.crop_type || 'Rice', barangay: farmForm.barangay, lat: selectedLocation.lat, lng: selectedLocation.lng });
       resetFarmForm();
       alert('Farm request submitted! An admin will review it soon.');
       fetchInitialData();
@@ -549,7 +550,7 @@ const HeatMap = ({ user, onLogout }) => {
 
   const getDamageLevelColor = (level) => ['bg-green-500','bg-green-400','bg-yellow-400','bg-orange-400','bg-red-500','bg-red-900'][level] || 'bg-yellow-400';
 
-  const resetFarmForm = () => { setFarmForm({ name: '', size: '', crop_type: 'Rice' }); setSelectedLocation(null); setShowFarmModal(false); };
+  const resetFarmForm = () => { setFarmForm({ name: '', size: '', crop_type: 'Rice', barangay: '' }); setSelectedLocation(null); setShowFarmModal(false); };
 
   const activeDetections = detections.filter(d => d.active !== false);
   const uniquePests = [...new Set(activeDetections.map(d => d.pest || d.pest_name).filter(Boolean))].sort();
@@ -1093,6 +1094,40 @@ const HeatMap = ({ user, onLogout }) => {
                     <option value="Rice">Rice</option>
                     <option value="Corn">Corn</option>
                   </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#444', display: 'block', marginBottom: 5 }}>Barangay <span style={{ color: '#e53e3e' }}>*</span></label>
+                  <select value={farmForm.barangay} onChange={e => setFarmForm(f => ({...f, barangay: e.target.value}))} style={{ width: '100%', padding: '10px 12px', border: farmForm.barangay ? '1px solid #e0e0e0' : '1px solid #e53e3e', borderRadius: 8, fontSize: 14, outline: 'none', background: '#fff' }}>
+                    <option value="">-- Select Barangay --</option>
+                    <option>Ayala</option>
+                    <option>Bucanan</option>
+                    <option>Camias</option>
+                    <option>Dolores</option>
+                    <option>Escaler</option>
+                    <option>La Paz</option>
+                    <option>Navaling</option>
+                    <option>San Agustin</option>
+                    <option>San Antonio</option>
+                    <option>San Francisco</option>
+                    <option>San Ildefonso</option>
+                    <option>San Isidro</option>
+                    <option>San Jose</option>
+                    <option>San Miguel</option>
+                    <option>San Nicolas 1st (Poblacion)</option>
+                    <option>San Nicolas 2nd</option>
+                    <option>San Pablo (Poblacion)</option>
+                    <option>San Pedro I</option>
+                    <option>San Pedro II</option>
+                    <option>San Roque</option>
+                    <option>San Vicente</option>
+                    <option>Santa Cruz (Poblacion)</option>
+                    <option>Santa Lucia</option>
+                    <option>Santa Maria</option>
+                    <option>Santo Niño</option>
+                    <option>Santo Rosario</option>
+                    <option>Turu</option>
+                  </select>
+                  {!farmForm.barangay && <p style={{ fontSize: 11, color: '#e53e3e', marginTop: 3 }}>Required</p>}
                 </div>
                 <div style={{ background: '#f8f9fa', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#555' }}>
                   <p style={{ margin: '0 0 4px', fontWeight: 600 }}>📍 Location: {selectedLocation?.lat.toFixed(4)}, {selectedLocation?.lng.toFixed(4)}</p>
