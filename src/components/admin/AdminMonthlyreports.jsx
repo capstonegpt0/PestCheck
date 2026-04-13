@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, RefreshCw, FileSpreadsheet } from 'lucide-react';
+import { Calendar, RefreshCw, FileSpreadsheet, Printer } from 'lucide-react';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 import * as XLSX from 'xlsx';
@@ -513,6 +513,11 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
     }
   };
 
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   const handleExport = async () => {
     setExporting(true);
     try {
@@ -547,280 +552,281 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNavigation user={user} onLogout={onLogout} />
-      <div className="max-w-screen-2xl mx-auto px-6 py-6">
+    <><style>{`
+      @media print {
+        body * { visibility: hidden !important; }
+        #printable-report, #printable-report * { visibility: visible !important; }
+        #printable-report { position: absolute; left: 0; top: 0; width: 100%; }
+        .no-print { display: none !important; }
+      }
+    `}</style><div className="min-h-screen bg-gray-50">
+        <div className="no-print"><AdminNavigation user={user} onLogout={onLogout} /></div>
+        <div className="max-w-screen-2xl mx-auto px-6 py-6">
 
-        {/* Page header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Monthly Pest Monitoring Report</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Generate and export the official monthly pest monitoring report matching the provincial Excel template
-            </p>
-          </div>
-          {generated && (
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex items-center px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 font-semibold text-sm shadow"
-            >
-              <FileSpreadsheet className="w-5 h-5 mr-2" />
-              {exporting ? 'Exporting…' : 'Download Excel (.xlsx)'}
-            </button>
-          )}
-        </div>
-
-        {/* Controls */}
-        <div className="bg-white rounded-lg shadow p-5 mb-6">
-          <div className="flex flex-wrap gap-4 items-end">
+          {/* Page header */}
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6 no-print">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-              <select
-                value={selectedMonth}
-                onChange={e => { setSelectedMonth(Number(e.target.value)); setGenerated(false); }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-              >
-                {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
-              </select>
+              <h1 className="text-2xl font-bold text-gray-800">Monthly Pest Monitoring Report</h1>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Generate and export the official monthly pest monitoring report matching the provincial Excel template
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-              <select
-                value={selectedYear}
-                onChange={e => { setSelectedYear(Number(e.target.value)); setGenerated(false); }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            {generated && (
+              <button
+                onClick={handlePrint}
+                className="flex items-center px-5 py-2.5 bg-blue-700 text-white rounded-lg hover:bg-blue-800 font-semibold text-sm shadow"
               >
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-            <button
-              onClick={fetchReportData}
-              disabled={loading}
-              className="flex items-center px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm font-medium"
-            >
-              {loading
-                ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Generating…</>
-                : <><Calendar className="w-4 h-4 mr-2" />Generate Report</>
-              }
-            </button>
+                <Printer className="w-5 h-5 mr-2" />
+                Print as PDF
+              </button>
+            )}
           </div>
-        </div>
 
-        {generated && (
-          <>
-            {/* Summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              {[
-                { label: 'Total Detections', value: detections.length,           color: 'blue'   },
-                { label: 'Farm Areas',        value: muniKeys.length,             color: 'green'  },
-                { label: 'Pest Types',        value: Object.keys(pestMap).length, color: 'purple' },
-                { label: 'Critical Cases',    value: sevMap['Critical'] || 0,     color: 'red'    },
-              ].map(({ label, value, color }) => (
-                <div key={label} className={`bg-white rounded-lg shadow p-4 border-l-4 border-${color}-500`}>
-                  <p className="text-xs text-gray-500">{label}</p>
-                  <p className={`text-2xl font-bold text-${color}-600`}>{value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* ─── TEMPLATE PREVIEW — exact visual match to xlsx ──────────── */}
-            <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
-
-              {/* Logo row */}
-              <div className="flex items-center justify-between px-6 py-3 border-b bg-white">
-                <img src={BAGONG_PILIPINAS_B64} alt="Bagong Pilipinas" className="h-16 w-16 object-contain" />
-                <div className="flex-1 text-center px-4">
-                  <p className="text-xs text-gray-600">Republic of the Philippines</p>
-                  <p className="text-xs text-gray-600">Province of Pampanga</p>
-                  <p className="text-sm font-bold text-gray-800">OFFICE OF THE PROVINCIAL AGRICULTURIST</p>
-                  <p className="text-xs text-gray-600">Municipality of Magalang, Pampanga</p>
-                </div>
-                <div className="flex gap-3 items-center">
-                  <img src={PAMPANGA_SEAL_B64} alt="Pampanga Seal" className="h-16 w-16 object-contain" />
-                  <img src={OPA_LOGO_B64} alt="OPA Logo" className="h-16 w-16 object-contain rounded-full" />
-                </div>
-              </div>
-
-              {/* Title block */}
-              <div className="text-center py-2 border-b bg-white">
-                <p className="font-bold text-gray-800 text-sm">PEST MONITORING ON RICE AND CORN</p>
-                <p className="text-xs text-gray-600">as of {MONTHS[selectedMonth]} {endOfMonth}, {selectedYear}</p>
-                <p className="text-xs text-gray-700 mt-0.5">
-                  Municipality: <span className="font-semibold">MAGALANG, PAMPANGA</span>
-                </p>
-              </div>
-
-              {/* Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr style={{ backgroundColor: '#92D050' }} className="text-gray-900 text-center font-bold">
-                      {['Municipality','Barangay','No. of\nFarmers','Lat','Lng','Crop','Variety',
-                        'Growth\nStage','Pests','Natural\nEnemies','Area\nPlanted','Area\nAffected',
-                        '%\nInfest.','Area\nTreated','Actions\nTaken','Data\nSource','Remarks'
-                      ].map(h => (
-                        <th key={h} className="border border-gray-400 px-2 py-2 whitespace-pre-line font-bold">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detections.length === 0 ? (
-                      <tr>
-                        <td colSpan={17} className="text-center py-12 text-gray-400 italic">
-                          No detections found for {MONTHS[selectedMonth]} {selectedYear}.
-                        </td>
-                      </tr>
-                    ) : (
-                      muniKeys.flatMap((muni, mi) => {
-                        const rows = byMuni[muni];
-                        const dataRows = rows.map((d, ri) => {
-                          const farm = farmById[d.farm_id] || null;
-                          const lat  = d.latitude  || (farm ? farm.lat  : null);
-                          const lng  = d.longitude || (farm ? farm.lng  : null);
-                          const pct  = severityToPct(d.severity);
-                          const sevColor = d.severity === 'critical' ? 'text-red-700 font-bold'
-                            : d.severity === 'high'     ? 'text-orange-600 font-semibold'
-                            : d.severity === 'medium'   ? 'text-yellow-600' : 'text-green-600';
-                          return (
-                            <tr key={`${mi}-${ri}`} className={ri % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              {ri === 0 ? (
-                                <td rowSpan={rows.length} className="border border-gray-300 px-2 py-1.5 font-semibold align-top">
-                                  {mi + 1}. {muni}
-                                </td>
-                              ) : null}
-                              <td className="border border-gray-300 px-2 py-1.5">{muni}</td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-500">
-                                {lat ? Number(lat).toFixed(6) : '—'}
-                              </td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-500">
-                                {lng ? Number(lng).toFixed(6) : '—'}
-                              </td>
-                              <td className="border border-gray-300 px-2 py-1.5">{capitalize(d.crop_type) || '—'}</td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                              <td className="border border-gray-300 px-2 py-1.5 font-medium text-red-700">
-                                {d.pest_name || d.pest || '—'}
-                              </td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                              <td className={`border border-gray-300 px-2 py-1.5 text-center ${sevColor}`}>
-                                {pct !== null ? `${(pct * 100).toFixed(0)}%` : '—'}
-                              </td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-500 text-xs">PestCheck</td>
-                              <td className="border border-gray-300 px-2 py-1.5 text-gray-500 text-xs">
-                                {d.confirmed ? 'Confirmed' : 'Unconfirmed'}
-                              </td>
-                            </tr>
-                          );
-                        });
-                        // Sub-total row
-                        const subTotal = (
-                          <tr key={`${mi}-sub`} style={{ backgroundColor: '#E2EFDA' }}>
-                            <td colSpan={2} className="border border-gray-300 px-2 py-1"></td>
-                            <td className="border border-gray-300 px-2 py-1 text-center text-xs italic text-gray-400">Σ</td>
-                            <td colSpan={14} className="border border-gray-300 px-2 py-1"></td>
-                          </tr>
-                        );
-                        const sep = <tr key={`${mi}-sep`}><td colSpan={17} className="py-0.5 bg-gray-100"></td></tr>;
-                        return [...dataRows, subTotal, sep];
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Summary breakdowns */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-bold text-gray-700 border-b pb-2 mb-3">By Crop Type</h3>
-                <table className="w-full text-xs">
-                  <thead><tr className="text-gray-400"><th className="text-left pb-1">Crop</th><th className="text-right pb-1">#</th></tr></thead>
-                  <tbody>
-                    {Object.entries(cropMap).sort((a,b)=>b[1]-a[1]).map(([c,n]) => (
-                      <tr key={c} className="border-t border-gray-100">
-                        <td className="py-1">{c}</td><td className="py-1 text-right font-semibold">{n}</td>
-                      </tr>
-                    ))}
-                    <tr className="border-t-2 border-gray-300 font-bold">
-                      <td className="pt-1">TOTAL</td><td className="pt-1 text-right">{detections.length}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-bold text-gray-700 border-b pb-2 mb-3">Top Pest Incidences</h3>
-                <table className="w-full text-xs">
-                  <thead><tr className="text-gray-400"><th className="text-left pb-1">Pest</th><th className="text-right pb-1">#</th></tr></thead>
-                  <tbody>
-                    {Object.entries(pestMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([p,n]) => (
-                      <tr key={p} className="border-t border-gray-100">
-                        <td className="py-1">{p}</td><td className="py-1 text-right font-semibold">{n}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-bold text-gray-700 border-b pb-2 mb-3">Severity Distribution</h3>
-                <table className="w-full text-xs">
-                  <thead><tr className="text-gray-400"><th className="text-left pb-1">Severity</th><th className="text-right pb-1">#</th></tr></thead>
-                  <tbody>
-                    {['Low','Medium','High','Critical'].map(s => (
-                      <tr key={s} className="border-t border-gray-100">
-                        <td className={`py-1 font-medium ${
-                          s==='Critical'?'text-red-700':s==='High'?'text-orange-600':s==='Medium'?'text-yellow-600':'text-green-600'
-                        }`}>{s}</td>
-                        <td className="py-1 text-right font-semibold">{sevMap[s] || 0}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Export CTA */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-5 flex flex-wrap items-center justify-between gap-4">
+          {/* Controls */}
+          <div className="bg-white rounded-lg shadow p-5 mb-6 no-print">
+            <div className="flex flex-wrap gap-4 items-end">
               <div>
-                <p className="font-semibold text-green-800">Report ready for export</p>
-                <p className="text-sm text-green-700 mt-0.5">
-                  File: <strong>Pest_Monitoring_Report_{MONTHS[selectedMonth]}_{selectedYear}.xlsx</strong>
-                   — includes official logos, exact provincial template layout (17-column format).
-                </p>
-                <p className="text-xs text-green-600 mt-1">
-                  Municipality pre-filled as <strong>MAGALANG, PAMPANGA</strong>.
-                  Blank fields (No. of Farmers, Variety, Growth Stage, Areas, Actions Taken) require manual entry before submission.
-                </p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
+                <select
+                  value={selectedMonth}
+                  onChange={e => { setSelectedMonth(Number(e.target.value)); setGenerated(false); } }
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                >
+                  {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                <select
+                  value={selectedYear}
+                  onChange={e => { setSelectedYear(Number(e.target.value)); setGenerated(false); } }
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                >
+                  {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
               </div>
               <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="flex items-center px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 font-semibold text-sm shadow"
+                onClick={fetchReportData}
+                disabled={loading}
+                className="flex items-center px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm font-medium"
               >
-                <FileSpreadsheet className="w-5 h-5 mr-2" />
-                {exporting ? 'Preparing file…' : 'Export & Download'}
+                {loading
+                  ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Generating…</>
+                  : <><Calendar className="w-4 h-4 mr-2" />Generate Report</>}
               </button>
             </div>
-          </>
-        )}
-
-        {/* Empty state */}
-        {!generated && !loading && (
-          <div className="text-center py-24 text-gray-400">
-            <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 opacity-30" />
-            <p className="text-lg">
-              Select a month and year, then click{' '}
-              <strong className="text-gray-600">Generate Report</strong>.
-            </p>
           </div>
-        )}
-      </div>
-    </div>
+
+          {generated && (
+            <>
+              {/* Summary cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 no-print">
+                {[
+                  { label: 'Total Detections', value: detections.length, color: 'blue' },
+                  { label: 'Farm Areas', value: muniKeys.length, color: 'green' },
+                  { label: 'Pest Types', value: Object.keys(pestMap).length, color: 'purple' },
+                  { label: 'Critical Cases', value: sevMap['Critical'] || 0, color: 'red' },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className={`bg-white rounded-lg shadow p-4 border-l-4 border-${color}-500`}>
+                    <p className="text-xs text-gray-500">{label}</p>
+                    <p className={`text-2xl font-bold text-${color}-600`}>{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* ─── TEMPLATE PREVIEW — exact visual match to xlsx ──────────── */}
+              <div id="printable-report" className="bg-white rounded-lg shadow overflow-hidden mb-6">
+
+                {/* Logo row */}
+                <div className="flex items-center justify-between px-6 py-3 border-b bg-white">
+                  <img src={BAGONG_PILIPINAS_B64} alt="Bagong Pilipinas" className="h-16 w-16 object-contain" />
+                  <div className="flex-1 text-center px-4">
+                    <p className="text-xs text-gray-600">Republic of the Philippines</p>
+                    <p className="text-xs text-gray-600">Province of Pampanga</p>
+                    <p className="text-sm font-bold text-gray-800">OFFICE OF THE PROVINCIAL AGRICULTURIST</p>
+                    <p className="text-xs text-gray-600">Municipality of Magalang, Pampanga</p>
+                  </div>
+                  <div className="flex gap-3 items-center">
+                    <img src={PAMPANGA_SEAL_B64} alt="Pampanga Seal" className="h-16 w-16 object-contain" />
+                    <img src={OPA_LOGO_B64} alt="OPA Logo" className="h-16 w-16 object-contain rounded-full" />
+                  </div>
+                </div>
+
+                {/* Title block */}
+                <div className="text-center py-2 border-b bg-white">
+                  <p className="font-bold text-gray-800 text-sm">PEST MONITORING ON RICE AND CORN</p>
+                  <p className="text-xs text-gray-600">as of {MONTHS[selectedMonth]} {endOfMonth}, {selectedYear}</p>
+                  <p className="text-xs text-gray-700 mt-0.5">
+                    Municipality: <span className="font-semibold">MAGALANG, PAMPANGA</span>
+                  </p>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr style={{ backgroundColor: '#92D050' }} className="text-gray-900 text-center font-bold">
+                        {['Municipality', 'Barangay', 'No. of\nFarmers', 'Lat', 'Lng', 'Crop', 'Variety',
+                          'Growth\nStage', 'Pests', 'Natural\nEnemies', 'Area\nPlanted', 'Area\nAffected',
+                          '%\nInfest.', 'Area\nTreated', 'Actions\nTaken', 'Data\nSource', 'Remarks'
+                        ].map(h => (
+                          <th key={h} className="border border-gray-400 px-2 py-2 whitespace-pre-line font-bold">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detections.length === 0 ? (
+                        <tr>
+                          <td colSpan={17} className="text-center py-12 text-gray-400 italic">
+                            No detections found for {MONTHS[selectedMonth]} {selectedYear}.
+                          </td>
+                        </tr>
+                      ) : (
+                        muniKeys.flatMap((muni, mi) => {
+                          const rows = byMuni[muni];
+                          const dataRows = rows.map((d, ri) => {
+                            const farm = farmById[d.farm_id] || null;
+                            const lat = d.latitude || (farm ? farm.lat : null);
+                            const lng = d.longitude || (farm ? farm.lng : null);
+                            const pct = severityToPct(d.severity);
+                            const sevColor = d.severity === 'critical' ? 'text-red-700 font-bold'
+                              : d.severity === 'high' ? 'text-orange-600 font-semibold'
+                                : d.severity === 'medium' ? 'text-yellow-600' : 'text-green-600';
+                            return (
+                              <tr key={`${mi}-${ri}`} className={ri % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                {ri === 0 ? (
+                                  <td rowSpan={rows.length} className="border border-gray-300 px-2 py-1.5 font-semibold align-top">
+                                    {mi + 1}. {muni}
+                                  </td>
+                                ) : null}
+                                <td className="border border-gray-300 px-2 py-1.5">{muni}</td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-500">
+                                  {lat ? Number(lat).toFixed(6) : '—'}
+                                </td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-500">
+                                  {lng ? Number(lng).toFixed(6) : '—'}
+                                </td>
+                                <td className="border border-gray-300 px-2 py-1.5">{capitalize(d.crop_type) || '—'}</td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
+                                <td className="border border-gray-300 px-2 py-1.5 font-medium text-red-700">
+                                  {d.pest_name || d.pest || '—'}
+                                </td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
+                                <td className={`border border-gray-300 px-2 py-1.5 text-center ${sevColor}`}>
+                                  {pct !== null ? `${(pct * 100).toFixed(0)}%` : '—'}
+                                </td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-300">—</td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-500 text-xs">PestCheck</td>
+                                <td className="border border-gray-300 px-2 py-1.5 text-gray-500 text-xs">
+                                  {d.confirmed ? 'Confirmed' : 'Unconfirmed'}
+                                </td>
+                              </tr>
+                            );
+                          });
+                          // Sub-total row
+                          const subTotal = (
+                            <tr key={`${mi}-sub`} style={{ backgroundColor: '#E2EFDA' }}>
+                              <td colSpan={2} className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1 text-center text-xs italic text-gray-400">Σ</td>
+                              <td colSpan={14} className="border border-gray-300 px-2 py-1"></td>
+                            </tr>
+                          );
+                          const sep = <tr key={`${mi}-sep`}><td colSpan={17} className="py-0.5 bg-gray-100"></td></tr>;
+                          return [...dataRows, subTotal, sep];
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Summary breakdowns */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 no-print">
+                <div className="bg-white rounded-lg shadow p-4">
+                  <h3 className="text-sm font-bold text-gray-700 border-b pb-2 mb-3">By Crop Type</h3>
+                  <table className="w-full text-xs">
+                    <thead><tr className="text-gray-400"><th className="text-left pb-1">Crop</th><th className="text-right pb-1">#</th></tr></thead>
+                    <tbody>
+                      {Object.entries(cropMap).sort((a, b) => b[1] - a[1]).map(([c, n]) => (
+                        <tr key={c} className="border-t border-gray-100">
+                          <td className="py-1">{c}</td><td className="py-1 text-right font-semibold">{n}</td>
+                        </tr>
+                      ))}
+                      <tr className="border-t-2 border-gray-300 font-bold">
+                        <td className="pt-1">TOTAL</td><td className="pt-1 text-right">{detections.length}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="bg-white rounded-lg shadow p-4">
+                  <h3 className="text-sm font-bold text-gray-700 border-b pb-2 mb-3">Top Pest Incidences</h3>
+                  <table className="w-full text-xs">
+                    <thead><tr className="text-gray-400"><th className="text-left pb-1">Pest</th><th className="text-right pb-1">#</th></tr></thead>
+                    <tbody>
+                      {Object.entries(pestMap).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([p, n]) => (
+                        <tr key={p} className="border-t border-gray-100">
+                          <td className="py-1">{p}</td><td className="py-1 text-right font-semibold">{n}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="bg-white rounded-lg shadow p-4">
+                  <h3 className="text-sm font-bold text-gray-700 border-b pb-2 mb-3">Severity Distribution</h3>
+                  <table className="w-full text-xs">
+                    <thead><tr className="text-gray-400"><th className="text-left pb-1">Severity</th><th className="text-right pb-1">#</th></tr></thead>
+                    <tbody>
+                      {['Low', 'Medium', 'High', 'Critical'].map(s => (
+                        <tr key={s} className="border-t border-gray-100">
+                          <td className={`py-1 font-medium ${s === 'Critical' ? 'text-red-700' : s === 'High' ? 'text-orange-600' : s === 'Medium' ? 'text-yellow-600' : 'text-green-600'}`}>{s}</td>
+                          <td className="py-1 text-right font-semibold">{sevMap[s] || 0}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Export CTA */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-5 flex flex-wrap items-center justify-between gap-4 no-print">
+                <div>
+                  <p className="font-semibold text-green-800">Report ready to print</p>
+                  <p className="text-sm text-green-700 mt-0.5">
+                    Click <strong>Print as PDF</strong> to open the browser print dialog. Select <strong>Save as PDF</strong> as the destination for a digital copy, or send directly to a printer.
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    Municipality pre-filled as <strong>MAGALANG, PAMPANGA</strong>.
+                    Blank fields (No. of Farmers, Variety, Growth Stage, Areas, Actions Taken) require manual entry before submission.
+                  </p>
+                </div>
+                <button
+                  onClick={handlePrint}
+                  className="flex items-center px-5 py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 font-semibold text-sm shadow"
+                >
+                  <Printer className="w-5 h-5 mr-2" />
+                  Print as PDF
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Empty state */}
+          {!generated && !loading && (
+            <div className="text-center py-24 text-gray-400">
+              <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <p className="text-lg">
+                Select a month and year, then click{' '}
+                <strong className="text-gray-600">Generate Report</strong>.
+              </p>
+            </div>
+          )}
+        </div>
+      </div></>
   );
 };
 
