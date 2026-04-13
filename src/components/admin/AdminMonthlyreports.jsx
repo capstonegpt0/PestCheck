@@ -98,7 +98,7 @@ async function exportToExcel(detections, farms, month, year) {
   aoa.push(Array(17).fill(null));
 
   // Row 7 — title
-  aoa.push(['PEST MONITORING ON RICE, CORN, CASSAVA & HIGH VALUE CROPS', ...Array(16).fill(null)]);
+  aoa.push(['PEST MONITORING ON RICE AND CORN', ...Array(16).fill(null)]);
 
   // Row 8 — date
   aoa.push([`as of ${MONTHS[month]} ${endOfMonth}, ${year}`, ...Array(16).fill(null)]);
@@ -107,8 +107,8 @@ async function exportToExcel(detections, farms, month, year) {
   aoa.push(Array(17).fill(null));
   aoa.push(Array(17).fill(null));
 
-  // Row 11 — province label (matches template exactly)
-  aoa.push(['Province: PAMPANGA', ...Array(16).fill(null)]);
+  // Row 11 — municipality label
+  aoa.push(['Municipality: MAGALANG, PAMPANGA', ...Array(16).fill(null)]);
 
   // Row 12 — column headers
   aoa.push([
@@ -175,12 +175,12 @@ async function exportToExcel(detections, farms, month, year) {
   aoa.push(Array(17).fill(null));
   aoa.push(Array(17).fill(null));
   const nameRow = Array(17).fill(null);
-  nameRow[1] = 'ALICIA C. DE LEON';
-  nameRow[9] = 'JIMMY S. MANLICLIC';
+  nameRow[1] = '________________________';
+  nameRow[9] = '________________________';
   aoa.push(nameRow);
   const titleRow = Array(17).fill(null);
-  titleRow[1] = 'Provincial Crop Protection Coordinator';
-  titleRow[9] = 'Assistant Provincial Agriculturist/ OIC - OPA';
+  titleRow[1] = 'Agricultural Technician';
+  titleRow[9] = 'Municipal Agriculturist';
   aoa.push(titleRow);
 
   // ── Create worksheet ──────────────────────────────────────────────────────
@@ -564,11 +564,71 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
   return (
     <><style>{`
       @media print {
-        @page { size: A4 landscape; margin: 10mm; }
-        body * { visibility: hidden !important; }
-        #printable-report, #printable-report * { visibility: visible !important; }
-        #printable-report { position: absolute; left: 0; top: 0; width: 100%; }
+        @page { size: A4 landscape; margin: 8mm; }
+        body, html { margin: 0; padding: 0; }
+        body > * { display: none !important; }
+        #printable-report {
+          display: block !important;
+          position: fixed;
+          top: 0; left: 0;
+          width: 100%;
+          margin: 0;
+          padding: 0;
+        }
+        #printable-report * { visibility: visible !important; }
         .no-print { display: none !important; }
+        #printable-report .overflow-x-auto {
+          overflow: visible !important;
+          width: 100% !important;
+        }
+        #printable-report table {
+          width: 100% !important;
+          table-layout: fixed !important;
+          border-collapse: collapse !important;
+          font-size: 6.5pt !important;
+        }
+        #printable-report table th,
+        #printable-report table td {
+          border: 0.5pt solid #999 !important;
+          padding: 1pt 2pt !important;
+          overflow: hidden !important;
+          word-break: break-word !important;
+          white-space: normal !important;
+        }
+        #printable-report table th:nth-child(1),
+        #printable-report table td:nth-child(1) { width: 9% !important; }
+        #printable-report table th:nth-child(2),
+        #printable-report table td:nth-child(2) { width: 9% !important; }
+        #printable-report table th:nth-child(3),
+        #printable-report table td:nth-child(3) { width: 5% !important; }
+        #printable-report table th:nth-child(4),
+        #printable-report table td:nth-child(4) { width: 6% !important; }
+        #printable-report table th:nth-child(5),
+        #printable-report table td:nth-child(5) { width: 6% !important; }
+        #printable-report table th:nth-child(6),
+        #printable-report table td:nth-child(6) { width: 5% !important; }
+        #printable-report table th:nth-child(7),
+        #printable-report table td:nth-child(7) { width: 6% !important; }
+        #printable-report table th:nth-child(8),
+        #printable-report table td:nth-child(8) { width: 7% !important; }
+        #printable-report table th:nth-child(9),
+        #printable-report table td:nth-child(9) { width: 8% !important; }
+        #printable-report table th:nth-child(10),
+        #printable-report table td:nth-child(10) { width: 6% !important; }
+        #printable-report table th:nth-child(11),
+        #printable-report table td:nth-child(11) { width: 5% !important; }
+        #printable-report table th:nth-child(12),
+        #printable-report table td:nth-child(12) { width: 5% !important; }
+        #printable-report table th:nth-child(13),
+        #printable-report table td:nth-child(13) { width: 5% !important; }
+        #printable-report table th:nth-child(14),
+        #printable-report table td:nth-child(14) { width: 5% !important; }
+        #printable-report table th:nth-child(15),
+        #printable-report table td:nth-child(15) { width: 6% !important; }
+        #printable-report table th:nth-child(16),
+        #printable-report table td:nth-child(16) { width: 6% !important; }
+        #printable-report table th:nth-child(17),
+        #printable-report table td:nth-child(17) { width: 6% !important; }
       }
     `}</style><div className="min-h-screen bg-gray-50">
         <div className="no-print"><AdminNavigation user={user} onLogout={onLogout} /></div>
@@ -674,7 +734,26 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
 
                 {/* Table */}
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs border-collapse">
+                  <table className="w-full text-xs border-collapse" style={{ tableLayout: 'fixed' }}>
+                    <colgroup>
+                      <col style={{ width: '9%' }} />
+                      <col style={{ width: '9%' }} />
+                      <col style={{ width: '5%' }} />
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '5%' }} />
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '7%' }} />
+                      <col style={{ width: '8%' }} />
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '5%' }} />
+                      <col style={{ width: '5%' }} />
+                      <col style={{ width: '5%' }} />
+                      <col style={{ width: '5%' }} />
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '6%' }} />
+                    </colgroup>
                     <thead>
                       <tr style={{ backgroundColor: '#92D050' }} className="text-gray-900 text-center font-bold">
                         {['Municipality', 'Barangay', 'No. of\nFarmers', 'Lat', 'Lng', 'Crop', 'Variety',
