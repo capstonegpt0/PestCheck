@@ -565,70 +565,58 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
     <><style>{`
       @media print {
         @page { size: A4 landscape; margin: 8mm; }
-        body, html { margin: 0; padding: 0; }
+
+        /* Hide everything on the page first */
         body > * { display: none !important; }
+
+        /* Show only the root app container so React tree is visible */
+        body > #root,
+        body > div:first-child { display: block !important; }
+
+        /* Hide everything inside the app except the report */
+        body > #root *,
+        body > div:first-child * { display: none !important; }
+
+        /* Show the report and all its children */
+        #printable-report,
+        #printable-report * { display: revert !important; }
+
+        /* Layout reset for the report */
         #printable-report {
-          display: block !important;
-          position: fixed;
-          top: 0; left: 0;
-          width: 100%;
-          margin: 0;
-          padding: 0;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          overflow: visible !important;
         }
-        #printable-report * { visibility: visible !important; }
-        .no-print { display: none !important; }
+
+        /* Fix the scrollable wrapper so table is not clipped */
         #printable-report .overflow-x-auto {
           overflow: visible !important;
           width: 100% !important;
         }
+
+        /* Table: fixed layout so columns do not collapse */
         #printable-report table {
           width: 100% !important;
           table-layout: fixed !important;
           border-collapse: collapse !important;
           font-size: 6.5pt !important;
         }
+
         #printable-report table th,
         #printable-report table td {
           border: 0.5pt solid #999 !important;
           padding: 1pt 2pt !important;
-          overflow: hidden !important;
           word-break: break-word !important;
           white-space: normal !important;
+          overflow: hidden !important;
         }
-        #printable-report table th:nth-child(1),
-        #printable-report table td:nth-child(1) { width: 9% !important; }
-        #printable-report table th:nth-child(2),
-        #printable-report table td:nth-child(2) { width: 9% !important; }
-        #printable-report table th:nth-child(3),
-        #printable-report table td:nth-child(3) { width: 5% !important; }
-        #printable-report table th:nth-child(4),
-        #printable-report table td:nth-child(4) { width: 6% !important; }
-        #printable-report table th:nth-child(5),
-        #printable-report table td:nth-child(5) { width: 6% !important; }
-        #printable-report table th:nth-child(6),
-        #printable-report table td:nth-child(6) { width: 5% !important; }
-        #printable-report table th:nth-child(7),
-        #printable-report table td:nth-child(7) { width: 6% !important; }
-        #printable-report table th:nth-child(8),
-        #printable-report table td:nth-child(8) { width: 7% !important; }
-        #printable-report table th:nth-child(9),
-        #printable-report table td:nth-child(9) { width: 8% !important; }
-        #printable-report table th:nth-child(10),
-        #printable-report table td:nth-child(10) { width: 6% !important; }
-        #printable-report table th:nth-child(11),
-        #printable-report table td:nth-child(11) { width: 5% !important; }
-        #printable-report table th:nth-child(12),
-        #printable-report table td:nth-child(12) { width: 5% !important; }
-        #printable-report table th:nth-child(13),
-        #printable-report table td:nth-child(13) { width: 5% !important; }
-        #printable-report table th:nth-child(14),
-        #printable-report table td:nth-child(14) { width: 5% !important; }
-        #printable-report table th:nth-child(15),
-        #printable-report table td:nth-child(15) { width: 6% !important; }
-        #printable-report table th:nth-child(16),
-        #printable-report table td:nth-child(16) { width: 6% !important; }
-        #printable-report table th:nth-child(17),
-        #printable-report table td:nth-child(17) { width: 6% !important; }
+
+        /* Header text sizes */
+        #printable-report .text-sm  { font-size: 8pt !important; }
+        #printable-report .text-xs  { font-size: 7pt !important; }
       }
     `}</style><div className="min-h-screen bg-gray-50">
         <div className="no-print"><AdminNavigation user={user} onLogout={onLogout} /></div>
@@ -834,7 +822,7 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
                   </table>
                 </div>
 
-                {/* Signature section — matches xlsx rows 105–109 */}
+                {/* Signature section */}
                 <div className="px-6 pt-6 pb-4 bg-white">
                   <p className="text-xs text-center italic text-gray-500 mb-6">* NOTHING FOLLOWS *</p>
                   <div className="flex justify-between text-xs">
