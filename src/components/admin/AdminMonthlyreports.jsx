@@ -57,15 +57,7 @@ async function exportToExcel(detections, farms, month, year) {
   const sheetLabel = `${MONTHS[month].slice(0, 3)} ${endOfMonth}, ${year}`;
   const farmById   = Object.fromEntries(farms.map(f => [f.id, f]));
 
-  // Group detections by farm/barangay
-  const byMuni = {};
-  detections.forEach(d => {
-    const farm = farmById[d.farm_id] || null;
-    const key  = farm ? farm.name : (d.address ? d.address.split(',')[0].trim() : 'Unknown');
-    if (!byMuni[key]) byMuni[key] = [];
-    byMuni[key].push({ ...d, _farm: farm });
-  });
-  const muniKeys = Object.keys(byMuni);
+  // No grouping — treat all detections as a single list
 
   // ── Build array-of-arrays matching the exact template layout ─────────────
   // Template row structure (1-indexed, matching actual xlsx):
@@ -120,48 +112,44 @@ async function exportToExcel(detections, farms, month, year) {
   ]);
 
   // ── Data rows ─────────────────────────────────────────────────────────────
-  muniKeys.forEach((muni, mi) => {
-    const rows    = byMuni[muni];
-    const startEx = aoa.length + 1; // Excel 1-indexed row of first data row for this group
+  // ── Flat data rows (no per-farm grouping) ────────────────────────────────
+  const dataStartEx = aoa.length + 1; // Excel 1-indexed row of first data row
 
-    rows.forEach((d, ri) => {
-      const farm = d._farm;
-      const lat  = d.latitude  || (farm ? farm.lat  : null);
-      const lng  = d.longitude || (farm ? farm.lng  : null);
-      // Store as decimal — cell will be formatted as 0%
-      const pct  = severityToPct(d.severity);
-      aoa.push([
-        ri === 0 ? `${mi + 1}. MAGALANG` : null,        // A: Municipality (always MAGALANG, only first row)
-        null,                                             // B: Barangay — always blank
-        null,                                            // C: No. of Farmers — blank
-        lat ? Number(lat).toFixed(6) : null,             // D: Latitude
-        lng ? Number(lng).toFixed(6) : null,             // E: Longitude
-        capitalize(d.crop_type) || null,                 // F: Crop
-        null,                                            // G: Variety — blank
-        null,                                            // H: Growth Stage — blank
-        d.pest_name || d.pest || null,                   // I: Pests
-        null,                                            // J: Natural Enemies — blank
-        null,                                            // K: Area Planted — blank
-        null,                                            // L: Area Affected — blank
-        pct,                                             // M: % Infestation (decimal, formatted 0%)
-        null,                                            // N: Area Treated — blank
-        null,                                            // O: Actions Taken — blank
-        'PestCheck System',                              // P: Data Source
-        d.confirmed ? 'Confirmed detection' : 'Unconfirmed', // Q: Remarks
-      ]);
-    });
-
-    // Sub-total row — only C, K, L get SUM formulas (matches template)
-    const endEx = aoa.length;
-    const subRow = Array(17).fill(null);
-    subRow[2]  = `=SUM(C${startEx}:C${endEx})`;   // C
-    subRow[10] = `=SUM(K${startEx}:K${endEx})`;   // K
-    subRow[11] = `=SUM(L${startEx}:L${endEx})`;   // L
-    aoa.push(subRow);
-
-    // Blank separator row between municipalities
-    aoa.push(Array(17).fill(null));
+  detections.forEach(d => {
+    const farm = farmById[d.farm_id] || null;
+    const lat  = d.latitude  || (farm ? farm.lat  : null);
+    const lng  = d.longitude || (farm ? farm.lng  : null);
+    // Store as decimal — cell formatted as 0%
+    const pct  = severityToPct(d.severity);
+    aoa.push([
+      'MAGALANG',                                        // A: Municipality
+      null,                                              // B: Barangay — blank
+      null,                                              // C: No. of Farmers — blank
+      lat ? Number(lat).toFixed(6) : null,               // D: Latitude
+      lng ? Number(lng).toFixed(6) : null,               // E: Longitude
+      capitalize(d.crop_type) || null,                   // F: Crop
+      null,                                              // G: Variety — blank
+      null,                                              // H: Growth Stage — blank
+      d.pest_name || d.pest || null,                     // I: Pests
+      null,                                              // J: Natural Enemies — blank
+      null,                                              // K: Area Planted — blank
+      null,                                              // L: Area Affected — blank
+      pct,                                               // M: % Infestation (decimal, formatted 0%)
+      null,                                              // N: Area Treated — blank
+      null,                                              // O: Actions Taken — blank
+      'PestCheck System',                                // P: Data Source
+      d.confirmed ? 'Confirmed detection' : 'Unconfirmed', // Q: Remarks
+    ]);
   });
+
+  // Single grand total row (C, K, L sum entire data range)
+  const dataEndEx = aoa.length;
+  const totalRow  = Array(17).fill(null);
+  totalRow[0]  = 'TOTAL';
+  totalRow[2]  = `=SUM(C${dataStartEx}:C${dataEndEx})`;  // C
+  totalRow[10] = `=SUM(K${dataStartEx}:K${dataEndEx})`;  // K
+  totalRow[11] = `=SUM(L${dataStartEx}:L${dataEndEx})`;  // L
+  aoa.push(totalRow);
 
   // Signatories (matching template rows 105–109)
   aoa.push(Array(17).fill(null));
@@ -308,6 +296,7 @@ async function exportToExcel(detections, farms, month, year) {
 
   // Apply styles to all data rows (Excel row 13 onward = aoa index 12 onward)
   const cols = 'ABCDEFGHIJKLMNOPQ'.split('');
+  const totalExRow = aoa.length; // Excel row number of the grand total row
   for (let r = 13; r <= aoa.length; r++) {
     cols.forEach((col, ci) => {
       const addr = `${col}${r}`;
@@ -324,6 +313,15 @@ async function exportToExcel(detections, farms, month, year) {
           : DATA_CENTER;
       }
     });
+  }
+  // Bold the TOTAL label cell
+  const totalLabelAddr = `A${totalExRow}`;
+  if (ws[totalLabelAddr]) {
+    ws[totalLabelAddr].s = {
+      ...DATA_STYLE,
+      font: { bold: true, sz: 12, name: 'Times New Roman' },
+      fill: { patternType: 'solid', fgColor: { rgb: 'FFE2EFDA' } },
+    };
   }
 
   // ── Build workbook and generate bytes ─────────────────────────────────────
@@ -582,14 +580,6 @@ thead th{background-color:#92D050!important;}
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const farmById = Object.fromEntries(farms.map(f => [f.id, f]));
-  const byMuni   = {};
-  detections.forEach(d => {
-    const farm = farmById[d.farm_id] || null;
-    const key  = farm ? farm.name : (d.address ? d.address.split(',')[0].trim() : 'Unknown');
-    if (!byMuni[key]) byMuni[key] = [];
-    byMuni[key].push(d);
-  });
-  const muniKeys = Object.keys(byMuni);
 
   const pestMap = detections.reduce((a, d) => {
     const p = d.pest_name || d.pest || 'Unknown'; a[p] = (a[p] || 0) + 1; return a;
@@ -669,7 +659,7 @@ thead th{background-color:#92D050!important;}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 no-print">
                 {[
                   { label: 'Total Detections', value: detections.length, color: 'blue' },
-                  { label: 'Farm Areas', value: muniKeys.length, color: 'green' },
+                  { label: 'Confirmed', value: detections.filter(d => d.confirmed).length, color: 'green' },
                   { label: 'Pest Types', value: Object.keys(pestMap).length, color: 'purple' },
                   { label: 'Critical Cases', value: sevMap['Critical'] || 0, color: 'red' },
                 ].map(({ label, value, color }) => (
@@ -745,11 +735,8 @@ thead th{background-color:#92D050!important;}
                           </td>
                         </tr>
                       ) : (
-                        muniKeys.flatMap((muni, mi) => {
-                          const rows = byMuni[muni];
-                          const tdBase = { border:'0.5pt solid #aaa', padding:'1.5pt 2pt', verticalAlign:'middle', wordBreak:'break-word' };
-                          const tdC    = { ...tdBase, textAlign:'center' };
-                          const dataRows = rows.map((d, ri) => {
+                        <>
+                          {detections.map((d, ri) => {
                             const farm = farmById[d.farm_id] || null;
                             const lat  = d.latitude  || (farm ? farm.lat  : null);
                             const lng  = d.longitude || (farm ? farm.lng  : null);
@@ -757,13 +744,11 @@ thead th{background-color:#92D050!important;}
                             const pctColor = d.severity === 'critical' ? '#b91c1c'
                               : d.severity === 'high'   ? '#c2410c'
                               : d.severity === 'medium' ? '#ca8a04' : '#15803d';
+                            const tdBase = { border:'0.5pt solid #aaa', padding:'1.5pt 2pt', verticalAlign:'middle', wordBreak:'break-word' };
+                            const tdC    = { ...tdBase, textAlign:'center' };
                             return (
-                              <tr key={`${mi}-${ri}`} style={{ backgroundColor: ri % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                                {ri === 0 ? (
-                                  <td rowSpan={rows.length} style={{ ...tdBase, fontWeight:'600', verticalAlign:'top' }}>
-                                    {mi + 1}. Magalang
-                                  </td>
-                                ) : null}
+                              <tr key={ri} style={{ backgroundColor: ri % 2 === 0 ? '#fff' : '#f9fafb' }}>
+                                <td style={{ ...tdBase, fontWeight:'600' }}>Magalang</td>
                                 <td style={tdBase}>—</td>
                                 <td style={tdC}>—</td>
                                 <td style={tdC}>{lat ? Number(lat).toFixed(6) : '—'}</td>
@@ -782,21 +767,14 @@ thead th{background-color:#92D050!important;}
                                 <td style={{ ...tdBase, color:'#6b7280' }}>{d.confirmed ? 'Confirmed' : 'Unconfirmed'}</td>
                               </tr>
                             );
-                          });
-                          const subTotal = (
-                            <tr key={`${mi}-sub`} className="subtotal" style={{ backgroundColor:'#E2EFDA' }}>
-                              <td colSpan={2} style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt' }}></td>
-                              <td style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt', textAlign:'center', fontStyle:'italic', color:'#6b7280' }}>Σ</td>
-                              <td colSpan={14} style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt' }}></td>
-                            </tr>
-                          );
-                          const sep = (
-                            <tr key={`${mi}-sep`} className="sep">
-                              <td colSpan={17} style={{ border:'none', height:'4pt', background:'#f3f4f6' }}></td>
-                            </tr>
-                          );
-                          return [...dataRows, subTotal, sep];
-                        })
+                          })}
+                          {/* Grand total row */}
+                          <tr className="subtotal" style={{ backgroundColor:'#E2EFDA' }}>
+                            <td colSpan={2} style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt', fontWeight:'bold', fontSize:'7pt' }}>TOTAL</td>
+                            <td style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt', textAlign:'center', fontStyle:'italic', color:'#6b7280' }}>Σ {detections.length}</td>
+                            <td colSpan={14} style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt' }}></td>
+                          </tr>
+                        </>
                       )}
                     </tbody>
                   </table>
