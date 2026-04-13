@@ -497,6 +497,23 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
   const [generated,     setGenerated]     = useState(false);
   const [exporting,     setExporting]     = useState(false);
 
+  // Editable row overrides: { [rowIndex]: { barangay, numFarmers, variety, growthStage, areaPlanted, areaAffected, areaTreated, naturalEnemies, actionsTaken } }
+  const [rowEdits,      setRowEdits]      = useState({});
+  const [editingRow,    setEditingRow]    = useState(null); // index of row being edited
+
+  // Editable signature fields
+  const [preparedBy,    setPreparedBy]    = useState('ALICIA C. DE LEON');
+  const [preparedTitle, setPreparedTitle] = useState('Provincial Crop Protection Coordinator');
+  const [notedBy,       setNotedBy]       = useState('JIMMY S. MANLICLIC');
+  const [notedTitle,    setNotedTitle]    = useState('Assistant Provincial Agriculturist/ OIC - OPA');
+
+  const updateRowEdit = (ri, field, value) => {
+    setRowEdits(prev => ({
+      ...prev,
+      [ri]: { ...(prev[ri] || {}), [field]: value }
+    }));
+  };
+
   const fetchReportData = async () => {
     setLoading(true);
     setGenerated(false);
@@ -555,6 +572,9 @@ thead th{background-color:#92D050!important;}
 .sig-line{border-top:1pt solid #333;padding-top:2px;font-weight:bold;font-size:7pt;}
 .sig-title{font-size:7pt;}
 .nothing-follows{text-align:center;font-style:italic;font-size:7pt;color:#666;padding:8px 0;}
+input.print-field,textarea.print-field{border:none!important;outline:none!important;background:transparent!important;font-size:inherit!important;font-family:inherit!important;color:inherit!important;font-weight:inherit!important;padding:0!important;margin:0!important;width:100%!important;resize:none!important;}
+.sig-name-print{font-weight:bold;font-size:9pt;border-top:1pt solid #333;padding-top:2px;}
+.sig-title-print{font-size:8pt;}
 </style></head><body>${reportEl.innerHTML}</body></html>`;
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
@@ -670,6 +690,12 @@ thead th{background-color:#92D050!important;}
                 ))}
               </div>
 
+              {/* Editing hint */}
+              <div className="no-print mb-2 flex items-center gap-2 px-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg py-2 px-3">
+                <span>✏️</span>
+                <span><strong>Click any row</strong> to edit blank fields (Barangay, Farmers, Variety, Growth Stage, Areas, Natural Enemies, Actions Taken). Edit <strong>Prepared by / Noted by</strong> names and titles directly in the signature section below.</span>
+              </div>
+
               {/* ─── PRINTABLE REPORT — rendered in iframe for printing ──── */}
               <div id="printable-report" className="bg-white rounded-lg shadow mb-6" style={{ fontFamily: 'Arial, sans-serif' }}>
 
@@ -746,23 +772,148 @@ thead th{background-color:#92D050!important;}
                               : d.severity === 'medium' ? '#ca8a04' : '#15803d';
                             const tdBase = { border:'0.5pt solid #aaa', padding:'1.5pt 2pt', verticalAlign:'middle', wordBreak:'break-word' };
                             const tdC    = { ...tdBase, textAlign:'center' };
+                            const edits  = rowEdits[ri] || {};
+                            const isEditing = editingRow === ri;
+
+                            // Shared style for editable cells (screen only — print shows plain text)
+                            const editableTdStyle = {
+                              ...tdBase,
+                              backgroundColor: isEditing ? '#fffbeb' : undefined,
+                              position: 'relative',
+                              cursor: 'pointer',
+                            };
+                            const editableTdCStyle = { ...editableTdStyle, textAlign:'center' };
+
+                            const inputStyle = {
+                              border: 'none', outline: 'none', background: 'transparent',
+                              fontSize: 'inherit', fontFamily: 'inherit', color: 'inherit',
+                              width: '100%', padding: 0, margin: 0, textAlign: 'inherit',
+                            };
+
                             return (
-                              <tr key={ri} style={{ backgroundColor: ri % 2 === 0 ? '#fff' : '#f9fafb' }}>
+                              <tr key={ri}
+                                style={{ backgroundColor: ri % 2 === 0 ? '#fff' : '#f9fafb' }}
+                                onClick={() => setEditingRow(isEditing ? null : ri)}
+                                title="Click row to edit"
+                              >
                                 <td style={{ ...tdBase, fontWeight:'600' }}>Magalang</td>
-                                <td style={tdBase}>—</td>
-                                <td style={tdC}>—</td>
+
+                                {/* Barangay — editable */}
+                                <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
+                                  <input
+                                    className="print-field"
+                                    style={{ ...inputStyle }}
+                                    placeholder={isEditing ? 'Barangay…' : '—'}
+                                    value={edits.barangay ?? ''}
+                                    onChange={e => updateRowEdit(ri, 'barangay', e.target.value)}
+                                    onClick={() => setEditingRow(ri)}
+                                  />
+                                </td>
+
+                                {/* No. of Farmers — editable */}
+                                <td style={{ ...editableTdCStyle }} onClick={e => e.stopPropagation()}>
+                                  <input
+                                    className="print-field"
+                                    style={{ ...inputStyle, textAlign:'center' }}
+                                    placeholder={isEditing ? '#' : '—'}
+                                    value={edits.numFarmers ?? ''}
+                                    onChange={e => updateRowEdit(ri, 'numFarmers', e.target.value)}
+                                    onClick={() => setEditingRow(ri)}
+                                  />
+                                </td>
+
                                 <td style={tdC}>{lat ? Number(lat).toFixed(6) : '—'}</td>
                                 <td style={tdC}>{lng ? Number(lng).toFixed(6) : '—'}</td>
                                 <td style={tdBase}>{capitalize(d.crop_type) || '—'}</td>
-                                <td style={tdC}>—</td>
-                                <td style={tdBase}>—</td>
+
+                                {/* Variety — editable */}
+                                <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
+                                  <input
+                                    className="print-field"
+                                    style={inputStyle}
+                                    placeholder={isEditing ? 'Variety…' : '—'}
+                                    value={edits.variety ?? ''}
+                                    onChange={e => updateRowEdit(ri, 'variety', e.target.value)}
+                                    onClick={() => setEditingRow(ri)}
+                                  />
+                                </td>
+
+                                {/* Growth Stage — editable */}
+                                <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
+                                  <input
+                                    className="print-field"
+                                    style={inputStyle}
+                                    placeholder={isEditing ? 'Stage…' : '—'}
+                                    value={edits.growthStage ?? ''}
+                                    onChange={e => updateRowEdit(ri, 'growthStage', e.target.value)}
+                                    onClick={() => setEditingRow(ri)}
+                                  />
+                                </td>
+
                                 <td style={{ ...tdBase, fontWeight:'500', color:'#b91c1c' }}>{d.pest_name || d.pest || '—'}</td>
-                                <td style={tdC}>—</td>
-                                <td style={tdC}>—</td>
-                                <td style={tdC}>—</td>
+
+                                {/* Natural Enemies — editable */}
+                                <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
+                                  <input
+                                    className="print-field"
+                                    style={inputStyle}
+                                    placeholder={isEditing ? 'Enemies…' : '—'}
+                                    value={edits.naturalEnemies ?? ''}
+                                    onChange={e => updateRowEdit(ri, 'naturalEnemies', e.target.value)}
+                                    onClick={() => setEditingRow(ri)}
+                                  />
+                                </td>
+
+                                {/* Area Planted — editable */}
+                                <td style={{ ...editableTdCStyle }} onClick={e => e.stopPropagation()}>
+                                  <input
+                                    className="print-field"
+                                    style={{ ...inputStyle, textAlign:'center' }}
+                                    placeholder={isEditing ? 'ha' : '—'}
+                                    value={edits.areaPlanted ?? ''}
+                                    onChange={e => updateRowEdit(ri, 'areaPlanted', e.target.value)}
+                                    onClick={() => setEditingRow(ri)}
+                                  />
+                                </td>
+
+                                {/* Area Affected — editable */}
+                                <td style={{ ...editableTdCStyle }} onClick={e => e.stopPropagation()}>
+                                  <input
+                                    className="print-field"
+                                    style={{ ...inputStyle, textAlign:'center' }}
+                                    placeholder={isEditing ? 'ha' : '—'}
+                                    value={edits.areaAffected ?? ''}
+                                    onChange={e => updateRowEdit(ri, 'areaAffected', e.target.value)}
+                                    onClick={() => setEditingRow(ri)}
+                                  />
+                                </td>
+
                                 <td style={{ ...tdC, color: pctColor, fontWeight:'600' }}>{pct !== null ? `${(pct * 100).toFixed(0)}%` : '—'}</td>
-                                <td style={tdC}>—</td>
-                                <td style={tdC}>—</td>
+
+                                {/* Area Treated — editable */}
+                                <td style={{ ...editableTdCStyle }} onClick={e => e.stopPropagation()}>
+                                  <input
+                                    className="print-field"
+                                    style={{ ...inputStyle, textAlign:'center' }}
+                                    placeholder={isEditing ? 'ha' : '—'}
+                                    value={edits.areaTreated ?? ''}
+                                    onChange={e => updateRowEdit(ri, 'areaTreated', e.target.value)}
+                                    onClick={() => setEditingRow(ri)}
+                                  />
+                                </td>
+
+                                {/* Actions Taken — editable */}
+                                <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
+                                  <input
+                                    className="print-field"
+                                    style={inputStyle}
+                                    placeholder={isEditing ? 'Actions…' : '—'}
+                                    value={edits.actionsTaken ?? ''}
+                                    onChange={e => updateRowEdit(ri, 'actionsTaken', e.target.value)}
+                                    onClick={() => setEditingRow(ri)}
+                                  />
+                                </td>
+
                                 <td style={{ ...tdC, color:'#6b7280' }}>PestCheck</td>
                                 <td style={{ ...tdBase, color:'#6b7280' }}>{d.confirmed ? 'Confirmed' : 'Unconfirmed'}</td>
                               </tr>
@@ -782,15 +933,61 @@ thead th{background-color:#92D050!important;}
 
                 {/* Signature section */}
                 <div className="sig-wrap" style={{ display:'flex', justifyContent:'space-between', padding:'20px 16px 12px' }}>
+                  {/* Prepared By */}
                   <div style={{ width:'42%' }}>
                     <p className="sig-label" style={{ marginBottom:'32px', fontSize:'9pt' }}>Prepared by:</p>
-                    <p className="sig-line" style={{ borderTop:'1pt solid #333', paddingTop:'2px', fontWeight:'bold', fontSize:'9pt' }}>ALICIA C. DE LEON</p>
-                    <p className="sig-title" style={{ fontSize:'8pt' }}>Provincial Crop Protection Coordinator</p>
+                    <div style={{ borderTop:'1pt solid #333', paddingTop:'4px' }}>
+                      <input
+                        className="print-field"
+                        style={{
+                          fontWeight:'bold', fontSize:'9pt', border:'none', outline:'none',
+                          background:'transparent', width:'100%', padding:0,
+                          borderBottom:'1px dashed #aaa', marginBottom:'4px',
+                        }}
+                        value={preparedBy}
+                        onChange={e => setPreparedBy(e.target.value)}
+                        placeholder="Name (Prepared By)"
+                      />
+                      <input
+                        className="print-field"
+                        style={{
+                          fontSize:'8pt', border:'none', outline:'none',
+                          background:'transparent', width:'100%', padding:0,
+                          borderBottom:'1px dashed #aaa',
+                        }}
+                        value={preparedTitle}
+                        onChange={e => setPreparedTitle(e.target.value)}
+                        placeholder="Title / Designation"
+                      />
+                    </div>
                   </div>
+                  {/* Noted By */}
                   <div style={{ width:'42%' }}>
                     <p className="sig-label" style={{ marginBottom:'32px', fontSize:'9pt' }}>Noted by:</p>
-                    <p className="sig-line" style={{ borderTop:'1pt solid #333', paddingTop:'2px', fontWeight:'bold', fontSize:'9pt' }}>JIMMY S. MANLICLIC</p>
-                    <p className="sig-title" style={{ fontSize:'8pt' }}>Assistant Provincial Agriculturist/ OIC - OPA</p>
+                    <div style={{ borderTop:'1pt solid #333', paddingTop:'4px' }}>
+                      <input
+                        className="print-field"
+                        style={{
+                          fontWeight:'bold', fontSize:'9pt', border:'none', outline:'none',
+                          background:'transparent', width:'100%', padding:0,
+                          borderBottom:'1px dashed #aaa', marginBottom:'4px',
+                        }}
+                        value={notedBy}
+                        onChange={e => setNotedBy(e.target.value)}
+                        placeholder="Name (Noted By)"
+                      />
+                      <input
+                        className="print-field"
+                        style={{
+                          fontSize:'8pt', border:'none', outline:'none',
+                          background:'transparent', width:'100%', padding:0,
+                          borderBottom:'1px dashed #aaa',
+                        }}
+                        value={notedTitle}
+                        onChange={e => setNotedTitle(e.target.value)}
+                        placeholder="Title / Designation"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -850,7 +1047,7 @@ thead th{background-color:#92D050!important;}
                     Click <strong>Print as PDF</strong> to open the browser print dialog. Select <strong>Save as PDF</strong> as the destination for a digital copy.
                   </p>
                   <p className="text-xs text-green-600 mt-1">
-                    Province pre-filled as <strong>PAMPANGA</strong>. Blank fields (Barangay, No. of Farmers, Variety, Growth Stage, Areas, Natural Enemies, Actions Taken) require manual entry before submission.
+                    Province pre-filled as <strong>PAMPANGA</strong>. Fill in any remaining blank fields directly in the table above before printing.
                   </p>
                 </div>
                 <button
