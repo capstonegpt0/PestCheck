@@ -1,15 +1,82 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, MapPin, AlertTriangle, Book,
   Bell, Activity, LogOut, Shield, FileText, UserCheck, Map
 } from 'lucide-react';
 import AdminNotificationBell from './AdminNotificationBell';
+import api from '../../utils/api';
+
+const POLL_MS = 60_000;
 
 const AdminNavigation = ({ user, onLogout }) => {
-  const location = useLocation();
+  const location  = useLocation();
   const isAdmin   = user?.role === 'admin';
   const isMAOStaff = user?.role === 'mao_staff';
+
+  // counts keyed by route path
+  const [counts, setCounts] = useState({});
+  const fetchRef = useRef(null);
+
+  const fetchCounts = useCallback(async () => {
+    try {
+      const results = {};
+
+      // Pending farm requests
+      try {
+        const r = await api.get('/admin/farm-requests/');
+        const data = Array.isArray(r.data) ? r.data : (r.data.results || []);
+        const n = data.filter(d => d.status === 'pending').length;
+        if (n > 0) results['/admin/farm-requests'] = n;
+      } catch { /* skip */ }
+
+      // Pending user verifications (unverified farmers)
+      try {
+        const r = await api.get('/admin/users/');
+        const data = Array.isArray(r.data) ? r.data : (r.data.results || []);
+        const n = data.filter(d => d.role === 'farmer' && !d.is_verified && !d.is_blocked).length;
+        if (n > 0) results['/admin/users'] = n;
+      } catch { /* skip */ }
+
+      // Pending detections
+      try {
+        const r = await api.get('/admin/detections/pending_verifications/');
+        const data = Array.isArray(r.data) ? r.data : (r.data.results || []);
+        if (data.length > 0) results['/admin/detections'] = data.length;
+      } catch { /* skip */ }
+
+      // Active alerts
+      try {
+        const r = await api.get('/admin/alerts/');
+        const data = Array.isArray(r.data) ? r.data : (r.data.results || []);
+        const n = data.filter(d => d.is_active).length;
+        if (n > 0) results['/admin/alerts'] = n;
+      } catch { /* skip */ }
+
+      // Recent unreviewed verification requests (separate from users tab)
+      try {
+        const r = await api.get('/admin/verification-requests/');
+        const data = Array.isArray(r.data) ? r.data : (r.data.results || []);
+        const n = data.filter(d => d.status === 'pending').length;
+        // merge into /admin/users if not already set, or take the max
+        if (n > 0) {
+          results['/admin/users'] = Math.max(results['/admin/users'] || 0, n);
+        }
+      } catch { /* skip */ }
+
+      setCounts(results);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchRef.current = fetchCounts; }, [fetchCounts]);
+
+  useEffect(() => {
+    fetchCounts();
+    const iv = setInterval(fetchCounts, POLL_MS);
+    const onFocus = () => fetchRef.current?.();
+    window.addEventListener('focus', onFocus);
+    return () => { clearInterval(iv); window.removeEventListener('focus', onFocus); };
+  }, [fetchCounts]);
 
   const adminNavItems = [
     { path: '/admin/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
@@ -82,20 +149,35 @@ const AdminNavigation = ({ user, onLogout }) => {
         {/* Bottom row — nav links */}
         <div className="flex items-center gap-1 h-11 overflow-x-auto scrollbar-none">
           {navItems.map((item) => {
-            const Icon = item.icon;
+            const Icon     = item.icon;
             const isActive = location.pathname === item.path;
+            const count    = counts[item.path] || 0;
 
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
+                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
                   isActive
                     ? 'bg-yellow-500 text-gray-900'
                     : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                 }`}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                {/* Icon wrapper — badge anchors to this */}
+                <span className="relative flex-shrink-0">
+                  <Icon className="w-4 h-4" />
+                  {count > 0 && (
+                    <span
+                      className={`absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 flex items-center justify-center rounded-full text-[10px] font-bold leading-none shadow
+                        ${isActive
+                          ? 'bg-red-600 text-white ring-1 ring-yellow-400'
+                          : 'bg-red-500 text-white ring-1 ring-gray-800'
+                        }`}
+                    >
+                      {count > 99 ? '99+' : count}
+                    </span>
+                  )}
+                </span>
                 {item.label}
               </Link>
             );
