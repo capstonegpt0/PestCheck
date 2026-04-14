@@ -16,14 +16,12 @@ const Login = ({ onLogin }) => {
     setLoading(true);
 
     try {
+      // NOTE: api.js uses validateStatus: (s) => s >= 200 && s < 500
+      // This means 403 resolves here (not in catch), so we check response.status directly.
       const response = await api.post('/auth/login/', formData);
-      onLogin(response.data.user, response.data.tokens);
-    } catch (err) {
-      const httpStatus = err.response?.status;
-      const data = err.response?.data;
+      const { status: httpStatus, data } = response;
 
       if (httpStatus === 403) {
-        // Distinguish blocked vs pending via the `code` field set by login_view
         const code = data?.code;
         if (code === 'account_blocked') {
           setAccountStatus('blocked');
@@ -34,12 +32,12 @@ const Login = ({ onLogin }) => {
         return;
       }
 
-      if (data) {
-        if (data.non_field_errors?.[0]) {
+      if (httpStatus >= 400) {
+        if (data?.non_field_errors?.[0]) {
           setError(data.non_field_errors[0]);
-        } else if (data.detail) {
+        } else if (data?.detail) {
           setError(data.detail);
-        } else if (data.username || data.password) {
+        } else if (data?.username || data?.password) {
           const msgs = [];
           if (data.username) msgs.push(...(Array.isArray(data.username) ? data.username : [data.username]));
           if (data.password) msgs.push(...(Array.isArray(data.password) ? data.password : [data.password]));
@@ -47,7 +45,13 @@ const Login = ({ onLogin }) => {
         } else {
           setError('Login failed. Please check your credentials.');
         }
-      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+        return;
+      }
+
+      onLogin(data.user, data.tokens);
+    } catch (err) {
+      // Only network/timeout errors reach here
+      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
         setError('Cannot connect to server. Please check your internet connection and try again.');
       } else if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         setError('Request timed out. Please try again.');
