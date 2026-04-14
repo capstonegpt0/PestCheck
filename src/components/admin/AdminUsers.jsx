@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
  Search, CheckCircle, XCircle, Edit, Trash2, UserCheck, Shield,
- ShieldCheck, ShieldAlert, FileText, Eye, Clock, X, AlertTriangle, Plus
+ ShieldCheck, ShieldAlert, FileText, Eye, Clock, X, AlertTriangle, Plus,
+ Ban, Unlock, AlertOctagon
 } from 'lucide-react';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
@@ -256,6 +257,177 @@ const VerificationReviewModal = ({ request, onClose, onAction }) => {
  </div>
  </div>
  );
+};
+
+
+
+// ==================== BLOCK USER MODAL ====================
+const BlockUserModal = ({ targetUser, onClose, onSuccess }) => {
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  if (!targetUser) return null;
+
+  const handleBlock = async () => {
+    if (!reason.trim()) { setError('Please provide a reason for blocking.'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      await api.post(`/admin/users/${targetUser.id}/block_user/`, { reason });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to block account.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+        <div className="p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <Ban className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Block Account</h2>
+              <p className="text-sm text-gray-500">@{targetUser.username}</p>
+            </div>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+            <div className="flex items-start space-x-2">
+              <AlertOctagon className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-amber-800">
+                <p className="font-semibold">This will disable the farmer's login access.</p>
+                <p className="mt-0.5">Rejected detections: <span className="font-bold text-red-600">{targetUser.rejected_detection_count || 0}</span></p>
+              </div>
+            </div>
+          </div>
+
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Reason for blocking <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={reason}
+            onChange={(e) => { setReason(e.target.value); setError(''); }}
+            placeholder="e.g. Repeated submission of false detection reports..."
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm resize-none mb-3"
+          />
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm mb-3">
+              {error}
+            </div>
+          )}
+
+          <div className="flex space-x-3">
+            <button
+              onClick={handleBlock}
+              disabled={loading}
+              className="flex-1 bg-red-600 text-white py-2.5 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              <Ban className="w-4 h-4 mr-2" />
+              {loading ? 'Blocking...' : 'Block Account'}
+            </button>
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+// ==================== UNBLOCK USER MODAL ====================
+const UnblockUserModal = ({ targetUser, onClose, onSuccess }) => {
+  const [resetCount, setResetCount] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  if (!targetUser) return null;
+
+  const handleUnblock = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await api.post(`/admin/users/${targetUser.id}/unblock_user/`, { reset_count: resetCount });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to unblock account.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+        <div className="p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <Unlock className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Unblock Account</h2>
+              <p className="text-sm text-gray-500">@{targetUser.username}</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-600 mb-4">
+            This will restore login access for <span className="font-semibold">{targetUser.username}</span>.
+            Their rejected detection count is currently{' '}
+            <span className="font-bold text-red-600">{targetUser.rejected_detection_count || 0}</span>.
+          </p>
+
+          <label className="flex items-center space-x-3 mb-4 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={resetCount}
+              onChange={(e) => setResetCount(e.target.checked)}
+              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Also reset rejected detection count to 0</span>
+          </label>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm mb-3">
+              {error}
+            </div>
+          )}
+
+          <div className="flex space-x-3">
+            <button
+              onClick={handleUnblock}
+              disabled={loading}
+              className="flex-1 bg-green-600 text-white py-2.5 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              <Unlock className="w-4 h-4 mr-2" />
+              {loading ? 'Unblocking...' : 'Unblock Account'}
+            </button>
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 
@@ -555,6 +727,8 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  const [showRoleModal, setShowRoleModal] = useState(false);
  const [newRole, setNewRole] = useState('');
  const [showCreateStaffModal, setShowCreateStaffModal] = useState(false);
+ const [blockTarget, setBlockTarget] = useState(null);
+ const [unblockTarget, setUnblockTarget] = useState(null);
 
  // Verification requests state
  const [verificationRequests, setVerificationRequests] = useState([]);
@@ -593,7 +767,9 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
 
  const filterUsers = () => {
  let filtered = users;
- if (roleFilter !== 'all') {
+ if (roleFilter === 'blocked') {
+ filtered = filtered.filter(u => u.is_blocked);
+ } else if (roleFilter !== 'all') {
  filtered = filtered.filter(u => u.role === roleFilter);
  }
  if (searchQuery) {
@@ -757,26 +933,49 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  />
  </div>
  <div className="flex space-x-2 flex-wrap gap-y-2">
- {['all', 'farmer', 'mao_staff', 'admin'].map((filter) => (
+ {['all', 'farmer', 'mao_staff', 'admin', 'blocked'].map((filter) => (
  <button
  key={filter}
  onClick={() => setRoleFilter(filter)}
- className={`px-5 py-3 rounded-lg font-semibold text-sm transition-colors ${
+ className={`px-5 py-3 rounded-lg font-semibold text-sm transition-colors flex items-center gap-1.5 ${
  roleFilter === filter
  ? filter === 'all' ? 'bg-blue-600 text-white'
  : filter === 'farmer' ? 'bg-green-600 text-white'
  : filter === 'mao_staff' ? 'bg-blue-500 text-white'
+ : filter === 'blocked' ? 'bg-red-600 text-white'
  : 'bg-purple-600 text-white'
  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
  }`}
  >
+ {filter === 'blocked' && <Ban className="w-3.5 h-3.5" />}
  {filter === 'all' ? 'All Users'
    : filter === 'mao_staff' ? 'MAO Staff'
+   : filter === 'blocked' ? 'Blocked'
    : `${filter.charAt(0).toUpperCase() + filter.slice(1)}s`}
  </button>
  ))}
  </div>
  </div>
+ </div>
+
+ {/* Blocked accounts alert banner */}
+ {users.filter(u => u.is_blocked).length > 0 && (
+ <div className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+ <Ban className="w-5 h-5 text-red-500 flex-shrink-0" />
+ <p className="text-sm text-red-800">
+ <span className="font-bold">{users.filter(u => u.is_blocked).length}</span> farmer account{users.filter(u => u.is_blocked).length !== 1 ? 's are' : ' is'} currently blocked.
+ <button onClick={() => setRoleFilter('blocked')} className="ml-2 underline font-medium hover:text-red-600">View blocked accounts</button>
+ </p>
+ </div>
+ )}
+
+ {/* Rejection count legend */}
+ <div className="mb-3 flex items-center gap-4 text-xs text-gray-500">
+ <span className="font-medium text-gray-600">Rejection count:</span>
+ <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-gray-300 inline-block"></span> 0 — Clean</span>
+ <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block"></span> 1–2 — Watch</span>
+ <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-orange-400 inline-block"></span> 3–4 — Warning</span>
+ <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> 5+ — Block recommended</span>
  </div>
 
  {/* Users Table */}
@@ -790,21 +989,28 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  <table className="w-full">
  <thead className="bg-gray-50">
  <tr>
- {['User', 'Email', 'Role', 'Status', 'Joined', 'Actions'].map((h) => (
+ {['User', 'Email', 'Role', 'Status', 'Rejections', 'Joined', 'Actions'].map((h) => (
  <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
  ))}
  </tr>
  </thead>
  <tbody className="bg-white divide-y divide-gray-200">
  {filteredUsers.map((u) => (
- <tr key={u.id} className="hover:bg-gray-50">
+ <tr key={u.id} className={`hover:bg-gray-50 ${u.is_blocked ? 'bg-red-50' : ''}`}>
  <td className="px-6 py-4 whitespace-nowrap">
  <div className="flex items-center">
- <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
- <span className="text-gray-600 font-semibold">{u.username.charAt(0).toUpperCase()}</span>
+ <div className={`w-10 h-10 rounded-full flex items-center justify-center ${u.is_blocked ? 'bg-red-200' : 'bg-gray-300'}`}>
+ <span className={`font-semibold ${u.is_blocked ? 'text-red-700' : 'text-gray-600'}`}>{u.username.charAt(0).toUpperCase()}</span>
  </div>
  <div className="ml-4">
+ <div className="flex items-center gap-2">
  <div className="text-sm font-medium text-gray-900">{u.username}</div>
+ {u.is_blocked && (
+ <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-300">
+ <Ban className="w-3 h-3" /> Blocked
+ </span>
+ )}
+ </div>
  <div className="text-sm text-gray-500">{u.first_name} {u.last_name}</div>
  </div>
  </div>
@@ -812,11 +1018,15 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{u.email}</td>
  <td className="px-6 py-4 whitespace-nowrap">
  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(u.role)}`}>
- {u.role}
+ {u.role === 'mao_staff' ? 'MAO Staff' : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
  </span>
  </td>
  <td className="px-6 py-4 whitespace-nowrap">
- {u.is_verified ? (
+ {u.is_blocked ? (
+ <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+ <Ban className="w-3 h-3" /> Blocked
+ </span>
+ ) : u.is_verified ? (
  <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
  Verified
  </span>
@@ -826,12 +1036,31 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  </span>
  )}
  </td>
+ <td className="px-6 py-4 whitespace-nowrap">
+ {u.role === 'farmer' ? (
+ <div className="flex items-center gap-1.5">
+ <span className={`text-sm font-bold ${
+ (u.rejected_detection_count || 0) >= 5 ? 'text-red-600' :
+ (u.rejected_detection_count || 0) >= 3 ? 'text-orange-500' :
+ (u.rejected_detection_count || 0) > 0 ? 'text-yellow-600' :
+ 'text-gray-400'
+ }`}>
+ {u.rejected_detection_count || 0}
+ </span>
+ {(u.rejected_detection_count || 0) >= 3 && (
+ <AlertOctagon className={`w-4 h-4 ${(u.rejected_detection_count || 0) >= 5 ? 'text-red-500' : 'text-orange-400'}`} />
+ )}
+ </div>
+ ) : (
+ <span className="text-gray-300 text-sm">—</span>
+ )}
+ </td>
  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
  {new Date(u.date_joined || u.created_at).toLocaleDateString()}
  </td>
  <td className="px-6 py-4 whitespace-nowrap text-sm">
  <div className="flex items-center space-x-2">
- {!u.is_verified && (
+ {!u.is_verified && !u.is_blocked && (
  <button
  onClick={() => handleVerifyUser(u.id)}
  className="text-green-600 hover:text-green-800 transition-colors"
@@ -849,6 +1078,25 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  >
  <Shield className="w-5 h-5" />
  </button>
+ {u.role === 'farmer' && (
+ u.is_blocked ? (
+ <button
+ onClick={() => setUnblockTarget(u)}
+ className="text-green-600 hover:text-green-800 transition-colors"
+ title="Unblock account"
+ >
+ <Unlock className="w-5 h-5" />
+ </button>
+ ) : (
+ <button
+ onClick={() => setBlockTarget(u)}
+ className="text-orange-500 hover:text-orange-700 transition-colors"
+ title={`Block account (${u.rejected_detection_count || 0} rejections)`}
+ >
+ <Ban className="w-5 h-5" />
+ </button>
+ )
+ )}
  <button
  onClick={() => handleDeleteUser(u.id)}
  className="text-red-600 hover:text-red-800 transition-colors"
@@ -1049,6 +1297,24 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
    <CreateMAOStaffModal
      onClose={() => setShowCreateStaffModal(false)}
      onSuccess={() => { setShowCreateStaffModal(false); fetchUsers(); }}
+   />
+ )}
+
+ {/* Block User Modal */}
+ {blockTarget && (
+   <BlockUserModal
+     targetUser={blockTarget}
+     onClose={() => setBlockTarget(null)}
+     onSuccess={() => { setBlockTarget(null); fetchUsers(); }}
+   />
+ )}
+
+ {/* Unblock User Modal */}
+ {unblockTarget && (
+   <UnblockUserModal
+     targetUser={unblockTarget}
+     onClose={() => setUnblockTarget(null)}
+     onSuccess={() => { setUnblockTarget(null); fetchUsers(); }}
    />
  )}
  </div>
