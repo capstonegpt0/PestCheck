@@ -26,11 +26,13 @@ const Login = ({ onLogin }) => {
       // NOTE: api.js uses validateStatus: (s) => s >= 200 && s < 500
       // This means 403 resolves here (not in catch), so we check response.status directly.
       const response = await api.post('/auth/login/', formData);
-      const { status: httpStatus, data } = response;
+      onLogin(response.data.user, response.data.tokens);
+    } catch (err) {
+      const httpStatus = err.response?.status;
+      const data = err.response?.data;
 
       if (httpStatus === 403) {
-        const code = data?.code;
-        if (code === 'account_blocked') {
+        if (data?.code === 'account_blocked') {
           setAccountStatus('blocked');
         } else {
           setAccountStatus('pending');
@@ -38,7 +40,7 @@ const Login = ({ onLogin }) => {
         return;
       }
 
-      if (httpStatus >= 400) {
+      if (httpStatus === 400 || httpStatus === 401) {
         if (data?.non_field_errors?.[0]) {
           setError(data.non_field_errors[0]);
         } else if (data?.detail) {
@@ -54,8 +56,6 @@ const Login = ({ onLogin }) => {
         return;
       }
 
-      onLogin(data.user, data.tokens);
-    } catch (err) {
       if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
         setError('Cannot connect to server. Please check your internet connection and try again.');
       } else if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
