@@ -1,30 +1,36 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bug, Loader, Clock } from 'lucide-react';
+import { Bug, Loader, Clock, ShieldOff } from 'lucide-react';
 import api from '../utils/api';
 
 const Login = ({ onLogin }) => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
-  const [isPending, setIsPending] = useState(false);
+  const [accountStatus, setAccountStatus] = useState(null); // 'pending' | 'blocked' | null
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setIsPending(false);
+    setAccountStatus(null);
     setLoading(true);
 
     try {
       const response = await api.post('/auth/login/', formData);
       onLogin(response.data.user, response.data.tokens);
     } catch (err) {
-      const status = err.response?.status;
+      const httpStatus = err.response?.status;
       const data = err.response?.data;
 
-      if (status === 403) {
-        // Account exists but is pending approval
-        setIsPending(true);
+      if (httpStatus === 403) {
+        // Distinguish blocked vs pending via the `code` field set by login_view
+        const code = data?.code;
+        if (code === 'account_blocked') {
+          setAccountStatus('blocked');
+        } else {
+          // account_pending or any other 403
+          setAccountStatus('pending');
+        }
         return;
       }
 
@@ -64,7 +70,7 @@ const Login = ({ onLogin }) => {
         <h2 className="text-2xl font-semibold text-center text-gray-700 mb-6">Welcome Back</h2>
 
         {/* Pending approval banner */}
-        {isPending && (
+        {accountStatus === 'pending' && (
           <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-4 mb-5 flex items-start gap-3">
             <Clock className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
@@ -77,6 +83,21 @@ const Login = ({ onLogin }) => {
           </div>
         )}
 
+        {/* Blocked account banner */}
+        {accountStatus === 'blocked' && (
+          <div className="bg-red-50 border border-red-300 rounded-lg px-4 py-4 mb-5 flex items-start gap-3">
+            <ShieldOff className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-800">Account Blocked</p>
+              <p className="text-sm text-red-700 mt-0.5">
+                Your account has been blocked due to repeated invalid detection reports.
+                Please contact the MAO office for assistance.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Generic error */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
             {error}
