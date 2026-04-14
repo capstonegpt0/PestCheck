@@ -4,9 +4,16 @@ import { Bug, Loader, Clock, ShieldOff } from 'lucide-react';
 import api from '../utils/api';
 
 const Login = ({ onLogin }) => {
+  // ✅ Read ?reason=blocked from the hash URL (e.g. /#/login?reason=blocked)
+  const hashSearch = window.location.hash.includes('?')
+    ? window.location.hash.split('?')[1]
+    : '';
+  const params = new URLSearchParams(hashSearch);
+  const wasBlocked = params.get('reason') === 'blocked';
+
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
-  const [accountStatus, setAccountStatus] = useState(null); // 'pending' | 'blocked' | null
+  const [accountStatus, setAccountStatus] = useState(wasBlocked ? 'blocked' : null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -26,7 +33,6 @@ const Login = ({ onLogin }) => {
         if (code === 'account_blocked') {
           setAccountStatus('blocked');
         } else {
-          // account_pending or any other 403
           setAccountStatus('pending');
         }
         return;
@@ -50,7 +56,6 @@ const Login = ({ onLogin }) => {
 
       onLogin(data.user, data.tokens);
     } catch (err) {
-      // Only network/timeout errors reach here
       if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
         setError('Cannot connect to server. Please check your internet connection and try again.');
       } else if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
@@ -94,8 +99,7 @@ const Login = ({ onLogin }) => {
             <div>
               <p className="text-sm font-semibold text-red-800">Account Blocked</p>
               <p className="text-sm text-red-700 mt-0.5">
-                Your account has been blocked due to repeated invalid detection reports.
-                Please contact the MAO office for assistance.
+                Your account has been blocked. Please contact the MAO office for assistance.
               </p>
             </div>
           </div>

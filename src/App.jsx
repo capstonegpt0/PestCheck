@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
+import api from './utils/api';
 
 // User Components
 import Dashboard from './components/Dashboard';
@@ -21,10 +22,9 @@ import AdminFarmRequests from './components/admin/AdminFarmrequests';
 import AdminMonthlyReport from './components/admin/AdminMonthlyreports';
 import AdminHeatMap from './components/admin/AdminHeatMap';
 
-
 // PWA Components
-import PWAInstallPrompt from './components/PWAInstallPrompt'
-import OfflineIndicator from './components/OfflineIndicator'
+import PWAInstallPrompt from './components/PWAInstallPrompt';
+import OfflineIndicator from './components/OfflineIndicator';
 
 // Global Alert Notifications (shown on all pages for logged-in farmers)
 import AlertNotifications from './components/AlertNotifications';
@@ -37,7 +37,7 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     const userData = localStorage.getItem('user');
-    
+
     if (token && userData) {
       try {
         setUser(JSON.parse(userData));
@@ -50,6 +50,43 @@ function App() {
     }
     setLoading(false);
   }, []);
+
+  // ✅ Global interceptor: auto-logout if account is blocked mid-session
+  useEffect(() => {
+    const interceptor = api.interceptors.response.use(
+      (response) => {
+        // api.js uses validateStatus: s => s < 500, so 403 comes here (not catch)
+        if (
+          response.status === 403 &&
+          response.data?.code === 'account_blocked'
+        ) {
+          forceLogout();
+        }
+        return response;
+      },
+      (error) => {
+        // Fallback: catches 403 if validateStatus is ever changed
+        if (
+          error.response?.status === 403 &&
+          error.response?.data?.code === 'account_blocked'
+        ) {
+          forceLogout();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      api.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
+  const forceLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    window.location.replace('/#/login?reason=blocked');
+  };
 
   const handleLogin = (userData, tokens) => {
     setUser(userData);
@@ -72,7 +109,6 @@ function App() {
       return <Navigate to="/login" />;
     }
 
-    // requireAdmin: only full admins — redirect MAO staff to their landing page
     if (requireAdmin && user.role !== 'admin') {
       if (user.role === 'mao_staff') {
         return <Navigate to="/admin/farm-requests" />;
@@ -80,7 +116,6 @@ function App() {
       return <Navigate to="/dashboard" />;
     }
 
-    // requireStaff: admin or mao_staff — redirect farmers to farmer dashboard
     if (requireStaff && !['admin', 'mao_staff'].includes(user.role)) {
       return <Navigate to="/dashboard" />;
     }
@@ -93,15 +128,8 @@ function App() {
     if (!user) {
       return <Navigate to="/login" />;
     }
-    
-    if (user.role === 'admin') {
-      return <Navigate to="/admin/dashboard" />;
-    }
-
-    if (user.role === 'mao_staff') {
-      return <Navigate to="/admin/farm-requests" />;
-    }
-    
+    if (user.role === 'admin') return <Navigate to="/admin/dashboard" />;
+    if (user.role === 'mao_staff') return <Navigate to="/admin/farm-requests" />;
     return <Navigate to="/dashboard" />;
   };
 
@@ -117,10 +145,10 @@ function App() {
     <Router>
       <OfflineIndicator />
       <PWAInstallPrompt />
-      
+
       {/* Global Alert Notifications - shown on all pages for logged-in farmers */}
       {user && user.role === 'farmer' && <AlertNotifications user={user} />}
-      
+
       <Routes>
         {/* Public Routes */}
         <Route
@@ -245,9 +273,9 @@ function App() {
           path="/admin/heatmap"
           element={
             <ProtectedRoute requireStaff={true}>
-            <AdminHeatMap user={user} onLogout={handleLogout} />
-          </ProtectedRoute>
-        }
+              <AdminHeatMap user={user} onLogout={handleLogout} />
+            </ProtectedRoute>
+          }
         />
 
         {/* MAO staff verification review */}
