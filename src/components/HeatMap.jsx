@@ -490,7 +490,22 @@ const HeatMap = ({ user, onLogout }) => {
     formData.append('confirmed', 'false'); formData.append('active', 'false');
     try {
       const response = await api.post('/detections/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      if (response.data?.no_pest_detected) { setDetectionError(response.data.message || 'No pest detected.'); setDetectionStep('upload'); }
+      if (response.data?.no_pest_detected) {
+        setDetectionResult({
+          pest_name: '',
+          confidence: 0.0,
+          no_pest_detected: true,
+          bounding_boxes: [],
+          image_width: null,
+          image_height: null,
+          scientific_name: '',
+          symptoms: '',
+          control_methods: [],
+          prevention: [],
+          message: response.data.message || 'No pest was detected in this image.',
+        });
+        setDetectionStep('confirm');
+      }
       else if ((response.status === 200 || response.status === 201) && response.data) {
         const pestName = response.data.pest_name || response.data.pest;
         if (pestName && pestName !== 'Unknown Pest' && pestName !== '') { setDetectionResult(response.data); setDetectionStep('confirm'); }
@@ -1217,27 +1232,30 @@ const HeatMap = ({ user, onLogout }) => {
                   {/* Confirm Step */}
                   {detectionStep === 'confirm' && detectionResult && (() => {
                     const pestName = detectionResult.pest_name || detectionResult.pest || '';
-                    const pestData = getPestById(pestName) || getPestById(pestName.toLowerCase().replace(/\s+/g, '-'));
+                    const noPest = detectionResult.no_pest_detected === true;
+                    const pestData = noPest ? null : (getPestById(pestName) || getPestById(pestName.toLowerCase().replace(/\s+/g, '-')));
                     const referenceImages = pestData?.referenceImages || [];
                     const identificationTips = pestData?.identificationTips || [];
 
                     // ── Confidence & Accuracy Metrics ──────────────────────────────
                     const rawConf = detectionResult.confidence ?? detectionResult.confidence_score ?? 0;
-                    const confPct = Math.round(Math.min(rawConf > 1 ? rawConf : rawConf * 100, 100));
-                    const numDetections = detectionResult.num_detections ?? 1;
+                    const confPct = noPest ? 0 : Math.round(Math.min(rawConf > 1 ? rawConf : rawConf * 100, 100));
+                    const numDetections = noPest ? 0 : (detectionResult.num_detections ?? 1);
                     const mlSeverity = detectionResult.severity || 'low';
                     const symptoms = detectionResult.symptoms || '';
 
                     // Derive colour & label for the confidence level
-                    const confColor = confPct >= 80 ? '#16a34a' : confPct >= 55 ? '#d97706' : '#dc2626';
-                    const confBg    = confPct >= 80 ? '#f0fdf4' : confPct >= 55 ? '#fffbeb' : '#fef2f2';
-                    const confBorder= confPct >= 80 ? '#bbf7d0' : confPct >= 55 ? '#fde68a' : '#fecaca';
-                    const confLabel = confPct >= 80 ? 'High Confidence' : confPct >= 55 ? 'Moderate Confidence' : 'Low Confidence';
-                    const confDesc  = confPct >= 80
-                      ? 'The AI model is highly certain this pest is present in your image.'
-                      : confPct >= 55
-                      ? 'The AI model is reasonably confident. Please verify against the reference images.'
-                      : 'The AI model has low certainty. Carefully compare with reference images before confirming.';
+                    const confColor  = noPest ? '#6b7280' : (confPct >= 80 ? '#16a34a' : confPct >= 55 ? '#d97706' : '#dc2626');
+                    const confBg     = noPest ? '#f9fafb' : (confPct >= 80 ? '#f0fdf4' : confPct >= 55 ? '#fffbeb' : '#fef2f2');
+                    const confBorder = noPest ? '#e5e7eb' : (confPct >= 80 ? '#bbf7d0' : confPct >= 55 ? '#fde68a' : '#fecaca');
+                    const confLabel  = noPest ? 'Not Detected' : (confPct >= 80 ? 'High Confidence' : confPct >= 55 ? 'Moderate Confidence' : 'Low Confidence');
+                    const confDesc   = noPest
+                      ? 'No pest was identified in this image. The image may be unclear, too far away, or the affected area may not be visible. Please try again with a clearer, closer photo.'
+                      : (confPct >= 80
+                        ? 'The AI model is highly certain this pest is present in your image.'
+                        : confPct >= 55
+                        ? 'The AI model is reasonably confident. Please verify against the reference images.'
+                        : 'The AI model has low certainty. Carefully compare with reference images before confirming.');
 
                     // ── Advanced / bounding-box panel ──────────────────────────────
                     const BoundingBoxPanel = () => {
@@ -1394,11 +1412,20 @@ const HeatMap = ({ user, onLogout }) => {
                                       style={{ width: '100%', display: 'block' }}
                                     />
                                   </div>
+                                ) : imagePreview ? (
+                                  <div style={{ borderRadius: 8, overflow: 'hidden', border: '1.5px solid #334155' }}>
+                                    <img
+                                      src={imagePreview}
+                                      alt="Analyzed — no pest regions found"
+                                      style={{ width: '100%', display: 'block', objectFit: 'contain' }}
+                                    />
+                                    <div style={{ background: '#1e293b', padding: '6px 10px', textAlign: 'center' }}>
+                                      <p style={{ fontSize: 11, color: '#64748b', margin: 0 }}>No pest regions were identified in this image.</p>
+                                    </div>
+                                  </div>
                                 ) : (
                                   <div style={{ background: '#1e293b', borderRadius: 8, padding: '20px', textAlign: 'center' }}>
-                                    <p style={{ fontSize: 12, color: '#475569', margin: 0 }}>
-                                      {!imagePreview ? 'No image available.' : 'No bounding box data returned by the model.'}
-                                    </p>
+                                    <p style={{ fontSize: 12, color: '#475569', margin: 0 }}>No image available.</p>
                                   </div>
                                 )}
                               </div>
@@ -1413,11 +1440,18 @@ const HeatMap = ({ user, onLogout }) => {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
                         {/* ── Header: Pest name ── */}
-                        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: 16 }}>
-                          <p style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Detection Result</p>
-                          <p style={{ fontSize: 24, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>{pestName}</p>
-                          {(detectionResult.scientific_name || pestData?.scientificName) && (
+                        <div style={{ background: noPest ? '#f9fafb' : '#eff6ff', border: `1px solid ${noPest ? '#e5e7eb' : '#bfdbfe'}`, borderRadius: 12, padding: 16 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: noPest ? '#6b7280' : '#1d4ed8', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Detection Result</p>
+                          <p style={{ fontSize: 24, fontWeight: 800, color: noPest ? '#374151' : '#1a1a1a', margin: '0 0 4px' }}>
+                            {noPest ? '🔍 No Pest Detected' : pestName}
+                          </p>
+                          {!noPest && (detectionResult.scientific_name || pestData?.scientificName) && (
                             <p style={{ fontSize: 13, fontStyle: 'italic', color: '#555', margin: 0 }}>{detectionResult.scientific_name || pestData?.scientificName}</p>
+                          )}
+                          {noPest && (
+                            <p style={{ fontSize: 13, color: '#6b7280', margin: '4px 0 0', lineHeight: 1.5 }}>
+                              {detectionResult.message}
+                            </p>
                           )}
                         </div>
 
@@ -1472,13 +1506,14 @@ const HeatMap = ({ user, onLogout }) => {
                             </div>
 
                             {/* Detections count */}
-                            <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 10, padding: '10px 12px' }}>
+                            <div style={{ background: noPest ? '#f9fafb' : '#f0f9ff', border: `1px solid ${noPest ? '#e5e7eb' : '#bae6fd'}`, borderRadius: 10, padding: '10px 12px' }}>
                               <p style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Instances Found</p>
-                              <p style={{ fontSize: 20, fontWeight: 800, color: '#0369a1', margin: '0 0 2px' }}>{numDetections}</p>
-                              <p style={{ fontSize: 10, color: '#6b7280', margin: 0 }}>pest region{numDetections !== 1 ? 's' : ''} detected</p>
+                              <p style={{ fontSize: 20, fontWeight: 800, color: noPest ? '#6b7280' : '#0369a1', margin: '0 0 2px' }}>{numDetections}</p>
+                              <p style={{ fontSize: 10, color: '#6b7280', margin: 0 }}>{noPest ? 'no pest regions found' : `pest region${numDetections !== 1 ? 's' : ''} detected`}</p>
                             </div>
 
-                            {/* Crop type */}
+                            {/* Crop type — only show when a pest was found */}
+                            {!noPest && (
                             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '10px 12px' }}>
                               <p style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Crop Type</p>
                               <p style={{ fontSize: 20, fontWeight: 800, color: '#15803d', margin: '0 0 2px', textTransform: 'capitalize' }}>
@@ -1486,11 +1521,12 @@ const HeatMap = ({ user, onLogout }) => {
                               </p>
                               <p style={{ fontSize: 10, color: '#6b7280', margin: 0 }}>analyzed crop</p>
                             </div>
+                            )}
                           </div>
                         </div>
 
                         {/* ── Symptoms / Evidence ── */}
-                        {symptoms && (
+                        {!noPest && symptoms && (
                           <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, padding: '12px 14px' }}>
                             <p style={{ fontWeight: 700, fontSize: 13, color: '#c2410c', marginBottom: 6 }}>🌿 Observed Symptoms</p>
                             <p style={{ fontSize: 13, color: '#7c2d12', margin: 0, lineHeight: 1.55 }}>{symptoms}</p>
@@ -1533,6 +1569,7 @@ const HeatMap = ({ user, onLogout }) => {
                         </div>
 
                         {/* ── Reference Images ── */}
+                        {!noPest && (
                         <div>
                           <p style={{ fontSize: 13, fontWeight: 600, color: '#15803d', marginBottom: 8, textAlign: 'center' }}>
                             {referenceImages.length > 1 ? 'Reference Images' : 'Reference Pest'}
@@ -1575,9 +1612,10 @@ const HeatMap = ({ user, onLogout }) => {
                             </div>
                           )}
                         </div>
+                        )}
 
                         {/* ── Reference Damage Image ── */}
-                        {(() => {
+                        {!noPest && (() => {
                           const referenceDamageImage = pestData?.damageImage || null;
                           return (
                             <div>
@@ -1611,7 +1649,7 @@ const HeatMap = ({ user, onLogout }) => {
                         })()}
 
                         {/* ── Identification Tips ── */}
-                        {identificationTips.length > 0 && (
+                        {!noPest && identificationTips.length > 0 && (
                           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 14px' }}>
                             <p style={{ fontWeight: 700, fontSize: 13, color: '#1d4ed8', marginBottom: 8 }}>🔍 Identification Tips:</p>
                             <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -1620,7 +1658,17 @@ const HeatMap = ({ user, onLogout }) => {
                           </div>
                         )}
 
-                        {/* ── Comparison Tips ── */}
+                        {/* ── Comparison Tips (pest found) / Retry Tips (no pest) ── */}
+                        {noPest ? (
+                          <div style={{ background: '#fefce8', border: '1px solid #fbbf24', borderRadius: 10, padding: '12px 14px' }}>
+                            <p style={{ fontWeight: 700, fontSize: 13, color: '#92400e', marginBottom: 8 }}>📸 Tips for a Better Photo:</p>
+                            <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                              {['Move closer to the affected plant or pest', 'Ensure good lighting — avoid shadows', 'Keep the camera steady to avoid blur', 'Focus on the damaged leaf, stem, or insect', 'Capture the pest directly, not just the damage'].map((t, i) => (
+                                <li key={i} style={{ fontSize: 12, color: '#78350f' }}>{t}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (
                         <div style={{ background: '#fefce8', border: '1px solid #fbbf24', borderRadius: 10, padding: '12px 14px' }}>
                           <p style={{ fontWeight: 700, fontSize: 13, color: '#92400e', marginBottom: 8 }}>📋 Comparison Tips:</p>
                           <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -1629,18 +1677,33 @@ const HeatMap = ({ user, onLogout }) => {
                             ))}
                           </ul>
                         </div>
+                        )}
 
                         {/* ── Confirm / Reject ── */}
                         <div style={{ textAlign: 'center' }}>
-                          <p style={{ fontSize: 15, fontWeight: 600, color: '#333', marginBottom: 12 }}>Does your image match the reference pest and damage pattern?</p>
-                          <div style={{ display: 'flex', gap: 10 }}>
-                            <button onClick={() => confirmDetection(true)} style={{ flex: 1, padding: '14px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                              <ThumbsUp size={18} /> Yes, Matches
-                            </button>
-                            <button onClick={() => confirmDetection(false)} style={{ flex: 1, padding: '14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                              <ThumbsDown size={18} /> No, Different
-                            </button>
-                          </div>
+                          {noPest ? (
+                            <>
+                              <p style={{ fontSize: 15, fontWeight: 600, color: '#333', marginBottom: 12 }}>Would you like to try with a different image?</p>
+                              <button
+                                onClick={() => confirmDetection(false)}
+                                style={{ width: '100%', padding: '14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                              >
+                                🔄 Try Another Image
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <p style={{ fontSize: 15, fontWeight: 600, color: '#333', marginBottom: 12 }}>Does your image match the reference pest and damage pattern?</p>
+                              <div style={{ display: 'flex', gap: 10 }}>
+                                <button onClick={() => confirmDetection(true)} style={{ flex: 1, padding: '14px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                  <ThumbsUp size={18} /> Yes, Matches
+                                </button>
+                                <button onClick={() => confirmDetection(false)} style={{ flex: 1, padding: '14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                  <ThumbsDown size={18} /> No, Different
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
 
                       </div>
