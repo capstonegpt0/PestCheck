@@ -15,43 +15,47 @@ const Register = () => {
     rsbsa_number: '',
     notes: '',
   });
-  const [passwordErrors, setPasswordErrors] = useState([]);
+
+  // Per-field inline errors (client-side + server-side mapped)
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const validatePassword = (pwd) => {
-    const rules = [
+    return [
       { test: pwd.length >= 8,          label: 'At least 8 characters' },
       { test: /[A-Z]/.test(pwd),        label: 'At least 1 uppercase letter' },
       { test: /[a-z]/.test(pwd),        label: 'At least 1 lowercase letter' },
       { test: /[0-9]/.test(pwd),        label: 'At least 1 number' },
       { test: /[^A-Za-z0-9]/.test(pwd), label: 'At least 1 special character (!@#$%^&*)' },
     ];
-    return rules;
   };
 
   const [validIdFile, setValidIdFile] = useState(null);
   const [validIdPreview, setValidIdPreview] = useState(null);
   const [fileError, setFileError] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Clear a specific field error when the user starts correcting it
+  const clearFieldError = (name) => {
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => { const next = { ...prev }; delete next[name]; return next; });
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    if (name === 'password') {
-      setPasswordErrors(validatePassword(value));
-    }
+    clearFieldError(name);
   };
 
-  // Block digits from name fields
   const handleNameKeyDown = (e) => {
     if (/\d/.test(e.key)) e.preventDefault();
   };
 
-  // Strip any non-digit, non-+, non-space character on input for phone
   const handlePhoneChange = (e) => {
     const cleaned = e.target.value.replace(/[^\d+\s\-()]/g, '');
     setFormData({ ...formData, phone: cleaned });
+    clearFieldError('phone');
   };
 
   const handleFileChange = (e) => {
@@ -69,39 +73,124 @@ const Register = () => {
       );
       setValidIdFile(null);
       setValidIdPreview(null);
-      // Reset the input so the same file can be re-selected after compression
       e.target.value = '';
       return;
     }
     setFileError('');
     setValidIdFile(file);
     setValidIdPreview(URL.createObjectURL(file));
-    setError('');
+  };
+
+  // ── Client-side validation — returns field-keyed error object ──────────────
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.first_name.trim())
+      errors.first_name = 'First name is required.';
+
+    if (!formData.last_name.trim())
+      errors.last_name = 'Last name is required.';
+
+    if (!formData.username.trim()) {
+      errors.username = 'Username is required.';
+    } else if (formData.username.length < 3) {
+      errors.username = 'Username must be at least 3 characters.';
+    } else if (!/^[\w.@+-]+$/.test(formData.username)) {
+      errors.username = 'Username may only contain letters, numbers, and @/./+/-/_ characters.';
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = 'Email address is required.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(formData.email)) {
+      errors.email = 'Enter a valid email address (e.g. name@example.com).';
+    }
+
+    const pwdRules = validatePassword(formData.password);
+    if (!formData.password) {
+      errors.password = 'Password is required.';
+    } else if (pwdRules.some((r) => !r.test)) {
+      errors.password = 'Password does not meet all the requirements below.';
+    }
+
+    if (!formData.password_confirm) {
+      errors.password_confirm = 'Please confirm your password.';
+    } else if (formData.password !== formData.password_confirm) {
+      errors.password_confirm = 'Passwords do not match.';
+    }
+
+    if (!formData.rsbsa_number.trim())
+      errors.rsbsa_number = 'RSBSA number is required.';
+
+    if (!validIdFile)
+      errors.valid_id_image = 'Please upload a valid government-issued ID image.';
+
+    return errors;
+  };
+
+  // ── Map DRF error response to field-keyed errors ───────────────────────────
+  const mapServerErrors = (data) => {
+    if (!data || typeof data !== 'object') return null;
+
+    const FIELD_MAP = {
+      username:     (v) => v,
+      email:        (v) => v,
+      password:     (v) => v,
+      first_name:   (v) => v,
+      last_name:    (v) => v,
+      phone:        (v) => v,
+      rsbsa_number: () => 'An account with this RSBSA number is already registered.',
+      valid_id_image: (v) => v,
+      // DRF non-field errors land in 'non_field_errors' or 'detail'
+    };
+
+    const mapped = {};
+
+    for (const [key, transform] of Object.entries(FIELD_MAP)) {
+      if (data[key]) {
+        const raw = Array.isArray(data[key]) ? data[key][0] : data[key];
+        mapped[key] = transform(raw);
+      }
+    }
+
+    // Friendly rewrites for common Django/DRF messages
+    if (mapped.username) {
+      if (/already exists/i.test(mapped.username))
+        mapped.username = 'This username is already taken. Please choose a different one.';
+      if (/150 characters/i.test(mapped.username))
+        mapped.username = 'Username must be 150 characters or fewer.';
+    }
+    if (mapped.email) {
+      if (/already exists/i.test(mapped.email))
+        mapped.email = 'An account with this email already exists.';
+      if (/valid email/i.test(mapped.email))
+        mapped.email = 'Enter a valid email address (e.g. name@example.com).';
+    }
+    if (mapped.password) {
+      if (/too short/i.test(mapped.password))
+        mapped.password = 'Password must be at least 8 characters.';
+      if (/too common/i.test(mapped.password))
+        mapped.password = 'This password is too common. Please choose a stronger one.';
+      if (/entirely numeric/i.test(mapped.password))
+        mapped.password = 'Password cannot be entirely numeric.';
+    }
+
+    return Object.keys(mapped).length > 0 ? mapped : null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
-    if (formData.password !== formData.password_confirm) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    const pwdRules = validatePassword(formData.password);
-    if (pwdRules.some((r) => !r.test)) {
-      setError('Password does not meet the required criteria.');
-      return;
-    }
-    if (!validIdFile) {
-      setError('Please upload a valid government-issued ID image.');
-      return;
-    }
-    if (!formData.rsbsa_number.trim()) {
-      setError('RSBSA number is required.');
+    // Run client-side validation first
+    const clientErrors = validateForm();
+    if (Object.keys(clientErrors).length > 0) {
+      setFieldErrors(clientErrors);
+      // Scroll to the first error
+      const firstKey = Object.keys(clientErrors)[0];
+      document.querySelector(`[name="${firstKey}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
+    setFieldErrors({});
     setLoading(true);
 
     try {
@@ -115,17 +204,46 @@ const Register = () => {
 
       setSubmitted(true);
     } catch (err) {
-      const errors = err.response?.data;
-      if (errors) {
-        const msg = Object.values(errors).flat().join(' ');
-        setError(msg);
+      const responseData = err.response?.data;
+      const mapped = mapServerErrors(responseData);
+
+      if (mapped) {
+        setFieldErrors(mapped);
+        // Scroll to the first server error field
+        const firstKey = Object.keys(mapped)[0];
+        document.querySelector(`[name="${firstKey}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
-        setError('Registration failed. Please try again.');
+        // Fallback: non-field / unexpected error shown at the top
+        const fallback =
+          responseData?.detail ||
+          responseData?.non_field_errors?.[0] ||
+          (typeof responseData === 'string' ? responseData : null) ||
+          'Registration failed. Please check your information and try again.';
+        setFieldErrors({ _general: fallback });
       }
     } finally {
       setLoading(false);
     }
   };
+
+  // ── Reusable inline error message ──────────────────────────────────────────
+  const FieldError = ({ name }) =>
+    fieldErrors[name] ? (
+      <p className="flex items-center gap-1.5 mt-1.5 text-sm text-red-600">
+        <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+        {fieldErrors[name]}
+      </p>
+    ) : null;
+
+  // Helper: add red border when a field has an error
+  const inputClass = (name) =>
+    `w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-colors ${
+      fieldErrors[name]
+        ? 'border-red-400 bg-red-50 focus:ring-red-300'
+        : 'border-gray-300'
+    }`;
 
   // ── Success screen ──────────────────────────────────────────────────────────
   if (submitted) {
@@ -173,13 +291,18 @@ const Register = () => {
           Farmer registration requires RSBSA verification. Your account will be active once approved by MAO.
         </p>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5 text-sm">
-            {error}
+        {/* General / non-field error banner */}
+        {fieldErrors._general && (
+          <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5 text-sm">
+            <svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span>{fieldErrors._general}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+
           {/* ── Name ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -192,9 +315,10 @@ const Register = () => {
                 value={formData.first_name}
                 onChange={handleChange}
                 onKeyDown={handleNameKeyDown}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                className={inputClass('first_name')}
                 required
               />
+              <FieldError name="first_name" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -206,13 +330,14 @@ const Register = () => {
                 value={formData.last_name}
                 onChange={handleChange}
                 onKeyDown={handleNameKeyDown}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                className={inputClass('last_name')}
                 required
               />
+              <FieldError name="last_name" />
             </div>
           </div>
 
-          {/* ── Username / Email / Phone ── */}
+          {/* ── Username ── */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Username <span className="text-red-500">*</span>
@@ -224,11 +349,13 @@ const Register = () => {
               onChange={handleChange}
               autoCapitalize="none"
               autoCorrect="off"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+              className={inputClass('username')}
               required
             />
+            <FieldError name="username" />
           </div>
 
+          {/* ── Email ── */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email <span className="text-red-500">*</span>
@@ -238,11 +365,13 @@ const Register = () => {
               type="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+              className={inputClass('email')}
               required
             />
+            <FieldError name="email" />
           </div>
 
+          {/* ── Phone ── */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
             <input
@@ -252,8 +381,9 @@ const Register = () => {
               value={formData.phone}
               onChange={handlePhoneChange}
               placeholder="+63 9XX XXX XXXX"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+              className={inputClass('phone')}
             />
+            <FieldError name="phone" />
           </div>
 
           {/* ── Password ── */}
@@ -267,14 +397,18 @@ const Register = () => {
                 type="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                className={inputClass('password')}
                 required
                 minLength={8}
               />
+              <FieldError name="password" />
               {formData.password.length > 0 && (
                 <ul className="mt-2 space-y-1">
                   {validatePassword(formData.password).map((rule) => (
-                    <li key={rule.label} className={`flex items-center gap-1.5 text-xs ${rule.test ? 'text-green-600' : 'text-red-500'}`}>
+                    <li
+                      key={rule.label}
+                      className={`flex items-center gap-1.5 text-xs ${rule.test ? 'text-green-600' : 'text-red-500'}`}
+                    >
                       {rule.test ? (
                         <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -299,10 +433,31 @@ const Register = () => {
                 type="password"
                 value={formData.password_confirm}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                className={inputClass('password_confirm')}
                 required
                 minLength={8}
               />
+              <FieldError name="password_confirm" />
+              {/* Live match indicator once both fields have content */}
+              {formData.password_confirm.length > 0 && formData.password.length > 0 && !fieldErrors.password_confirm && (
+                <p className={`flex items-center gap-1.5 mt-1.5 text-xs ${formData.password === formData.password_confirm ? 'text-green-600' : 'text-red-500'}`}>
+                  {formData.password === formData.password_confirm ? (
+                    <>
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Passwords match
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      Passwords do not match
+                    </>
+                  )}
+                </p>
+              )}
             </div>
           </div>
 
@@ -327,12 +482,15 @@ const Register = () => {
                 value={formData.rsbsa_number}
                 onChange={handleChange}
                 placeholder="e.g. 03-0101-000-00000-0"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                className={inputClass('rsbsa_number')}
                 required
               />
-              <p className="text-xs text-gray-400 mt-1">
-                Your Registry System for Basic Sectors in Agriculture number from the DA
-              </p>
+              <FieldError name="rsbsa_number" />
+              {!fieldErrors.rsbsa_number && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Your Registry System for Basic Sectors in Agriculture number from the DA
+                </p>
+              )}
             </div>
 
             {/* ID Upload */}
@@ -342,7 +500,7 @@ const Register = () => {
               </label>
               <div
                 className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                  fileError
+                  fileError || fieldErrors.valid_id_image
                     ? 'border-red-400 bg-red-50'
                     : validIdPreview
                     ? 'border-primary bg-green-50'
@@ -362,25 +520,28 @@ const Register = () => {
                   </div>
                 ) : (
                   <div>
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">Click to upload your valid ID</p>
+                    <Upload className={`w-8 h-8 mx-auto mb-2 ${fieldErrors.valid_id_image ? 'text-red-400' : 'text-gray-400'}`} />
+                    <p className={`text-sm ${fieldErrors.valid_id_image ? 'text-red-600' : 'text-gray-600'}`}>
+                      Click to upload your valid ID
+                    </p>
                     <p className="text-xs text-gray-400 mt-1">JPG, PNG · Max 5 MB</p>
                   </div>
                 )}
               </div>
               <input
                 id="reg-valid-id"
+                name="valid_id_image"
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
                 className="hidden"
               />
-              {fileError && (
+              {(fileError || fieldErrors.valid_id_image) && (
                 <div className="flex items-start gap-2 mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
                   <svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  <span>{fileError}</span>
+                  <span>{fileError || fieldErrors.valid_id_image}</span>
                 </div>
               )}
               <p className="text-xs text-gray-400 mt-1">
