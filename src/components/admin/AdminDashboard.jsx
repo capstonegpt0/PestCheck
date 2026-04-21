@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell
+  ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { Users, MapPin, AlertTriangle, Activity, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Users, MapPin, AlertTriangle, Activity, CheckCircle, XCircle, Clock, Bug } from 'lucide-react';
 import AdminNavigation from './AdminNavigation';
 import api from '../../utils/api';
 
@@ -15,18 +15,21 @@ const AdminDashboard = ({ user, onLogout }) => {
   });
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingDetections, setPendingDetections] = useState([]);
+  const [activePestData, setActivePestData] = useState([]);
+  const [monthlyPestData, setMonthlyPestData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { fetchDashboardData(); }, []);
 
   const fetchDashboardData = async () => {
     try {
-      const [userStats, farmStats, detectionStats, activities, pending] = await Promise.all([
+      const [userStats, farmStats, detectionStats, activities, pending, allDetections] = await Promise.all([
         api.get('/admin/users/statistics/'),
         api.get('/admin/farms/statistics/'),
         api.get('/admin/detections/statistics/'),
         api.get('/admin/activity-logs/?page_size=10'),
-        api.get('/admin/detections/pending_verifications/')
+        api.get('/admin/detections/pending_verifications/'),
+        api.get('/admin/detections/?page_size=500&confirmed=true'),
       ]);
 
       setStats({
@@ -42,6 +45,41 @@ const AdminDashboard = ({ user, onLogout }) => {
 
       setRecentActivities(activityData.slice(0, 10));
       setPendingDetections(pendingData.slice(0, 5));
+
+      // Process detections for pest charts
+      const detData = Array.isArray(allDetections.data)
+        ? allDetections.data : (allDetections.data.results || []);
+
+      // Active pest reports — count by pest name (active=true)
+      const activeCounts = {};
+      detData.filter(d => d.active !== false).forEach(d => {
+        const pest = d.pest_name || d.pest || 'Unknown';
+        activeCounts[pest] = (activeCounts[pest] || 0) + 1;
+      });
+      const activePests = Object.entries(activeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+        .map(([name, value]) => ({ name, value }));
+      setActivePestData(activePests);
+
+      // Monthly popular pests — current month
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const monthlyCounts = {};
+      detData.forEach(d => {
+        const dt = new Date(d.detected_at || d.reported_at);
+        if (dt.getMonth() === currentMonth && dt.getFullYear() === currentYear) {
+          const pest = d.pest_name || d.pest || 'Unknown';
+          monthlyCounts[pest] = (monthlyCounts[pest] || 0) + 1;
+        }
+      });
+      const monthlyPests = Object.entries(monthlyCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+        .map(([name, value]) => ({ name, value }));
+      setMonthlyPestData(monthlyPests);
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -50,6 +88,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   };
 
   const COLORS = ['#10b981', '#8b5cf6', '#3b82f6', '#f59e0b', '#ef4444', '#7f1d1d'];
+  const PEST_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'];
 
   const userRoleData = [
     { name: 'Farmers',   value: stats.users.farmers   || 0 },
@@ -191,6 +230,103 @@ const AdminDashboard = ({ user, onLogout }) => {
               </PieChart>
             </ResponsiveContainer>
           </div>
+        </div>
+
+        {/* Pest charts row */}
+        <div className="grid grid-cols-2 gap-5 mb-6">
+
+          {/* Active Pest Reports pie */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Bug className="w-4 h-4 text-red-500" />
+              <h2 className="text-base font-semibold text-gray-800">Active Pest Reports</h2>
+              <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                {activePestData.reduce((s, d) => s + d.value, 0)} active
+              </span>
+            </div>
+            {activePestData.length === 0 ? (
+              <div className="flex items-center justify-center h-52 text-gray-400 text-sm">No active reports</div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <ResponsiveContainer width="55%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={activePestData}
+                      cx="50%" cy="50%"
+                      innerRadius={50}
+                      outerRadius={85}
+                      dataKey="value"
+                      paddingAngle={3}
+                    >
+                      {activePestData.map((_, i) => (
+                        <Cell key={i} fill={PEST_COLORS[i % PEST_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v, n) => [v, n]} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex-1 space-y-1.5">
+                  {activePestData.map((d, i) => (
+                    <div key={d.name} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PEST_COLORS[i % PEST_COLORS.length] }} />
+                        <span className="text-xs text-gray-600 truncate">{d.name}</span>
+                      </div>
+                      <span className="text-xs font-bold text-gray-800 flex-shrink-0">{d.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Monthly Popular Pests pie */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Bug className="w-4 h-4 text-amber-500" />
+              <h2 className="text-base font-semibold text-gray-800">
+                Popular Pests This Month
+              </h2>
+              <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                {new Date().toLocaleString('default', { month: 'long' })}
+              </span>
+            </div>
+            {monthlyPestData.length === 0 ? (
+              <div className="flex items-center justify-center h-52 text-gray-400 text-sm">No detections this month</div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <ResponsiveContainer width="55%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={monthlyPestData}
+                      cx="50%" cy="50%"
+                      innerRadius={50}
+                      outerRadius={85}
+                      dataKey="value"
+                      paddingAngle={3}
+                    >
+                      {monthlyPestData.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v, n) => [v, n]} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex-1 space-y-1.5">
+                  {monthlyPestData.map((d, i) => (
+                    <div key={d.name} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                        <span className="text-xs text-gray-600 truncate">{d.name}</span>
+                      </div>
+                      <span className="text-xs font-bold text-gray-800 flex-shrink-0">{d.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* Verification status summary */}
