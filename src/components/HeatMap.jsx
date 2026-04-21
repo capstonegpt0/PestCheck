@@ -299,6 +299,7 @@ const HeatMap = ({ user, onLogout }) => {
   const [detectionError, setDetectionError] = useState(null);
   const [damageLevel, setDamageLevel] = useState(2);
   const [selectedFarm, setSelectedFarm] = useState(null);
+  const [selectedBarangay, setSelectedBarangay] = useState('');
   const [locationChoice, setLocationChoice] = useState(user?.is_verified ? 'farm' : 'current');
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
@@ -471,7 +472,7 @@ const HeatMap = ({ user, onLogout }) => {
   const startDetection = () => {
     setShowDetectionModal(true); setDetectionStep('upload'); setSelectedImage(null);
     setImagePreview(null); setDetectionResult(null); setDetectionError(null); setDamageLevel(2);
-    setSelectedFarm(null);
+    setSelectedFarm(null); setSelectedBarangay('');
     if (!user.is_verified) setLocationChoice('current');
   };
 
@@ -532,6 +533,7 @@ const HeatMap = ({ user, onLogout }) => {
   const saveDetection = async () => {
     if (!detectionResult) { alert('Detection result is missing.'); return; }
     if (locationChoice === 'farm' && !selectedFarm) { alert('Please select a farm.'); return; }
+    if (locationChoice === 'current' && !selectedBarangay) { alert('Please select your barangay.'); return; }
     try {
       setDetectionLoading(true);
       const severityMap = { 0: 'low', 1: 'low', 2: 'medium', 3: 'medium', 4: 'high', 5: 'critical' };
@@ -542,6 +544,7 @@ const HeatMap = ({ user, onLogout }) => {
         if (farm?.lat && farm?.lng) { updateData.latitude = parseFloat(farm.lat); updateData.longitude = parseFloat(farm.lng); }
       } else if (locationChoice === 'current' && location) {
         updateData.latitude = location.latitude; updateData.longitude = location.longitude;
+        updateData.address = selectedBarangay + ', Magalang, Pampanga';
       }
       await api.patch(`/detections/${detectionResult.id}/`, updateData);
       setDetectionStep('success');
@@ -555,7 +558,7 @@ const HeatMap = ({ user, onLogout }) => {
     }
     setShowDetectionModal(false); setDetectionStep('upload'); setSelectedImage(null);
     setImagePreview(null); setDetectionResult(null); setDetectionError(null); setDamageLevel(2);
-    setSelectedFarm(null); setLocationChoice(user.is_verified ? 'farm' : 'current');
+    setSelectedFarm(null); setSelectedBarangay(''); setLocationChoice(user.is_verified ? 'farm' : 'current');
   };
 
   const getDamageLevelText = (level) => ({
@@ -1796,7 +1799,7 @@ const HeatMap = ({ user, onLogout }) => {
                             <label style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a', display: 'block', marginBottom: 8 }}>Select Farm <span style={{ color: '#dc2626' }}>*</span></label>
                             <select value={selectedFarm || ''} onChange={e => setSelectedFarm(e.target.value ? parseInt(e.target.value) : null)} style={{ width: '100%', padding: '11px 12px', border: '1px solid #e0e0e0', borderRadius: 8, fontSize: 14, outline: 'none' }}>
                               <option value="">Choose a farm...</option>
-                              {farms.filter(f => f.user_name === user.username).map(f => <option key={f.id} value={f.id}>{f.name} - {f.crop_type} ({f.size} ha)</option>)}
+                              {farms.filter(f => f.user_name === user.username).map(f => <option key={f.id} value={f.id}>{f.name} - {f.crop_type} ({f.size} ha){f.barangay ? ` · ${f.barangay}` : ''}</option>)}
                             </select>
                             {!selectedFarm && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>Please select a farm to save the detection</p>}
                             {farms.filter(f => f.user_name === user.username).length === 0 && (
@@ -1804,13 +1807,33 @@ const HeatMap = ({ user, onLogout }) => {
                                 You don't have any approved farms yet.
                               </div>
                             )}
-                            {selectedFarm && <div style={{ marginTop: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#166534' }}>✅ Pinned at <strong>{farms.find(f => f.id === selectedFarm)?.name}</strong></div>}
+                            {selectedFarm && (() => {
+                              const farm = farms.find(f => f.id === selectedFarm);
+                              return (
+                                <div style={{ marginTop: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#166534' }}>
+                                  ✅ Pinned at <strong>{farm?.name}</strong>
+                                  {farm?.barangay && <span> · <strong>{farm.barangay}</strong>, Magalang</span>}
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                         {locationChoice === 'current' && location && (
-                          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#1d4ed8' }}>
-                            <p style={{ fontWeight: 600, marginBottom: 4 }}>📍 Current GPS Coordinates:</p>
-                            <p style={{ margin: 0, fontFamily: 'monospace', fontSize: 12 }}>{location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}</p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#1d4ed8' }}>
+                              <p style={{ fontWeight: 600, marginBottom: 4 }}>📍 Current GPS Coordinates:</p>
+                              <p style={{ margin: 0, fontFamily: 'monospace', fontSize: 12 }}>{location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}</p>
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', display: 'block', marginBottom: 6 }}>Your Barangay <span style={{ color: '#dc2626' }}>*</span></label>
+                              <select value={selectedBarangay} onChange={e => setSelectedBarangay(e.target.value)} style={{ width: '100%', padding: '11px 12px', border: `1px solid ${!selectedBarangay ? '#fca5a5' : '#e0e0e0'}`, borderRadius: 8, fontSize: 14, outline: 'none', background: '#fff' }}>
+                                <option value="">Select barangay...</option>
+                                {['Alagao','Baliti','Brgy. 1 Poblacion','Brgy. 2 Poblacion','Brgy. 3 Poblacion','Brgy. 4 Poblacion','Brgy. 5 Poblacion','Brgy. 6 Poblacion','Brgy. 7 Poblacion','Brgy. 8 Poblacion','Camias','Dolores','Escaler','La Paz','Navaling','Niugan','Paguiruan','Pandapog','San Agustin','San Francisco','San Ildefonso','San Isidro','San Jose','San Miguel','San Nicolas','San Roque','San Vicente','Santa Cruz','Santa Lucia','Santa Maria','Santo Niño','Santo Rosario','Taguig','Vizal San Pablo','Vizal Santo Cristo','Vizal Santo Niño'].map(b => (
+                                  <option key={b} value={b}>{b}</option>
+                                ))}
+                              </select>
+                              {!selectedBarangay && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>Please select your barangay</p>}
+                            </div>
                           </div>
                         )}
                         {/* Damage level */}
@@ -1825,7 +1848,7 @@ const HeatMap = ({ user, onLogout }) => {
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 10 }}>
-                          <button onClick={saveDetection} disabled={detectionLoading || (locationChoice === 'farm' && !selectedFarm)} style={{ flex: 1, padding: '14px', background: (detectionLoading || (locationChoice === 'farm' && !selectedFarm)) ? '#9ca3af' : '#1a73e8', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: (detectionLoading || (locationChoice === 'farm' && !selectedFarm)) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                          <button onClick={saveDetection} disabled={detectionLoading || (locationChoice === 'farm' && !selectedFarm) || (locationChoice === 'current' && !selectedBarangay)} style={{ flex: 1, padding: '14px', background: (detectionLoading || (locationChoice === 'farm' && !selectedFarm) || (locationChoice === 'current' && !selectedBarangay)) ? '#9ca3af' : '#1a73e8', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: (detectionLoading || (locationChoice === 'farm' && !selectedFarm) || (locationChoice === 'current' && !selectedBarangay)) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                             {detectionLoading ? <><Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> : <><Save size={18} /> Save Detection</>}
                           </button>
                           <button onClick={() => setDetectionStep('confirm')} style={{ padding: '14px 20px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Back</button>

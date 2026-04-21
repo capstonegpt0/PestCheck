@@ -52,7 +52,7 @@ async function loadImageBytes(dataUrl) {
 //  Row 13+: Data rows, sub-total rows, blank separators
 //  ...    : Signatories
 
-async function exportToExcel(detections, farms, month, year) {
+async function exportToExcel(detections, farms, month, year, rowEdits = {}) {
   const endOfMonth = new Date(year, month + 1, 0).getDate();
   const sheetLabel = `${MONTHS[month].slice(0, 3)} ${endOfMonth}, ${year}`;
   const farmById   = Object.fromEntries(farms.map(f => [f.id, f]));
@@ -115,15 +115,23 @@ async function exportToExcel(detections, farms, month, year) {
   // ── Flat data rows (no per-farm grouping) ────────────────────────────────
   const dataStartEx = aoa.length + 1; // Excel 1-indexed row of first data row
 
-  detections.forEach(d => {
+  detections.forEach((d, ri) => {
     const farm = farmById[d.farm_id] || null;
     const lat  = d.latitude  || (farm ? farm.lat  : null);
     const lng  = d.longitude || (farm ? farm.lng  : null);
+    // Barangay: manual edit → farm.barangay → address extract
+    const autoBarangay = (farm && farm.barangay) ? farm.barangay
+      : (d.address && d.address.includes(', Magalang'))
+        ? d.address.split(', Magalang')[0].trim()
+        : null;
+    const barangay = (rowEdits[ri] && rowEdits[ri].barangay !== undefined)
+      ? rowEdits[ri].barangay
+      : autoBarangay;
     // Store as decimal — cell formatted as 0%
     const pct  = severityToPct(d.severity);
     aoa.push([
       'MAGALANG',                                        // A: Municipality
-      (farm ? farm.barangay || null : null),             // B: Barangay — from farm
+      barangay || null,                                  // B: Barangay
       null,                                              // C: No. of Farmers — blank
       lat ? Number(lat).toFixed(6) : null,               // D: Latitude
       lng ? Number(lng).toFixed(6) : null,               // E: Longitude
@@ -592,7 +600,7 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
   const handleExport = async () => {
     setExporting(true);
     try {
-      await exportToExcel(detections, farms, selectedMonth, selectedYear);
+      await exportToExcel(detections, farms, selectedMonth, selectedYear, rowEdits);
     } finally {
       setExporting(false);
     }
@@ -766,6 +774,11 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
                             const farm = farmById[d.farm_id] || null;
                             const lat  = d.latitude  || (farm ? farm.lat  : null);
                             const lng  = d.longitude || (farm ? farm.lng  : null);
+                            // Resolve barangay: farm.barangay → address extract → edits override
+                            const autoBarangay = (farm && farm.barangay) ? farm.barangay
+                              : (d.address && d.address.includes(', Magalang'))
+                                ? d.address.split(', Magalang')[0].trim()
+                                : '';
                             const pct  = severityToPct(d.severity);
                             const pctColor = d.severity === 'critical' ? '#b91c1c'
                               : d.severity === 'high'   ? '#c2410c'
@@ -798,13 +811,13 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
                               >
                                 <td style={{ ...tdBase, fontWeight:'600' }}>Magalang</td>
 
-                                {/* Barangay — editable */}
+                                {/* Barangay — pre-filled from farm/address, editable */}
                                 <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
                                   <input
                                     className="print-field"
                                     style={{ ...inputStyle }}
-                                    placeholder={isEditing ? 'Barangay…' : '—'}
-                                    value={edits.barangay ?? ''}
+                                    placeholder={isEditing ? 'Barangay…' : (autoBarangay || '—')}
+                                    value={edits.barangay ?? autoBarangay}
                                     onChange={e => updateRowEdit(ri, 'barangay', e.target.value)}
                                     onClick={() => setEditingRow(ri)}
                                   />
