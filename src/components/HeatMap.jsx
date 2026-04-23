@@ -542,6 +542,7 @@ const HeatMap = ({ user, onLogout }) => {
       if (locationChoice === 'farm') {
         const farm = farms.find(f => Number(f.id) === Number(selectedFarm));
         if (farm?.lat && farm?.lng) { updateData.latitude = parseFloat(farm.lat); updateData.longitude = parseFloat(farm.lng); }
+        if (farm?.barangay && farm.barangay.trim()) { updateData.address = farm.barangay.trim() + ', Magalang, Pampanga'; }
       } else if (locationChoice === 'current' && location) {
         updateData.latitude = location.latitude; updateData.longitude = location.longitude;
         updateData.address = selectedBarangay + ', Magalang, Pampanga';
@@ -1037,7 +1038,25 @@ const HeatMap = ({ user, onLogout }) => {
                             <span style={{ fontWeight: 600, fontSize: 13 }}>{det.pest}</span>
                           </div>
                           <p style={{ fontSize: 11, color: '#888', margin: '0 0 1px' }}>By: {det.user_name || 'Unknown'}{det.user_is_verified === false && <span style={{ background: '#fef3c7', color: '#92400e', borderRadius: 4, padding: '1px 5px', fontSize: 10, fontWeight: 600, marginLeft: 4 }}>Unverified</span>}</p>
-                          <p style={{ fontSize: 11, color: '#888', margin: 0 }}>{new Date(det.detected_at || det.reported_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                          <p style={{ fontSize: 11, color: '#888', margin: '0 0 1px' }}>
+                            <span style={{ fontWeight: 600 }}>Detected:</span> {new Date(det.detected_at || det.reported_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                          {(() => {
+                            const extractBarangay = (addr) => {
+                              if (!addr || !addr.trim()) return null;
+                              if (addr.includes(', Magalang')) return addr.split(', Magalang')[0].trim();
+                              return null;
+                            };
+                            const farm = farms.find(f => f.id === det.farm_id || f.id === det.farm);
+                            const barangay = extractBarangay(det.address)
+                              || (farm && farm.barangay && farm.barangay.trim() ? farm.barangay.trim() : null)
+                              || extractBarangay(farm && farm.address);
+                            return barangay ? (
+                              <p style={{ fontSize: 11, color: '#888', margin: 0 }}>
+                                <span style={{ fontWeight: 600 }}>Barangay:</span> {barangay}
+                              </p>
+                            ) : null;
+                          })()}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                           <SevBadge sev={det.severity} />

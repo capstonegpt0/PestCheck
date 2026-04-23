@@ -17,9 +17,33 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [pendingDetections, setPendingDetections] = useState([]);
   const [activePestData, setActivePestData] = useState([]);
   const [monthlyPestData, setMonthlyPestData] = useState([]);
+  const [allDetectionsData, setAllDetectionsData] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Month/year filter for Popular Pests chart
+  const now = new Date();
+  const [filterMonth, setFilterMonth] = useState(now.getMonth());
+  const [filterYear, setFilterYear] = useState(now.getFullYear());
+
   useEffect(() => { fetchDashboardData(); }, []);
+
+  // Recompute monthly pest data whenever filter changes
+  useEffect(() => {
+    if (allDetectionsData.length === 0) return;
+    const monthlyCounts = {};
+    allDetectionsData.forEach(d => {
+      const dt = new Date(d.detected_at || d.reported_at);
+      if (dt.getMonth() === filterMonth && dt.getFullYear() === filterYear) {
+        const pest = d.pest_name || d.pest || 'Unknown';
+        monthlyCounts[pest] = (monthlyCounts[pest] || 0) + 1;
+      }
+    });
+    const monthlyPests = Object.entries(monthlyCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, value]) => ({ name, value }));
+    setMonthlyPestData(monthlyPests);
+  }, [filterMonth, filterYear, allDetectionsData]);
 
   const fetchDashboardData = async () => {
     try {
@@ -50,6 +74,8 @@ const AdminDashboard = ({ user, onLogout }) => {
       const detData = Array.isArray(allDetections.data)
         ? allDetections.data : (allDetections.data.results || []);
 
+      setAllDetectionsData(detData);
+
       // Active pest reports — count by pest name (active=true)
       const activeCounts = {};
       detData.filter(d => d.active !== false).forEach(d => {
@@ -62,8 +88,7 @@ const AdminDashboard = ({ user, onLogout }) => {
         .map(([name, value]) => ({ name, value }));
       setActivePestData(activePests);
 
-      // Monthly popular pests — current month
-      const now = new Date();
+      // Monthly popular pests — current month (initial render)
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
       const monthlyCounts = {};
@@ -89,6 +114,13 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const COLORS = ['#10b981', '#8b5cf6', '#3b82f6', '#f59e0b', '#ef4444', '#7f1d1d'];
   const PEST_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'];
+
+  const MONTH_NAMES = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
+  ];
+  const currentYear = now.getFullYear();
+  const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   const userRoleData = [
     { name: 'Farmers',   value: stats.users.farmers   || 0 },
@@ -282,17 +314,36 @@ const AdminDashboard = ({ user, onLogout }) => {
 
           {/* Monthly Popular Pests pie */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Bug className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <Bug className="w-4 h-4 text-amber-500 flex-shrink-0" />
               <h2 className="text-base font-semibold text-gray-800">
-                Popular Pests This Month
+                Popular Pests
               </h2>
-              <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                {new Date().toLocaleString('default', { month: 'long' })}
-              </span>
+              {/* Month selector */}
+              <select
+                value={filterMonth}
+                onChange={e => setFilterMonth(Number(e.target.value))}
+                className="ml-auto text-xs border border-gray-200 rounded-md px-2 py-1 bg-gray-50 text-gray-700 focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+              >
+                {MONTH_NAMES.map((m, i) => (
+                  <option key={m} value={i}>{m}</option>
+                ))}
+              </select>
+              {/* Year selector */}
+              <select
+                value={filterYear}
+                onChange={e => setFilterYear(Number(e.target.value))}
+                className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-gray-50 text-gray-700 focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+              >
+                {YEAR_OPTIONS.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
             </div>
             {monthlyPestData.length === 0 ? (
-              <div className="flex items-center justify-center h-52 text-gray-400 text-sm">No detections this month</div>
+              <div className="flex items-center justify-center h-52 text-gray-400 text-sm">
+                No detections for {MONTH_NAMES[filterMonth]} {filterYear}
+              </div>
             ) : (
               <div className="flex items-center gap-4">
                 <ResponsiveContainer width="55%" height={200}>

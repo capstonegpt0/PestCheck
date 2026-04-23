@@ -78,36 +78,35 @@ async function exportToExcel(detections, farms, month, year, rowEdits = {}) {
   const aoa = [];
 
   // Row 1 — blank (logos float here)
-  aoa.push(Array(17).fill(null));
+  aoa.push(Array(10).fill(null));
 
   // Rows 2–5 — letterhead (Bookman Old Style 12, centered)
-  aoa.push(['Republic of the Philippines',              ...Array(16).fill(null)]);
-  aoa.push(['Province of Pampanga',                    ...Array(16).fill(null)]);
-  aoa.push(['OFFICE OF THE PROVINCIAL AGRICULTURIST',  ...Array(16).fill(null)]);
-  aoa.push(['Capitol Compound, Sto. Niño, City of San Fernando', ...Array(16).fill(null)]);
+  aoa.push(['Republic of the Philippines',              ...Array(9).fill(null)]);
+  aoa.push(['Province of Pampanga',                    ...Array(9).fill(null)]);
+  aoa.push(['OFFICE OF THE PROVINCIAL AGRICULTURIST',  ...Array(9).fill(null)]);
+  aoa.push(['Capitol Compound, Sto. Niño, City of San Fernando', ...Array(9).fill(null)]);
 
   // Row 6 — blank
-  aoa.push(Array(17).fill(null));
+  aoa.push(Array(10).fill(null));
 
   // Row 7 — title
-  aoa.push(['PEST MONITORING ON RICE AND CORN', ...Array(16).fill(null)]);
+  aoa.push(['PEST MONITORING ON RICE AND CORN', ...Array(9).fill(null)]);
 
   // Row 8 — date
-  aoa.push([`as of ${MONTHS[month]} ${endOfMonth}, ${year}`, ...Array(16).fill(null)]);
+  aoa.push([`as of ${MONTHS[month]} ${endOfMonth}, ${year}`, ...Array(9).fill(null)]);
 
   // Rows 9–10 — blank
-  aoa.push(Array(17).fill(null));
-  aoa.push(Array(17).fill(null));
+  aoa.push(Array(10).fill(null));
+  aoa.push(Array(10).fill(null));
 
   // Row 11 — municipality label
-  aoa.push(['Municipality: MAGALANG, PAMPANGA', ...Array(16).fill(null)]);
+  aoa.push(['Municipality: MAGALANG, PAMPANGA', ...Array(9).fill(null)]);
 
   // Row 12 — column headers
   aoa.push([
-    'Municipality', 'Barangay', 'No.of Farmers Affected',
-    'Latitude', 'Longitude', 'Crop', 'Variety', 'Growth Stage',
-    'Pests', 'Natural Enemies Observed', 'Area Planted', 'Area Affected',
-    '%infestation/infection', 'Area Treated', 'Actions Taken',
+    'Municipality', 'Barangay', 'Farmer Name',
+    'Latitude', 'Longitude', 'Crop',
+    'Pests', '%infestation/infection',
     'Data Source', 'Remarks',
   ]);
 
@@ -116,67 +115,61 @@ async function exportToExcel(detections, farms, month, year, rowEdits = {}) {
   const dataStartEx = aoa.length + 1; // Excel 1-indexed row of first data row
 
   detections.forEach((d, ri) => {
-    const farm = farmById[d.farm_id] || null;
+    const farm = farmById[d.farm_id] || farmById[d.farm] || null;
     const lat  = d.latitude  || (farm ? farm.lat  : null);
     const lng  = d.longitude || (farm ? farm.lng  : null);
-    // Barangay: manual edit → farm.barangay → address extract
-    const autoBarangay = (farm && farm.barangay) ? farm.barangay
-      : (d.address && d.address.includes(', Magalang'))
-        ? d.address.split(', Magalang')[0].trim()
-        : null;
-    const barangay = (rowEdits[ri] && rowEdits[ri].barangay !== undefined)
-      ? rowEdits[ri].barangay
-      : autoBarangay;
+    // Barangay resolution: farm.barangay → farm address → detection address
+    // saveDetection stores: selectedBarangay + ', Magalang, Pampanga'
+    // so splitting on ', Magalang' extracts the barangay name correctly
+    const extractBarangay = (addr) => {
+      if (!addr || !addr.trim()) return null;
+      if (addr.includes(', Magalang')) return addr.split(', Magalang')[0].trim();
+      return null; // ignore non-barangay placeholders like 'Detected Location'
+    };
+    const barangay = extractBarangay(d.address)
+      || (farm && farm.barangay && farm.barangay.trim() ? farm.barangay.trim() : null)
+      || extractBarangay(farm && farm.address)
+      || null;
     // Store as decimal — cell formatted as 0%
     const pct  = severityToPct(d.severity);
     aoa.push([
-      'MAGALANG',                                        // A: Municipality
-      barangay || null,                                  // B: Barangay
-      null,                                              // C: No. of Farmers — blank
-      lat ? Number(lat).toFixed(6) : null,               // D: Latitude
-      lng ? Number(lng).toFixed(6) : null,               // E: Longitude
-      capitalize(d.crop_type) || null,                   // F: Crop
-      null,                                              // G: Variety — blank
-      null,                                              // H: Growth Stage — blank
-      d.pest_name || d.pest || null,                     // I: Pests
-      null,                                              // J: Natural Enemies — blank
-      null,                                              // K: Area Planted — blank
-      null,                                              // L: Area Affected — blank
-      pct,                                               // M: % Infestation (decimal, formatted 0%)
-      null,                                              // N: Area Treated — blank
-      null,                                              // O: Actions Taken — blank
-      'PestCheck System',                                // P: Data Source
-      d.confirmed ? 'Confirmed detection' : 'Unconfirmed', // Q: Remarks
+      'MAGALANG',                          // A: Municipality
+      barangay || null,                    // B: Barangay
+      d.user_name || null,                 // C: Farmer Name
+      lat ? Number(lat).toFixed(6) : null, // D: Latitude
+      lng ? Number(lng).toFixed(6) : null, // E: Longitude
+      capitalize(d.crop_type) || null,     // F: Crop
+      d.pest_name || d.pest || null,       // G: Pests
+      pct,                                 // H: % Infestation (decimal, formatted 0%)
+      'PestCheck System',                  // I: Data Source
+      d.confirmed ? 'Confirmed detection' : 'Unconfirmed', // J: Remarks
     ]);
   });
 
-  // Single grand total row (C, K, L sum entire data range)
+  // Grand total row
   const dataEndEx = aoa.length;
-  const totalRow  = Array(17).fill(null);
-  totalRow[0]  = 'TOTAL';
-  totalRow[2]  = `=SUM(C${dataStartEx}:C${dataEndEx})`;  // C
-  totalRow[10] = `=SUM(K${dataStartEx}:K${dataEndEx})`;  // K
-  totalRow[11] = `=SUM(L${dataStartEx}:L${dataEndEx})`;  // L
+  const totalRow  = Array(10).fill(null);
+  totalRow[0] = 'TOTAL';
   aoa.push(totalRow);
 
   // Signatories (matching template rows 105–109)
-  aoa.push(Array(17).fill(null));
-  aoa.push(['* NOTHING FOLLOWS *', ...Array(16).fill(null)]);
-  aoa.push(Array(17).fill(null));
-  const prepRow = Array(17).fill(null);
+  aoa.push(Array(10).fill(null));
+  aoa.push(['* NOTHING FOLLOWS *', ...Array(9).fill(null)]);
+  aoa.push(Array(10).fill(null));
+  const prepRow = Array(10).fill(null);
   prepRow[0] = 'Prepared by:';
   prepRow[9] = 'Noted by:';
   aoa.push(prepRow);
-  aoa.push(Array(17).fill(null));
-  aoa.push(Array(17).fill(null));
-  aoa.push(Array(17).fill(null));
-  const nameRow = Array(17).fill(null);
-  nameRow[1] = '________________________';
-  nameRow[9] = '________________________';
+  aoa.push(Array(10).fill(null));
+  aoa.push(Array(10).fill(null));
+  aoa.push(Array(10).fill(null));
+  const nameRow = Array(10).fill(null);
+  nameRow[1] = 'ALICIA C. DE LEON';
+  nameRow[9] = 'JIMMY S. MANLICLIC';
   aoa.push(nameRow);
-  const titleRow = Array(17).fill(null);
-  titleRow[1] = 'Agricultural Technician';
-  titleRow[9] = 'Municipal Agriculturist';
+  const titleRow = Array(10).fill(null);
+  titleRow[1] = 'Provincial Crop Protection Coordinator';
+  titleRow[9] = 'Assistant Provincial Agriculturist/ OIC - OPA';
   aoa.push(titleRow);
 
   // ── Create worksheet ──────────────────────────────────────────────────────
@@ -186,21 +179,14 @@ async function exportToExcel(detections, farms, month, year, rowEdits = {}) {
   ws['!cols'] = [
     { wch: 24.0        }, // A  Municipality
     { wch: 23.6640625  }, // B  Barangay
-    { wch: 15.6640625  }, // C  No. of Farmers
+    { wch: 22.0        }, // C  Farmer Name
     { wch: 17.33203125 }, // D  Latitude
     { wch: 17.33203125 }, // E  Longitude
-    { wch: 17.33203125 }, // F  Crop  (template has no explicit width for E/F — using D width)
-    { wch: 15.5546875  }, // G  Variety
-    { wch: 22.33203125 }, // H  Growth Stage
-    { wch: 21.0        }, // I  Pests
-    { wch: 11.44140625 }, // J  Natural Enemies
-    { wch: 9.33203125  }, // K  Area Planted
-    { wch: 11.33203125 }, // L  Area Affected
-    { wch: 14.109375   }, // M  % Infestation
-    { wch: 10.6640625  }, // N  Area Treated
-    { wch: 10.6640625  }, // O  Actions Taken
-    { wch: 10.0        }, // P  Data Source
-    { wch: 12.5546875  }, // Q  Remarks
+    { wch: 17.33203125 }, // F  Crop
+    { wch: 21.0        }, // G  Pests
+    { wch: 14.109375   }, // H  % Infestation
+    { wch: 14.0        }, // I  Data Source
+    { wch: 14.0        }, // J  Remarks
   ];
 
   // ── Row heights — only row 12 (headers) has a fixed height in the template ─
@@ -217,12 +203,12 @@ async function exportToExcel(detections, farms, month, year, rowEdits = {}) {
   // Row 7  = aoa[6]  (Title)
   // Row 8  = aoa[7]  (Date)
   ws['!merges'] = [
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 16 } },  // Row 2: Republic
-    { s: { r: 2, c: 0 }, e: { r: 2, c: 16 } },  // Row 3: Province
-    { s: { r: 3, c: 0 }, e: { r: 3, c: 16 } },  // Row 4: Office
-    { s: { r: 4, c: 0 }, e: { r: 4, c: 16 } },  // Row 5: Address
-    { s: { r: 6, c: 0 }, e: { r: 6, c: 16 } },  // Row 7: Title
-    { s: { r: 7, c: 0 }, e: { r: 7, c: 16 } },  // Row 8: Date
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } },  // Row 2: Republic
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 9 } },  // Row 3: Province
+    { s: { r: 3, c: 0 }, e: { r: 3, c: 9 } },  // Row 4: Office
+    { s: { r: 4, c: 0 }, e: { r: 4, c: 9 } },  // Row 5: Address
+    { s: { r: 6, c: 0 }, e: { r: 6, c: 9 } },  // Row 7: Title
+    { s: { r: 7, c: 0 }, e: { r: 7, c: 9 } },  // Row 8: Date
   ];
 
   // ── Cell styles ───────────────────────────────────────────────────────────
@@ -296,27 +282,24 @@ async function exportToExcel(detections, farms, month, year, rowEdits = {}) {
   if (ws['A11']) ws['A11'].s = PROVINCE_STYLE;
 
   // Green header row (Excel row 12)
-  'ABCDEFGHIJKLMNOPQ'.split('').forEach(col => {
+  'ABCDEFGHIJ'.split('').forEach(col => {
     const addr = `${col}12`;
     if (!ws[addr]) ws[addr] = { t: 's', v: '' };
     ws[addr].s = GREEN_HDR;
   });
 
   // Apply styles to all data rows (Excel row 13 onward = aoa index 12 onward)
-  const cols = 'ABCDEFGHIJKLMNOPQ'.split('');
+  const cols = 'ABCDEFGHIJ'.split('');
   const totalExRow = aoa.length; // Excel row number of the grand total row
   for (let r = 13; r <= aoa.length; r++) {
     cols.forEach((col, ci) => {
       const addr = `${col}${r}`;
       if (!ws[addr]) return;
-      if (col === 'M') {
-        // % infestation — format as percentage
+      if (col === 'H') {
         ws[addr].s = PCT_STYLE;
         if (typeof ws[addr].v === 'number') ws[addr].t = 'n';
-      } else if (col === 'C' || col === 'K' || col === 'L') {
-        ws[addr].s = SUBTOTAL_STYLE;
       } else {
-        ws[addr].s = col === 'B' || col === 'A' || col === 'I'
+        ws[addr].s = (col === 'A' || col === 'B' || col === 'C' || col === 'G')
           ? DATA_STYLE
           : DATA_CENTER;
       }
@@ -505,22 +488,11 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
   const [generated,     setGenerated]     = useState(false);
   const [exporting,     setExporting]     = useState(false);
 
-  // Editable row overrides: { [rowIndex]: { barangay, numFarmers, variety, growthStage, areaPlanted, areaAffected, areaTreated, naturalEnemies, actionsTaken } }
-  const [rowEdits,      setRowEdits]      = useState({});
-  const [editingRow,    setEditingRow]    = useState(null); // index of row being edited
-
-  // Editable signature fields
-  const [preparedBy,    setPreparedBy]    = useState('ALICIA C. DE LEON');
-  const [preparedTitle, setPreparedTitle] = useState('Provincial Crop Protection Coordinator');
-  const [notedBy,       setNotedBy]       = useState('JIMMY S. MANLICLIC');
-  const [notedTitle,    setNotedTitle]    = useState('Assistant Provincial Agriculturist/ OIC - OPA');
-
-  const updateRowEdit = (ri, field, value) => {
-    setRowEdits(prev => ({
-      ...prev,
-      [ri]: { ...(prev[ri] || {}), [field]: value }
-    }));
-  };
+  // Signature fields (static display values)
+  const preparedBy    = 'ALICIA C. DE LEON';
+  const preparedTitle = 'Provincial Crop Protection Coordinator';
+  const notedBy       = 'JIMMY S. MANLICLIC';
+  const notedTitle    = 'Assistant Provincial Agriculturist/ OIC - OPA';
 
   const fetchReportData = async () => {
     setLoading(true);
@@ -534,7 +506,10 @@ const AdminMonthlyReport = ({ user, onLogout }) => {
       const allFarm = Array.isArray(farmRes.data) ? farmRes.data : (farmRes.data.results || []);
       const filtered = allDet.filter(d => {
         const dt = new Date(d.detected_at || d.reported_at);
-        return dt.getMonth() === selectedMonth && dt.getFullYear() === selectedYear;
+        const inMonth = dt.getMonth() === selectedMonth && dt.getFullYear() === selectedYear;
+        // Exclude rows with no pest identification — blank rows with no system data
+        const hasPest = !!(d.pest_name || d.pest || '').trim();
+        return inMonth && hasPest;
       });
       setDetections(filtered);
       setFarms(allFarm);
@@ -563,10 +538,6 @@ body{font-family:Arial,sans-serif;font-size:7pt;color:#000;background:#fff;-webk
 .title-main{font-weight:bold;font-size:8pt;}
 .title-sub{font-size:7pt;}
 table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:6.5pt;margin-top:4px;}
-col.c1{width:9%;}col.c2{width:9%;}col.c3{width:4%;}col.c4{width:6%;}col.c5{width:6%;}
-col.c6{width:5%;}col.c7{width:5%;}col.c8{width:7%;}col.c9{width:8%;}col.c10{width:6%;}
-col.c11{width:5%;}col.c12{width:5%;}col.c13{width:5%;}col.c14{width:5%;}col.c15{width:6%;}
-col.c16{width:6%;}col.c17{width:7%;}
 th,td{border:0.5pt solid #aaa;padding:1.5pt 2pt;word-break:break-word;vertical-align:middle;}
 thead tr{background-color:#92D050!important;font-weight:bold;text-align:center;}
 thead th{background-color:#92D050!important;}
@@ -600,7 +571,7 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
   const handleExport = async () => {
     setExporting(true);
     try {
-      await exportToExcel(detections, farms, selectedMonth, selectedYear, rowEdits);
+      await exportToExcel(detections, farms, selectedMonth, selectedYear, {});
     } finally {
       setExporting(false);
     }
@@ -698,12 +669,6 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
                 ))}
               </div>
 
-              {/* Editing hint */}
-              <div className="no-print mb-2 flex items-center gap-2 px-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg py-2 px-3">
-                <span>✏️</span>
-                <span><strong>Click any row</strong> to edit blank fields (Barangay, Farmers, Variety, Growth Stage, Areas, Natural Enemies, Actions Taken). Edit <strong>Prepared by / Noted by</strong> names and titles directly in the signature section below.</span>
-              </div>
-
               {/* ─── PRINTABLE REPORT — rendered in iframe for printing ──── */}
               <div id="printable-report" className="bg-white rounded-lg shadow mb-6" style={{ fontFamily: 'Arial, sans-serif' }}>
 
@@ -731,31 +696,22 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
                 <div style={{ padding:'0 4px' }}>
                   <table style={{ width:'100%', borderCollapse:'collapse', tableLayout:'fixed', fontSize:'7pt' }}>
                     <colgroup>
-                      <col className="c1"  style={{ width:'9%' }}  />
-                      <col className="c2"  style={{ width:'9%' }}  />
-                      <col className="c3"  style={{ width:'4%' }}  />
-                      <col className="c4"  style={{ width:'6%' }}  />
-                      <col className="c5"  style={{ width:'6%' }}  />
-                      <col className="c6"  style={{ width:'5%' }}  />
-                      <col className="c7"  style={{ width:'5%' }}  />
-                      <col className="c8"  style={{ width:'7%' }}  />
-                      <col className="c9"  style={{ width:'8%' }}  />
-                      <col className="c10" style={{ width:'6%' }}  />
-                      <col className="c11" style={{ width:'5%' }}  />
-                      <col className="c12" style={{ width:'5%' }}  />
-                      <col className="c13" style={{ width:'5%' }}  />
-                      <col className="c14" style={{ width:'5%' }}  />
-                      <col className="c15" style={{ width:'6%' }}  />
-                      <col className="c16" style={{ width:'6%' }}  />
-                      <col className="c17" style={{ width:'7%' }}  />
+                      <col style={{ width:'13%' }} />
+                      <col style={{ width:'13%' }} />
+                      <col style={{ width:'14%' }} />
+                      <col style={{ width:'9%' }}  />
+                      <col style={{ width:'9%' }}  />
+                      <col style={{ width:'9%' }}  />
+                      <col style={{ width:'14%' }} />
+                      <col style={{ width:'7%' }}  />
+                      <col style={{ width:'7%' }}  />
+                      <col style={{ width:'5%' }}  />
                     </colgroup>
                     <thead>
                       <tr style={{ backgroundColor:'#92D050', fontWeight:'bold', textAlign:'center' }}>
                         {[
-                          'Municipality','Barangay','No. of\nFarmers','Lat','Lng',
-                          'Crop','Variety','Growth\nStage','Pests','Natural\nEnemies',
-                          'Area\nPlanted','Area\nAffected','%\nInfest.','Area\nTreated',
-                          'Actions\nTaken','Data\nSource','Remarks'
+                          'Municipality','Barangay','Farmer\nName','Lat','Lng',
+                          'Crop','Pests','%\nInfest.','Data\nSource','Remarks'
                         ].map(h => (
                           <th key={h} style={{ border:'0.5pt solid #aaa', padding:'2pt 2pt', whiteSpace:'pre-line', fontWeight:'bold', textAlign:'center', verticalAlign:'middle', backgroundColor:'#92D050' }}>{h}</th>
                         ))}
@@ -764,169 +720,46 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
                     <tbody>
                       {detections.length === 0 ? (
                         <tr>
-                          <td colSpan={17} style={{ textAlign:'center', padding:'24pt', color:'#aaa', fontStyle:'italic', border:'0.5pt solid #aaa' }}>
+                          <td colSpan={10} style={{ textAlign:'center', padding:'24pt', color:'#aaa', fontStyle:'italic', border:'0.5pt solid #aaa' }}>
                             No detections found for {MONTHS[selectedMonth]} {selectedYear}.
                           </td>
                         </tr>
                       ) : (
                         <>
                           {detections.map((d, ri) => {
-                            const farm = farmById[d.farm_id] || null;
+                            const farm = farmById[d.farm_id] || farmById[d.farm] || null;
                             const lat  = d.latitude  || (farm ? farm.lat  : null);
                             const lng  = d.longitude || (farm ? farm.lng  : null);
-                            // Resolve barangay: farm.barangay → address extract → edits override
-                            const autoBarangay = (farm && farm.barangay) ? farm.barangay
-                              : (d.address && d.address.includes(', Magalang'))
-                                ? d.address.split(', Magalang')[0].trim()
-                                : '';
+                            // Resolve barangay: farm.barangay → farm address → detection address
+                            // saveDetection stores: selectedBarangay + ', Magalang, Pampanga'
+                            const extractBarangay = (addr) => {
+                              if (!addr || !addr.trim()) return '';
+                              if (addr.includes(', Magalang')) return addr.split(', Magalang')[0].trim();
+                              return ''; // ignore non-barangay placeholders like 'Detected Location'
+                            };
+                            const autoBarangay = extractBarangay(d.address)
+                              || (farm && farm.barangay && farm.barangay.trim() ? farm.barangay.trim() : '')
+                              || extractBarangay(farm && farm.address)
+                              || '';
                             const pct  = severityToPct(d.severity);
                             const pctColor = d.severity === 'critical' ? '#b91c1c'
                               : d.severity === 'high'   ? '#c2410c'
                               : d.severity === 'medium' ? '#ca8a04' : '#15803d';
                             const tdBase = { border:'0.5pt solid #aaa', padding:'1.5pt 2pt', verticalAlign:'middle', wordBreak:'break-word' };
                             const tdC    = { ...tdBase, textAlign:'center' };
-                            const edits  = rowEdits[ri] || {};
-                            const isEditing = editingRow === ri;
-
-                            // Shared style for editable cells (screen only — print shows plain text)
-                            const editableTdStyle = {
-                              ...tdBase,
-                              backgroundColor: isEditing ? '#fffbeb' : undefined,
-                              position: 'relative',
-                              cursor: 'pointer',
-                            };
-                            const editableTdCStyle = { ...editableTdStyle, textAlign:'center' };
-
-                            const inputStyle = {
-                              border: 'none', outline: 'none', background: 'transparent',
-                              fontSize: 'inherit', fontFamily: 'inherit', color: 'inherit',
-                              width: '100%', padding: 0, margin: 0, textAlign: 'inherit',
-                            };
 
                             return (
                               <tr key={ri}
                                 style={{ backgroundColor: ri % 2 === 0 ? '#fff' : '#f9fafb' }}
-                                onClick={() => setEditingRow(isEditing ? null : ri)}
-                                title="Click row to edit"
                               >
                                 <td style={{ ...tdBase, fontWeight:'600' }}>Magalang</td>
-
-                                {/* Barangay — pre-filled from farm/address, editable */}
-                                <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
-                                  <input
-                                    className="print-field"
-                                    style={{ ...inputStyle }}
-                                    placeholder={isEditing ? 'Barangay…' : (autoBarangay || '—')}
-                                    value={edits.barangay ?? autoBarangay}
-                                    onChange={e => updateRowEdit(ri, 'barangay', e.target.value)}
-                                    onClick={() => setEditingRow(ri)}
-                                  />
-                                </td>
-
-                                {/* No. of Farmers — editable */}
-                                <td style={{ ...editableTdCStyle }} onClick={e => e.stopPropagation()}>
-                                  <input
-                                    className="print-field"
-                                    style={{ ...inputStyle, textAlign:'center' }}
-                                    placeholder={isEditing ? '#' : '—'}
-                                    value={edits.numFarmers ?? ''}
-                                    onChange={e => updateRowEdit(ri, 'numFarmers', e.target.value)}
-                                    onClick={() => setEditingRow(ri)}
-                                  />
-                                </td>
-
+                                <td style={tdBase}>{autoBarangay || '—'}</td>
+                                <td style={tdBase}>{d.user_name || '—'}</td>
                                 <td style={tdC}>{lat ? Number(lat).toFixed(6) : '—'}</td>
                                 <td style={tdC}>{lng ? Number(lng).toFixed(6) : '—'}</td>
                                 <td style={tdBase}>{capitalize(d.crop_type) || '—'}</td>
-
-                                {/* Variety — editable */}
-                                <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
-                                  <input
-                                    className="print-field"
-                                    style={inputStyle}
-                                    placeholder={isEditing ? 'Variety…' : '—'}
-                                    value={edits.variety ?? ''}
-                                    onChange={e => updateRowEdit(ri, 'variety', e.target.value)}
-                                    onClick={() => setEditingRow(ri)}
-                                  />
-                                </td>
-
-                                {/* Growth Stage — editable */}
-                                <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
-                                  <input
-                                    className="print-field"
-                                    style={inputStyle}
-                                    placeholder={isEditing ? 'Stage…' : '—'}
-                                    value={edits.growthStage ?? ''}
-                                    onChange={e => updateRowEdit(ri, 'growthStage', e.target.value)}
-                                    onClick={() => setEditingRow(ri)}
-                                  />
-                                </td>
-
                                 <td style={{ ...tdBase, fontWeight:'500', color:'#b91c1c' }}>{d.pest_name || d.pest || '—'}</td>
-
-                                {/* Natural Enemies — editable */}
-                                <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
-                                  <input
-                                    className="print-field"
-                                    style={inputStyle}
-                                    placeholder={isEditing ? 'Enemies…' : '—'}
-                                    value={edits.naturalEnemies ?? ''}
-                                    onChange={e => updateRowEdit(ri, 'naturalEnemies', e.target.value)}
-                                    onClick={() => setEditingRow(ri)}
-                                  />
-                                </td>
-
-                                {/* Area Planted — editable */}
-                                <td style={{ ...editableTdCStyle }} onClick={e => e.stopPropagation()}>
-                                  <input
-                                    className="print-field"
-                                    style={{ ...inputStyle, textAlign:'center' }}
-                                    placeholder={isEditing ? 'ha' : '—'}
-                                    value={edits.areaPlanted ?? ''}
-                                    onChange={e => updateRowEdit(ri, 'areaPlanted', e.target.value)}
-                                    onClick={() => setEditingRow(ri)}
-                                  />
-                                </td>
-
-                                {/* Area Affected — editable */}
-                                <td style={{ ...editableTdCStyle }} onClick={e => e.stopPropagation()}>
-                                  <input
-                                    className="print-field"
-                                    style={{ ...inputStyle, textAlign:'center' }}
-                                    placeholder={isEditing ? 'ha' : '—'}
-                                    value={edits.areaAffected ?? ''}
-                                    onChange={e => updateRowEdit(ri, 'areaAffected', e.target.value)}
-                                    onClick={() => setEditingRow(ri)}
-                                  />
-                                </td>
-
                                 <td style={{ ...tdC, color: pctColor, fontWeight:'600' }}>{pct !== null ? `${(pct * 100).toFixed(0)}%` : '—'}</td>
-
-                                {/* Area Treated — editable */}
-                                <td style={{ ...editableTdCStyle }} onClick={e => e.stopPropagation()}>
-                                  <input
-                                    className="print-field"
-                                    style={{ ...inputStyle, textAlign:'center' }}
-                                    placeholder={isEditing ? 'ha' : '—'}
-                                    value={edits.areaTreated ?? ''}
-                                    onChange={e => updateRowEdit(ri, 'areaTreated', e.target.value)}
-                                    onClick={() => setEditingRow(ri)}
-                                  />
-                                </td>
-
-                                {/* Actions Taken — editable */}
-                                <td style={editableTdStyle} onClick={e => e.stopPropagation()}>
-                                  <input
-                                    className="print-field"
-                                    style={inputStyle}
-                                    placeholder={isEditing ? 'Actions…' : '—'}
-                                    value={edits.actionsTaken ?? ''}
-                                    onChange={e => updateRowEdit(ri, 'actionsTaken', e.target.value)}
-                                    onClick={() => setEditingRow(ri)}
-                                  />
-                                </td>
-
                                 <td style={{ ...tdC, color:'#6b7280' }}>PestCheck</td>
                                 <td style={{ ...tdBase, color:'#6b7280' }}>{d.confirmed ? 'Confirmed' : 'Unconfirmed'}</td>
                               </tr>
@@ -936,7 +769,7 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
                           <tr className="subtotal" style={{ backgroundColor:'#E2EFDA' }}>
                             <td colSpan={2} style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt', fontWeight:'bold', fontSize:'7pt' }}>TOTAL</td>
                             <td style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt', textAlign:'center', fontStyle:'italic', color:'#6b7280' }}>Σ {detections.length}</td>
-                            <td colSpan={14} style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt' }}></td>
+                            <td colSpan={7} style={{ border:'0.5pt solid #aaa', padding:'1.5pt 2pt' }}></td>
                           </tr>
                         </>
                       )}
@@ -950,56 +783,16 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
                   <div style={{ width:'42%' }}>
                     <p className="sig-label" style={{ marginBottom:'32px', fontSize:'9pt' }}>Prepared by:</p>
                     <div style={{ borderTop:'1pt solid #333', paddingTop:'4px' }}>
-                      <input
-                        className="print-field"
-                        style={{
-                          fontWeight:'bold', fontSize:'9pt', border:'none', outline:'none',
-                          background:'transparent', width:'100%', padding:0,
-                          borderBottom:'1px dashed #aaa', marginBottom:'4px',
-                        }}
-                        value={preparedBy}
-                        onChange={e => setPreparedBy(e.target.value)}
-                        placeholder="Name (Prepared By)"
-                      />
-                      <input
-                        className="print-field"
-                        style={{
-                          fontSize:'8pt', border:'none', outline:'none',
-                          background:'transparent', width:'100%', padding:0,
-                          borderBottom:'1px dashed #aaa',
-                        }}
-                        value={preparedTitle}
-                        onChange={e => setPreparedTitle(e.target.value)}
-                        placeholder="Title / Designation"
-                      />
+                      <p style={{ fontWeight:'bold', fontSize:'9pt', marginBottom:'4px' }}>{preparedBy}</p>
+                      <p style={{ fontSize:'8pt' }}>{preparedTitle}</p>
                     </div>
                   </div>
                   {/* Noted By */}
                   <div style={{ width:'42%' }}>
                     <p className="sig-label" style={{ marginBottom:'32px', fontSize:'9pt' }}>Noted by:</p>
                     <div style={{ borderTop:'1pt solid #333', paddingTop:'4px' }}>
-                      <input
-                        className="print-field"
-                        style={{
-                          fontWeight:'bold', fontSize:'9pt', border:'none', outline:'none',
-                          background:'transparent', width:'100%', padding:0,
-                          borderBottom:'1px dashed #aaa', marginBottom:'4px',
-                        }}
-                        value={notedBy}
-                        onChange={e => setNotedBy(e.target.value)}
-                        placeholder="Name (Noted By)"
-                      />
-                      <input
-                        className="print-field"
-                        style={{
-                          fontSize:'8pt', border:'none', outline:'none',
-                          background:'transparent', width:'100%', padding:0,
-                          borderBottom:'1px dashed #aaa',
-                        }}
-                        value={notedTitle}
-                        onChange={e => setNotedTitle(e.target.value)}
-                        placeholder="Title / Designation"
-                      />
+                      <p style={{ fontWeight:'bold', fontSize:'9pt', marginBottom:'4px' }}>{notedBy}</p>
+                      <p style={{ fontSize:'8pt' }}>{notedTitle}</p>
                     </div>
                   </div>
                 </div>
@@ -1060,7 +853,7 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
                     Click <strong>Print as PDF</strong> to open the browser print dialog. Select <strong>Save as PDF</strong> as the destination for a digital copy.
                   </p>
                   <p className="text-xs text-green-600 mt-1">
-                    Province pre-filled as <strong>PAMPANGA</strong>. Fill in any remaining blank fields directly in the table above before printing.
+                    Province pre-filled as <strong>PAMPANGA</strong>. Barangay is auto-filled from farm data.
                   </p>
                 </div>
                 <button

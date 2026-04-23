@@ -229,9 +229,10 @@ const AdminDetections = ({ user, onLogout }) => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pest</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barangay</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detected At</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -250,6 +251,13 @@ const AdminDetections = ({ user, onLogout }) => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {detection.farm_name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {(() => {
+                          const addr = detection.address || '';
+                          if (addr.includes(', Magalang')) return addr.split(', Magalang')[0].trim();
+                          return '—';
+                        })()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getSeverityBadge(detection.severity)}`}>
@@ -424,6 +432,16 @@ const AdminDetections = ({ user, onLogout }) => {
                 <div>
                   <p className="text-sm text-gray-600">Farm</p>
                   <p className="font-semibold">{selectedDetection.farm_name || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Barangay</p>
+                  <p className="font-semibold">
+                    {(() => {
+                      const addr = selectedDetection.address || '';
+                      if (addr.includes(', Magalang')) return addr.split(', Magalang')[0].trim();
+                      return '—';
+                    })()}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Location</p>
