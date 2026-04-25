@@ -126,8 +126,8 @@ async function exportToExcel(detections, farms, month, year, rowEdits = {}) {
       if (addr.includes(', Magalang')) return addr.split(', Magalang')[0].trim();
       return null; // ignore non-barangay placeholders like 'Detected Location'
     };
-    const barangay = extractBarangay(d.address)
-      || (farm && farm.barangay && farm.barangay.trim() ? farm.barangay.trim() : null)
+    const barangay = (farm && farm.barangay && farm.barangay.trim() ? farm.barangay.trim() : null)
+      || extractBarangay(d.address)
       || extractBarangay(farm && farm.address)
       || null;
     // Store as decimal — cell formatted as 0%
@@ -737,8 +737,8 @@ input.print-field,textarea.print-field{border:none!important;outline:none!import
                               if (addr.includes(', Magalang')) return addr.split(', Magalang')[0].trim();
                               return ''; // ignore non-barangay placeholders like 'Detected Location'
                             };
-                            const autoBarangay = extractBarangay(d.address)
-                              || (farm && farm.barangay && farm.barangay.trim() ? farm.barangay.trim() : '')
+                            const autoBarangay = (farm && farm.barangay && farm.barangay.trim() ? farm.barangay.trim() : '')
+                              || extractBarangay(d.address)
                               || extractBarangay(farm && farm.address)
                               || '';
                             const pct  = severityToPct(d.severity);

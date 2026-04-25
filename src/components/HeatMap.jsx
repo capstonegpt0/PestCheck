@@ -1048,8 +1048,8 @@ const HeatMap = ({ user, onLogout }) => {
                               return null;
                             };
                             const farm = farms.find(f => f.id === det.farm_id || f.id === det.farm);
-                            const barangay = extractBarangay(det.address)
-                              || (farm && farm.barangay && farm.barangay.trim() ? farm.barangay.trim() : null)
+                            const barangay = (farm && farm.barangay && farm.barangay.trim() ? farm.barangay.trim() : null)
+                              || extractBarangay(det.address)
                               || extractBarangay(farm && farm.address);
                             return barangay ? (
                               <p style={{ fontSize: 11, color: '#888', margin: 0 }}>
