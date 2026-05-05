@@ -843,6 +843,20 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  }
  };
 
+ const handleDeleteVR = async (vr) => {
+   if (!window.confirm(
+     `Delete the rejected request for @${vr.user_name}?\n\nThis will permanently remove the request and the associated user account.`
+   )) return;
+   try {
+     await api.delete(`/admin/verification-requests/${vr.id}/`);
+     fetchVerificationRequests();
+     fetchUsers();
+   } catch (error) {
+     console.error('Error deleting verification request:', error);
+     alert(error.response?.data?.error || 'Failed to delete request.');
+   }
+ };
+
  const filteredVRs = verificationRequests.filter(r =>
  vrFilter === 'all' ? true : r.status === vrFilter
  );
@@ -1220,17 +1234,29 @@ const AdminUsers = ({ user, onLogout, initialTab }) => {
  {vr.reviewed_by_name ? `@${vr.reviewed_by_name}` : ''}
  </td>
  <td className="px-6 py-4 whitespace-nowrap">
- <button
- onClick={() => setSelectedVR(vr)}
- className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
- vr.status === 'pending'
- ? 'bg-blue-600 text-white hover:bg-blue-700'
- : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
- }`}
- >
- <Eye className="w-3.5 h-3.5 mr-1" />
- {vr.status === 'pending' ? 'Review' : 'View'}
- </button>
+ {vr.status === 'rejected' ? (
+   isAdmin && (
+     <button
+       onClick={() => handleDeleteVR(vr)}
+       className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors bg-red-100 text-red-700 hover:bg-red-200"
+     >
+       <Trash2 className="w-3.5 h-3.5 mr-1" />
+       Delete
+     </button>
+   )
+ ) : (
+   <button
+     onClick={() => setSelectedVR(vr)}
+     className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+       vr.status === 'pending'
+         ? 'bg-blue-600 text-white hover:bg-blue-700'
+         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+     }`}
+   >
+     <Eye className="w-3.5 h-3.5 mr-1" />
+     {vr.status === 'pending' ? 'Review' : 'View'}
+   </button>
+ )}
  </td>
  </tr>
  ))}
